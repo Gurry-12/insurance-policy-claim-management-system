@@ -27,7 +27,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 @Entity
-@Table(name = "claim")
+@Table(name = "claims")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -69,9 +69,9 @@ public class Claim {
 	@Column(name = "updated_date")
 	private LocalDateTime updatedDate;
 	
-//	@ManyToOne
-//	@JoinColumn(name = "policy_id",nullable = false)
-//	private Policy policy;
+	@ManyToOne
+	@JoinColumn(name = "policy_id",nullable = false)
+	private Policy policy;
 	
 	@OneToMany(mappedBy = "claim",cascade = CascadeType.ALL)
 	@JsonBackReference

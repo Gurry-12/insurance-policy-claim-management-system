@@ -20,7 +20,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 @Entity
-@Table(name = "claim_status_history")
+@Table(name = "claim_status_histories")
 @Getter
 @Setter
 @NoArgsConstructor

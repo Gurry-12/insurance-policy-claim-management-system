@@ -19,7 +19,7 @@ import lombok.ToString;
 
 
 @Entity
-@Table(name = "claim_document")
+@Table(name = "claim_documents")
 @Getter
 @Setter
 @NoArgsConstructor
