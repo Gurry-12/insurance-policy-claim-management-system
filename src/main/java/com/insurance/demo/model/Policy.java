@@ -2,10 +2,33 @@ package com.insurance.demo.model;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import com.insurance.demo.enums.PolicyStatus;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "policies")
@@ -13,44 +36,54 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = { "customer", "policyPlan" })
 public class Policy {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long policyId;
+	@Column(name = "id")
+	private Long id;
 
-	@NotBlank
-	@Column(nullable = false, unique = true)
+	@Column(name = "policy_number", nullable = false, unique = true, length = 50)
 	private String policyNumber;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "customer_id", nullable = false)
+	@NotNull(message = "Customer is required")
 	private Customer customer;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "plan_id", nullable = false)
+	@NotNull(message = "Policy plan is required")
 	private PolicyPlan policyPlan;
 
-	@Column(nullable = false)
+	@Column(name = "start_date", nullable = false)
+	@NotNull(message = "Start date is required")
 	private LocalDate startDate;
 
-	@Column(nullable = false)
+	@Column(name = "end_date", nullable = false)
+	@NotNull(message = "End date is required")
 	private LocalDate endDate;
 
-	@Column(nullable = false)
-	private String policyStatus;
+	@Enumerated(EnumType.STRING)
+	@Column(name = "policy_status", nullable = false)
+	@NotNull(message = "Policy status is required")
+	private PolicyStatus policyStatus;
 
-	@Column(nullable = false)
-	private Double totalPremiumPaid = 0.0;
+	@Column(name = "total_premium_paid", nullable = false, precision = 15, scale = 2)
+	@PositiveOrZero(message = "Total premium paid must be zero or positive")
+	private Double totalPremiumPaid = 0.0; 
 
-	private LocalDateTime createdDate = LocalDateTime.now();
+	@CreationTimestamp
+	@Column(name = "created_date", updatable = false)
+	private LocalDateTime createdDate;
 
+	@UpdateTimestamp
+	@Column(name = "updated_date")
 	private LocalDateTime updatedDate;
 
-	@OneToMany(mappedBy = "policy")
-	private List<PremiumPayment> payments;
+	@OneToMany(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	private List<PremiumPayment> payments = new ArrayList<>();
 
-	@OneToMany(mappedBy = "policy")
-	private List<Claim> claims;
+	@OneToMany(mappedBy = "policy", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	private List<Claim> claims = new ArrayList<>();
 }

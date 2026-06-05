@@ -2,9 +2,31 @@ package com.insurance.demo.model;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import com.insurance.demo.enums.PremiumType;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "policy_plans")
@@ -12,45 +34,56 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = { "insuranceProduct", "policies" })
 public class PolicyPlan {
 
 	@Id
+	@Column(name = "id")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long planId;
+	private Long id;
 
 	@ManyToOne
 	@JoinColumn(name = "product_id", nullable = false)
 	private InsuranceProduct insuranceProduct;
 
-	@NotBlank
-	@Column(nullable = false)
+	@NotBlank(message = "name can't be blank")
+	@Column(name = "plan_name", nullable = false)
+	@Size(min = 2, max = 100 , message = "name should be beteeen 2 - 100 characters")
 	private String planName;
 
-	@Positive
-	@Column(nullable = false)
+	@Positive(message = "amount should be positive")
+	@Column(name= "coverage_amount", nullable = false)
+	@NotNull(message = "amount can't be null")
 	private Double coverageAmount;
 
-	@Positive
-	@Column(nullable = false)
+	@Positive(message = "amount should be positive")
+	@Column(name= "premium_amount", nullable = false)
+	@NotNull(message = "premium amount can't be null")
 	private Double premiumAmount;
 
-	@NotBlank
-	@Column(nullable = false)
-	private String premiumType;
+	@Enumerated(EnumType.STRING)
+	@NotNull(message = "premium type can't be null")
+	@Column(name = "premium_type" , nullable = false)
+	private PremiumType premiumType;
 
-	@Positive
-	@Column(nullable = false)
+	@Positive(message = "duration should be positive")
+	@Column(name= "duration", nullable = false)
+	@NotNull(message = "duration can't be null")
 	private Integer duration;
 
-	@NotBlank
-	@Column(nullable = false, length = 3000)
+	@NotBlank(message = "T & C can't be blank")
+	@Column(name= "terms_conditions", nullable = false, length = 3000)
 	private String termsAndConditions;
 
-	private boolean activeStatus;
+	@NotNull(message = "status can't be null")
+	@Column(name = "is_active", nullable = false)
+	private Boolean isActive;
 
-	private LocalDateTime createdDate = LocalDateTime.now();
+	@Column(name = "created_date")
+	@CreationTimestamp
+	private LocalDateTime createdDate;
 
+	@Column(name = "updated_date")
+	@UpdateTimestamp
 	private LocalDateTime updatedDate;
 
 	@OneToMany(mappedBy = "policyPlan")

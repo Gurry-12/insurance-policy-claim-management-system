@@ -1,9 +1,29 @@
 package com.insurance.demo.model;
 
 import java.time.LocalDateTime;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
+
+import com.insurance.demo.enums.PaymentMode;
+import com.insurance.demo.enums.PaymentStatus;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "premium_payments")
@@ -11,34 +31,39 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = "policy")
 public class PremiumPayment {
 
 	@Id
+	@Column(name = "payment_id")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long paymentId;
+	private Long id;
 
 	@ManyToOne
 	@JoinColumn(name = "policy_id", nullable = false)
 	private Policy policy;
 
-	@Positive
-	@Column(nullable = false)
+	@Positive(message = "amount should be positive")
+	@NotNull(message = "amount can't be null")
+	@Column(name = "amount", nullable = false)
 	private Double amount;
 
-	private LocalDateTime paymentDate = LocalDateTime.now();
+	@Column(name = "payment_date", nullable = false)
+    private LocalDateTime paymentDate = LocalDateTime.now();
+	
+	@Enumerated(EnumType.STRING)
+	@NotNull(message = "payment mode can't be null")
+	@Column(name = "payment_mode", nullable = false)
+	private PaymentMode paymentMode;
 
-	@NotBlank
-	@Column(nullable = false)
-	private String paymentMode;
-
-	@NotBlank
-	@Column(nullable = false, unique = true)
+	@NotBlank(message = "transaction reference can't be null")
+	@Column(name = "transaction_reference", nullable = false, unique = true)
 	private String transactionReference;
 
-	@NotBlank
-	@Column(nullable = false)
-	private String paymentStatus;
+	@NotNull(message = "payment status can not be null")
+	@Column(name = "payment_status",  nullable = false)
+    private PaymentStatus paymentStatus;
 
-	private LocalDateTime createdDate = LocalDateTime.now();
+    @Column(name = "created_date")
+    @CreationTimestamp
+    private LocalDateTime createdDate;
 }

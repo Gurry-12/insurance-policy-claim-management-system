@@ -16,12 +16,14 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -34,7 +36,6 @@ import lombok.ToString;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class AppUser {
 
 	@Id
@@ -43,30 +44,28 @@ public class AppUser {
 	private Long id;
 
 	@Column(name = "full_name", nullable = false)
-	@NotEmpty(message = "name can not be empty")
 	@NotBlank(message = "name can not be blank")
+	@Size(min = 2, max = 100 , message = "name should be beteeen 2 - 100 characters")
 	private String fullName;
 
 	@Column(name = "email", unique = true, nullable = false)
 	@Email(message = "enter a valid email")
-	@NotEmpty(message = "email can not be empty")
 	@NotBlank(message = "email can not be blank")
 	private String email;
 
 	@Column(name = "password", nullable = false)
-	@NotEmpty(message = "mobile number can not be empty")
 	@NotBlank(message = "password can not be blank")
+	@Size(min = 6, max = 15, message = "password should be between 6 to 15")
 	private String password;
 
-	@Column(name = "mobile_number", nullable = false)
-	@NotEmpty(message = "mobile number can not be null")
+	@Column(name = "mobile_number", nullable = false, unique = true)
 	@NotBlank(message = "mobile number can not be blank")
+	@Pattern(regexp = "^[0-9]{10}$", message = "mobile no. should be 10 digit")
 	private String mobileNumber;
 
-	@Column(name = "active_status", nullable = false)
-	@NotEmpty(message = "status can not be empty")
-	@NotBlank(message = "status can not be blank")
-	private Boolean activeStatus;
+	@Column(name = "is_active", nullable = false)
+	@NotNull(message = "status can not be null")
+	private Boolean isActive;
 
 	@Column(name = "created_date")
 	@CreationTimestamp
@@ -76,7 +75,9 @@ public class AppUser {
 	@UpdateTimestamp
 	private LocalDateTime updatedDate;
 
+	@Column(name = "role", nullable = false)
 	@Enumerated(EnumType.STRING)
+	@NotNull(message = "role can not be null")
 	private Role role;
 	
 	@OneToOne(mappedBy = "user",
