@@ -69,9 +69,9 @@ public class Policy {
 	@NotNull(message = "Policy status is required")
 	private PolicyStatus policyStatus;
 
-	@Column(name = "total_premium_paid", nullable = false, precision = 15, scale = 2)
+	@Column(name = "total_premium_paid", nullable = false)
 	@PositiveOrZero(message = "Total premium paid must be zero or positive")
-	private Double totalPremiumPaid = 0.0; 
+	private Double totalPremiumPaid = 0.0;
 
 	@CreationTimestamp
 	@Column(name = "created_date", updatable = false)

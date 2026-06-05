@@ -45,7 +45,7 @@ public class AppUser {
 
 	@Column(name = "full_name", nullable = false)
 	@NotBlank(message = "name can not be blank")
-	@Size(min = 2, max = 100 , message = "name should be beteeen 2 - 100 characters")
+	@Size(min = 2, max = 100, message = "name should be beteeen 2 - 100 characters")
 	private String fullName;
 
 	@Column(name = "email", unique = true, nullable = false)
@@ -60,7 +60,7 @@ public class AppUser {
 
 	@Column(name = "mobile_number", nullable = false, unique = true)
 	@NotBlank(message = "mobile number can not be blank")
-	@Pattern(regexp = "^[0-9]{10}$", message = "mobile no. should be 10 digit")
+	@Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter valid 10 digit mobile number")
 	private String mobileNumber;
 
 	@Column(name = "is_active", nullable = false)
@@ -79,11 +79,8 @@ public class AppUser {
 	@Enumerated(EnumType.STRING)
 	@NotNull(message = "role can not be null")
 	private Role role;
-	
-	@OneToOne(mappedBy = "user",
-			cascade = CascadeType.ALL,
-			fetch = FetchType.LAZY,
-			orphanRemoval = true)
+
+	@OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private Customer customer;
 
 }
