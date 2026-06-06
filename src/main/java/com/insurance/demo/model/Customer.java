@@ -31,7 +31,6 @@ import lombok.ToString;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class Customer {
 
 	@Id
@@ -73,7 +72,7 @@ public class Customer {
 	@NotBlank(message = "Nominee relation can not be blank")
 	private String nomineeRelation;
 
-	@Column(name = "created_date")
+	@Column(name = "created_date", updatable = false)
 	@CreationTimestamp
 	private LocalDateTime createdDate;
 

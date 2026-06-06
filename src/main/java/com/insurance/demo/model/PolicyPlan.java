@@ -76,9 +76,9 @@ public class PolicyPlan {
 
 	@NotNull(message = "status can't be null")
 	@Column(name = "is_active", nullable = false)
-	private Boolean isActive;
+	private Boolean isActive = true;
 
-	@Column(name = "created_date")
+	@Column(name = "created_date", updatable = false)
 	@CreationTimestamp
 	private LocalDateTime createdDate;
 

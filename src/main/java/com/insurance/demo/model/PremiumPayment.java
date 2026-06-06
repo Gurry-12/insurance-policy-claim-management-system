@@ -63,7 +63,7 @@ public class PremiumPayment {
 	@Column(name = "payment_status",  nullable = false)
     private PaymentStatus paymentStatus;
 
-    @Column(name = "created_date")
+    @Column(name = "created_date", updatable = false)
     @CreationTimestamp
     private LocalDateTime createdDate;
 }

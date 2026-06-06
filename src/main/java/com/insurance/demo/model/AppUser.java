@@ -20,7 +20,6 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -28,7 +27,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Entity
 @Table(name = "users")
@@ -55,7 +53,6 @@ public class AppUser {
 
 	@Column(name = "password", nullable = false)
 	@NotBlank(message = "password can not be blank")
-	@Size(min = 6, max = 15, message = "password should be between 6 to 15")
 	private String password;
 
 	@Column(name = "mobile_number", nullable = false, unique = true)
@@ -65,9 +62,9 @@ public class AppUser {
 
 	@Column(name = "is_active", nullable = false)
 	@NotNull(message = "status can not be null")
-	private Boolean isActive;
+	private Boolean isActive = true;
 
-	@Column(name = "created_date")
+	@Column(name = "created_date", updatable = false)
 	@CreationTimestamp
 	private LocalDateTime createdDate;
 

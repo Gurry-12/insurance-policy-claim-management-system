@@ -23,7 +23,7 @@ public class UserResponseDTO {
 
 	private String role;
 
-	private Boolean activeStatus;
+	private Boolean isActive;
 
 	private LocalDateTime createdDate;
 
