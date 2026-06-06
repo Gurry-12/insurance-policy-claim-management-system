@@ -71,7 +71,7 @@ public class Claim {
     private String adminRemarks;
 
     @CreationTimestamp
-    @Column(name = "created_date")
+    @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate;
 
     @UpdateTimestamp

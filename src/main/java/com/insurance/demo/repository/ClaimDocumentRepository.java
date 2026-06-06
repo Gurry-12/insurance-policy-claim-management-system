@@ -1,4 +1,4 @@
-package com.insurence.demo.repository;
+package com.insurance.demo.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

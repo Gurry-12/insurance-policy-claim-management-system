@@ -3,21 +3,17 @@ package com.insurance.demo.dto.response;
 import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApiResponseDTO<T> {
+public class ErrorResponseDTO {
 
+	private LocalDateTime timestamp;
+	private int statusCode;
+	private String errorType;
 	private String message;
-
-	private boolean success;
-
-	private T data;
-	
-	private LocalDateTime timeStamp;
+	private String requestPath;
 }

@@ -57,9 +57,9 @@ public class InsuranceProduct {
 	
 	@Column(name = "is_active" , nullable = false)
 	@NotNull(message = "Status is required")
-	private Boolean isActive;
+	private Boolean isActive = true;
 
-	@Column(name = "created_date")
+	@Column(name = "created_date",  updatable = false)
 	@CreationTimestamp
 	private LocalDateTime createdDate;
 
