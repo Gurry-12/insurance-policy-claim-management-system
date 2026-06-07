@@ -4,89 +4,96 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.Customizer;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.insurance.demo.security.JwtAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider,
+			JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
 
-		http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(
-				
-				auth -> auth
-				
-				//  PUBLIC AUTH 
-                .requestMatchers("/api/auth/**").permitAll()
+		http.csrf(AbstractHttpConfigurer::disable).authenticationProvider(authenticationProvider)
+				.authorizeHttpRequests(auth -> auth
 
-                //  POLICY PLANS 
-                .requestMatchers(HttpMethod.POST, "/api/plans/create").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/plans/update/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/api/plans/deactivate/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/plans/active", "/api/plans/product/*/active", "/api/plans/**")
-                    .hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
+						// PUBLIC AUTH
+						.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+						.requestMatchers("/api/auth/**").permitAll()
 
-                //  POLICIES 
-                .requestMatchers(HttpMethod.POST, "/api/policies/purchase").hasRole("CUSTOMER")
-                .requestMatchers(HttpMethod.POST, "/api/policies/issue").hasAnyRole("ADMIN", "AGENT")
-                .requestMatchers(HttpMethod.GET, "/api/policies/my-policies").hasRole("CUSTOMER")
-                .requestMatchers(HttpMethod.GET, "/api/policies/**").hasAnyRole("ADMIN", "AGENT")
-                .requestMatchers(HttpMethod.PATCH, "/api/policies/*/cancel").hasAnyRole("ADMIN", "AGENT")
+						// POLICY PLANS
+						.requestMatchers(HttpMethod.POST, "/api/plans/create").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.PUT, "/api/plans/update/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.PATCH, "/api/plans/deactivate/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.GET, "/api/plans/active", "/api/plans/product/*/active",
+								"/api/plans/**")
+						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
 
-                //  CLAIMS 
-                .requestMatchers(HttpMethod.POST, "/api/claims/raise").hasRole("CUSTOMER")
-                .requestMatchers(HttpMethod.GET, "/api/claims/my-claims").hasRole("CUSTOMER")
-                .requestMatchers(HttpMethod.GET, "/api/claims/{claimId}").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
-                .requestMatchers(HttpMethod.GET, "/api/claims/{claimId}/history").hasAnyRole("ADMIN", "AGENT")
-                .requestMatchers(HttpMethod.PATCH, "/api/claims/*/review").hasRole("AGENT")
-                .requestMatchers(HttpMethod.PATCH, "/api/claims/*/final-decision").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/claims").hasAnyRole("ADMIN", "AGENT")
-                .requestMatchers(HttpMethod.POST, "/api/claims/*/documents").hasAnyRole("CUSTOMER", "AGENT", "ADMIN")
+						// POLICIES
+						.requestMatchers(HttpMethod.POST, "/api/policies/purchase").hasRole("CUSTOMER")
+						.requestMatchers(HttpMethod.POST, "/api/policies/issue").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.GET, "/api/policies/my-policies").hasRole("CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/policies/**").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.PATCH, "/api/policies/*/cancel").hasAnyRole("ADMIN", "AGENT")
 
-                //  USERS 
-                .requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/api/users/**").hasRole("ADMIN")
+						// CLAIMS
+						.requestMatchers(HttpMethod.POST, "/api/claims/raise").hasRole("CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/claims/my-claims").hasRole("CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/claims/{claimId}")
+						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/claims/{claimId}/history").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/review").hasRole("AGENT")
+						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/final-decision").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.GET, "/api/claims").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.POST, "/api/claims/*/documents")
+						.hasAnyRole("CUSTOMER", "AGENT", "ADMIN")
 
-                // Fallback
-                .anyRequest().authenticated()
-				)
-				.httpBasic(Customizer.withDefaults())
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+						// USERS
+						.requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.PATCH, "/api/users/**").hasRole("ADMIN")
+
+						// Fallback
+						.anyRequest().authenticated())
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
 	}
 
-//	@Bean
-//	UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
-//
-//		UserDetails agent = User.builder().username("agent").password(passwordEncoder.encode("Agent123"))
-//				                .roles("AGENT").build();
-//		UserDetails admin = User.builder().username("admin").password(passwordEncoder.encode("Admin123"))
-//				.roles("ADMIN").build();
-//
-//		UserDetails customer = User.builder().username("customer").password(passwordEncoder.encode("Customer123"))
-//				.roles("CUSTOMER").build();
-//
-//		return new InMemoryUserDetailsManager(admin, agent, customer);
-//
-//	}
-
 	@Bean
-	PasswordEncoder passwordEncoder() {
+    AuthenticationProvider authenticationProvider(
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder) {
 
-		return new BCryptPasswordEncoder();
-	}
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(userDetailsService);
 
-	@Bean
-	AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-		return config.getAuthenticationManager();
-	}
+        authenticationProvider.setPasswordEncoder(passwordEncoder);
+
+        return authenticationProvider;
+    }
+
+    @Bean
+    AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+            throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
 
 }

@@ -11,12 +11,14 @@ import com.insurance.demo.dto.response.CustomerResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.service.CustomerService;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/customers")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class CustomerController {
 
 	private final CustomerService customerService;

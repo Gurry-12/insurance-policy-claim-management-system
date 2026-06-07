@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
 	public ApiResponseDTO<List<UserResponseDTO>> viewAllUsers() {
 
 		log.info("fatching all users");
-		List<AppUser> users = userRepository.findByRoleIn(List.of(Role.ROLE_COSTOMER, Role.ROLE_AGENT));
+		List<AppUser> users = userRepository.findByRoleIn(List.of(Role.ROLE_CUSTOMER, Role.ROLE_AGENT));
 
 		List<UserResponseDTO> userResponseDTOs = users.stream()
 				.map(user -> modelMapper.map(user, UserResponseDTO.class)).toList();
@@ -164,5 +164,14 @@ public class UserServiceImpl implements UserService {
 		if (sortDirection.equalsIgnoreCase("desc"))
 			return Sort.Direction.DESC;
 		throw new BadRequestException("Sort direction must be asc or desc.");
+	}
+
+	@Override
+	public UserResponseDTO findByEmail(String username) {
+
+		AppUser user = userRepository.findByEmail(username)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with email : " + username));
+
+		return modelMapper.map(user, UserResponseDTO.class);
 	}
 }
