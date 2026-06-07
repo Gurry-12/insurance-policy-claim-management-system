@@ -1,5 +1,203 @@
 package com.insurance.demo.serviceImpl;
 
-public class PolicyPlanServiceImpl {
+import java.time.LocalDateTime;
+import java.util.List;
 
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.insurance.demo.dto.request.PlanRequestDTO;
+import com.insurance.demo.dto.response.ApiResponseDTO;
+import com.insurance.demo.dto.response.PageResponseDTO;
+import com.insurance.demo.dto.response.PlanResponseDTO;
+import com.insurance.demo.exception.BadRequestException;
+import com.insurance.demo.exception.DuplicateResourceException;
+import com.insurance.demo.exception.ResourceNotFoundException;
+import com.insurance.demo.model.InsuranceProduct;
+import com.insurance.demo.model.PolicyPlan;
+import com.insurance.demo.repository.InsuranceProductRepository;
+import com.insurance.demo.repository.PolicyPlanRepository;
+import com.insurance.demo.service.PolicyPlanService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class PolicyPlanServiceImpl implements PolicyPlanService {
+
+    private final PolicyPlanRepository policyPlanRepository;
+    private final InsuranceProductRepository productRepository;
+    private final ModelMapper modelMapper;
+
+    @Override
+    @Transactional
+    public ApiResponseDTO<PlanResponseDTO> createPolicyPlan(PlanRequestDTO dto) {
+
+        log.info("Creating policy plan: {}", dto.getPlanName());
+
+        // Validate Product exists and is active
+        InsuranceProduct product = productRepository.findById(dto.getProductId())
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + dto.getProductId()));
+
+        if (!Boolean.TRUE.equals(product.getIsActive())) {
+            throw new BadRequestException("Cannot create plan under inactive product");
+        }
+
+        // Check duplicate plan name
+        if (policyPlanRepository.existsByPlanNameIgnoreCase(dto.getPlanName())) {
+            throw new DuplicateResourceException("Policy plan already exists with name: " + dto.getPlanName());
+        }
+
+        PolicyPlan plan = modelMapper.map(dto, PolicyPlan.class);
+        plan.setInsuranceProduct(product);
+        plan.setIsActive(true);
+
+        PolicyPlan savedPlan = policyPlanRepository.save(plan);
+
+        PlanResponseDTO responseDTO = modelMapper.map(savedPlan, PlanResponseDTO.class);
+        return new ApiResponseDTO<>("Policy Plan created successfully", true, responseDTO, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional
+    public ApiResponseDTO<PlanResponseDTO> updatePolicyPlan(Long planId, PlanRequestDTO dto) {
+
+        log.info("Updating policy plan with id: {}", planId);
+
+        PolicyPlan existingPlan = policyPlanRepository.findById(planId)
+                .orElseThrow(() -> new ResourceNotFoundException("Policy plan not found with id: " + planId));
+
+        if (!Boolean.TRUE.equals(existingPlan.getIsActive())) {
+            throw new BadRequestException("Cannot update inactive policy plan");
+        }
+
+        // Validate product if changed
+        if (!existingPlan.getInsuranceProduct().getId().equals(dto.getProductId())) {
+            InsuranceProduct newProduct = productRepository.findById(dto.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + dto.getProductId()));
+            
+            if (!Boolean.TRUE.equals(newProduct.getIsActive())) {
+                throw new BadRequestException("Cannot link plan to inactive product");
+            }
+            existingPlan.setInsuranceProduct(newProduct);
+        }
+
+        // Check duplicate name (excluding self)
+        if (!existingPlan.getPlanName().equalsIgnoreCase(dto.getPlanName()) &&
+                policyPlanRepository.existsByPlanNameIgnoreCase(dto.getPlanName())) {
+            throw new DuplicateResourceException("Plan name already exists: " + dto.getPlanName());
+        }
+
+        // Update fields
+        existingPlan.setPlanName(dto.getPlanName());
+        existingPlan.setCoverageAmount(dto.getCoverageAmount());
+        existingPlan.setPremiumAmount(dto.getPremiumAmount());
+        existingPlan.setPremiumType(dto.getPremiumType());
+        existingPlan.setDuration(dto.getDuration());
+        existingPlan.setTermsAndConditions(dto.getTermsAndConditions());
+
+        PolicyPlan updatedPlan = policyPlanRepository.save(existingPlan);
+
+        PlanResponseDTO responseDTO = modelMapper.map(updatedPlan, PlanResponseDTO.class);
+        return new ApiResponseDTO<>("Policy Plan updated successfully", true, responseDTO, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional
+    public ApiResponseDTO<PlanResponseDTO> deactivatePolicyPlan(Long planId) {
+
+        log.info("Deactivating policy plan id: {}", planId);
+
+        PolicyPlan plan = policyPlanRepository.findById(planId)
+                .orElseThrow(() -> new ResourceNotFoundException("Policy plan not found with id: " + planId));
+
+        if (Boolean.FALSE.equals(plan.getIsActive())) {
+            PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
+            return new ApiResponseDTO<>("Policy plan is already deactivated", false, dto, LocalDateTime.now());
+        }
+
+        plan.setIsActive(false);
+        PolicyPlan deactivatedPlan = policyPlanRepository.save(plan);
+
+        PlanResponseDTO responseDTO = modelMapper.map(deactivatedPlan, PlanResponseDTO.class);
+        return new ApiResponseDTO<>("Policy plan deactivated successfully", true, responseDTO, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponseDTO<List<PlanResponseDTO>> viewActivePlans() {
+
+        List<PolicyPlan> plans = policyPlanRepository.findByIsActiveTrue();
+
+        List<PlanResponseDTO> responseList = plans.stream()
+                .map(plan -> modelMapper.map(plan, PlanResponseDTO.class))
+                .toList();
+
+        return new ApiResponseDTO<>("Active policy plans retrieved successfully", true, responseList, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponseDTO<List<PlanResponseDTO>> viewActivePlansUnderInsuranceProduct(Long productId) {
+
+        List<PolicyPlan> plans = policyPlanRepository.findByInsuranceProductIdAndIsActiveTrue(productId);
+
+        List<PlanResponseDTO> responseList = plans.stream()
+                .map(plan -> modelMapper.map(plan, PlanResponseDTO.class))
+                .toList();
+
+        return new ApiResponseDTO<>("Active plans under product retrieved successfully", true, responseList, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponseDTO<PlanResponseDTO> getAllPlansWithPagination(int pageNumber, int pageSize,
+                                                                     String sortBy, String sortDirection) {
+
+        log.info("Fetching policy plans with pagination: page={}, size={}, sortBy={}, direction={}",
+                pageNumber, pageSize, sortBy, sortDirection);
+
+        validatePagination(pageNumber, pageSize);
+        validateSortField(sortBy);
+
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
+
+        Page<PolicyPlan> planPage = policyPlanRepository.findByIsActiveTrue(pageable);
+
+        List<PlanResponseDTO> content = planPage.getContent().stream()
+                .map(plan -> modelMapper.map(plan, PlanResponseDTO.class))
+                .toList();
+
+        return new PageResponseDTO<>(
+                content,
+                planPage.getNumber(),
+                planPage.getSize(),
+                planPage.getTotalElements(),
+                planPage.getTotalPages(),
+                planPage.isLast(),
+                sortDirection
+        );
+    }
+
+    // Helper methods
+    private void validatePagination(int pageNumber, int pageSize) {
+        if (pageNumber < 0) throw new BadRequestException("Page number cannot be negative");
+        if (pageSize <= 0) throw new BadRequestException("Page size must be greater than 0");
+        if (pageSize > 100) throw new BadRequestException("Page size cannot exceed 100");
+    }
+
+    private void validateSortField(String sortBy) {
+        List<String> allowedFields = List.of("id", "planName", "coverageAmount", "premiumAmount", "createdDate");
+        if (!allowedFields.contains(sortBy)) {
+            throw new BadRequestException("Invalid sort field: " + sortBy);
+        }
+    }
 }
