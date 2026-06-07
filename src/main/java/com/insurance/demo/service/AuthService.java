@@ -1,9 +1,10 @@
 package com.insurance.demo.service;
 
-import com.insurance.demo.dto.response.UserResponseDTO;
+import com.insurance.demo.dto.request.LoginRequestDTO;
 
 public interface AuthService {
 
-	String verify(String email, String password);
+	String verify(LoginRequestDTO loginRequestDTO);
 
 }
+

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.insurance.demo.dto.request.UserRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
-import com.insurance.demo.serviceImpl.AuthService;
+import com.insurance.demo.serviceImpl.AuthServiceImpl;
 
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -24,7 +24,7 @@ import lombok.AllArgsConstructor;
 public class AuthController {
 
 	@Autowired
-	private AuthService authService;
+	private AuthServiceImpl authService;
 
 	@PostMapping("/login")
 	public ResponseEntity<String> login(@RequestParam String username, @RequestParam String password) {
