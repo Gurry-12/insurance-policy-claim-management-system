@@ -2,8 +2,6 @@ package com.insurance.demo.dto.response;
 
 import java.time.LocalDateTime;
 
-import com.insurance.demo.enums.Role;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,21 +11,17 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserResponseDTO {
+public class InsuranceResponseDTO {
 
-	private Long id;
+	private Long productId;
 
-	private String fullName;
+	private String productName;
 
-	private String email;
+	private String productType;
 
-	private String mobileNumber;
+	private String description;
 
-	private String role;
-
-	private Boolean isActive;
+	private Boolean activeStatus;
 
 	private LocalDateTime createdDate;
-
-	private LocalDateTime updatedDate;
 }

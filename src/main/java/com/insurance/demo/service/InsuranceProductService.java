@@ -14,16 +14,12 @@ public interface InsuranceProductService {
 
 	ApiResponseDTO<ProductResponseDTO> createProduct(ProductRequestDTO productDto);
 
-
 	void deactivateProduct(Long id);
-
 
 	PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection);
 
-
 	ProductResponseDTO updateProduct(Long id, @Valid ProductRequestDTO requestDTO);
-
 
 	ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts();
 

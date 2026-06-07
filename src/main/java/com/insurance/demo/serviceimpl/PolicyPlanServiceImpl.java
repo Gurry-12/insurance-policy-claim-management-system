@@ -1,4 +1,4 @@
-package com.insurance.demo.serviceimpl;
+package com.insurance.demo.serviceImpl;
 
 public class PolicyPlanServiceImpl {
 

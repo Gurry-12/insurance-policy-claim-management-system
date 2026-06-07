@@ -18,14 +18,23 @@ public class SecurityConfig {
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-		http.csrf(csrf -> csrf.disable())
-				.authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
-						
-						
-						.requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.PATCH, "/api/users/**").hasRole("ADMIN")
-						.anyRequest().authenticated())
+		http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
+
+				.requestMatchers(HttpMethod.POST, "/api/policies/purchase").hasRole("COSTOMER")
+
+				.requestMatchers(HttpMethod.POST, "/api/policies/issue").hasAnyRole("ADMIN", "AGENT")
+
+				.requestMatchers(HttpMethod.GET, "/api/policies/my-policies").hasRole("COSTOMER")
+
+				.requestMatchers(HttpMethod.GET, "/api/policies/**").hasAnyRole("ADMIN", "AGENT")
+
+				.requestMatchers(HttpMethod.PATCH, "/api/policies/*/activate").hasAnyRole("ADMIN", "AGENT")
+
+				.requestMatchers(HttpMethod.PATCH, "/api/policies/*/cancel").hasAnyRole("ADMIN", "AGENT")
+
+				.requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.PATCH, "/api/users/**").hasRole("ADMIN").anyRequest().authenticated())
 				.httpBasic(Customizer.withDefaults())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
@@ -54,7 +63,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+	AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
 		return config.getAuthenticationManager();
 	}
 

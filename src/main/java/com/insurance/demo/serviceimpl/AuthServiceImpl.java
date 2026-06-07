@@ -1,4 +1,4 @@
-package com.insurance.demo.serviceimpl;
+package com.insurance.demo.serviceImpl;
 
 import java.time.LocalDateTime;
 
@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.insurance.demo.dto.request.LoginRequestDTO;
 import com.insurance.demo.dto.request.UserRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
@@ -18,6 +19,7 @@ import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.repository.AppUserRepository;
+import com.insurance.demo.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthServiceImpl implements AuthService {
 
 	@Autowired
 	private AuthenticationManager authenticationManager;
@@ -61,5 +63,11 @@ public class AuthService {
 		UserResponseDTO responseDTO = modelMapper.map(savedUser, UserResponseDTO.class);
 		return new ApiResponseDTO<>("User Created", true, responseDTO, LocalDateTime.now());
 
+	}
+
+	@Override
+	public String verify(LoginRequestDTO loginRequestDTO) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

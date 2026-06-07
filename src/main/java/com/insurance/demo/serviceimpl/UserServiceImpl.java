@@ -1,4 +1,4 @@
-package com.insurance.demo.serviceimpl;
+package com.insurance.demo.serviceImpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,17 +37,12 @@ public class UserServiceImpl implements UserService {
 	private final ModelMapper modelMapper;
 	private final PasswordEncoder passwordEncoder;
 
-	
-	
-
 	@Override
 	@Transactional(readOnly = true)
 	public ApiResponseDTO<List<UserResponseDTO>> viewAllUsers() {
 
 		log.info("fatching all users");
-		List<AppUser> users = userRepository.findByRoleIn(
-			    List.of(Role.ROLE_COSTOMER, Role.ROLE_AGENT)
-				);
+		List<AppUser> users = userRepository.findByRoleIn(List.of(Role.ROLE_COSTOMER, Role.ROLE_AGENT));
 
 		List<UserResponseDTO> userResponseDTOs = users.stream()
 				.map(user -> modelMapper.map(user, UserResponseDTO.class)).toList();

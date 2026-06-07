@@ -1,4 +1,4 @@
-package com.insurance.demo.serviceimpl;
+package com.insurance.demo.serviceImpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -119,15 +119,15 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	}
 
 	@Transactional(readOnly = true)
-	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ProductNotFoundException{
+	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ProductNotFoundException {
 
 		log.info("fatching all active products");
 		List<InsuranceProduct> products = productRepository.findByIsActiveTrue();
-		
-		 if (products.isEmpty()) {
-		        log.warn("No active products found");
-		        throw new ProductNotFoundException("No active insurance products found");
-		    }
+
+		if (products.isEmpty()) {
+			log.warn("No active products found");
+			throw new ProductNotFoundException("No active insurance products found");
+		}
 
 		List<ProductResponseDTO> productResponseDTOs = products.stream()
 				.map(product -> modelMapper.map(product, ProductResponseDTO.class)).toList();
@@ -138,49 +138,42 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		apiResponseDTO.setMessage("Active products fetched successfully");
 		apiResponseDTO.setSuccess(true);
 		apiResponseDTO.setTimeStamp(LocalDateTime.now());
-		
-	    log.info("Retrieved {} active products", productResponseDTOs.size());
+
+		log.info("Retrieved {} active products", productResponseDTOs.size());
 		return apiResponseDTO;
 
 	}
 
-
-	
 	@Override
 	public ProductResponseDTO updateProduct(Long productId, ProductRequestDTO requestDTO) {
 
-	    log.info("Updating product with ID: {}", productId);
+		log.info("Updating product with ID: {}", productId);
 
-	    InsuranceProduct existingProduct = productRepository.findById(productId)
-	            .orElseThrow(() -> {
-	                log.error("Product not found with ID: {}", productId);
-	                return new ProductNotFoundException(
-	                        "Product not found with ID: " + productId);
-	            });
+		InsuranceProduct existingProduct = productRepository.findById(productId).orElseThrow(() -> {
+			log.error("Product not found with ID: {}", productId);
+			return new ProductNotFoundException("Product not found with ID: " + productId);
+		});
 
-	    //checking the duplicate product name 
-	    Optional<InsuranceProduct> productWithSameName =
-	            productRepository.findByProductNameIgnoreCase(requestDTO.getProductName());
+		// checking the duplicate product name
+		Optional<InsuranceProduct> productWithSameName = productRepository
+				.findByProductNameIgnoreCase(requestDTO.getProductName());
 
-	    if (productWithSameName.isPresent()
-	            && !productWithSameName.get().getId().equals(productId)) {
+		if (productWithSameName.isPresent() && !productWithSameName.get().getId().equals(productId)) {
 
-	        log.warn("Duplicate product name '{}' found",
-	                requestDTO.getProductName());
+			log.warn("Duplicate product name '{}' found", requestDTO.getProductName());
 
-	        throw new IllegalArgumentException(
-	                "Product name already exists: " + requestDTO.getProductName());
-	    }
+			throw new IllegalArgumentException("Product name already exists: " + requestDTO.getProductName());
+		}
 
-	    existingProduct.setProductName(requestDTO.getProductName().trim());
-	    existingProduct.setProductType(requestDTO.getProductType());
-	    existingProduct.setDescription(requestDTO.getDescription().trim());
+		existingProduct.setProductName(requestDTO.getProductName().trim());
+		existingProduct.setProductType(requestDTO.getProductType());
+		existingProduct.setDescription(requestDTO.getDescription().trim());
 
-	    InsuranceProduct updatedProduct = productRepository.save(existingProduct);
+		InsuranceProduct updatedProduct = productRepository.save(existingProduct);
 
-	    log.info("Product updated successfully. Product ID: {}", productId);
+		log.info("Product updated successfully. Product ID: {}", productId);
 
-	    return modelMapper.map(updatedProduct, ProductResponseDTO.class);
+		return modelMapper.map(updatedProduct, ProductResponseDTO.class);
 	}
-	
+
 }
