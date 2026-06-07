@@ -1,4 +1,4 @@
-package com.insurance.demo.serviceimpl;
+package com.insurance.demo.serviceImpl;
 
 import java.time.LocalDateTime;
 
@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthService {
+public class AuthService implements com.insurance.demo.service.AuthService {
 
 	@Autowired
 	private AuthenticationManager authenticationManager;
