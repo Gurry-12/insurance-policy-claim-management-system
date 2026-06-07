@@ -3,10 +3,10 @@ package com.insurance.demo.serviceimpl;
 import java.time.LocalDateTime;
 
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,39 +14,50 @@ import org.springframework.transaction.annotation.Transactional;
 import com.insurance.demo.dto.request.LoginRequestDTO;
 import com.insurance.demo.dto.request.UserRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
+import com.insurance.demo.dto.response.LoginResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.repository.AppUserRepository;
+import com.insurance.demo.security.JwtService;
 import com.insurance.demo.service.AuthService;
+import com.insurance.demo.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-	
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-	@Autowired
-	private AuthenticationManager authenticationManager;
+	private final AuthenticationManager authenticationManager;
 	private final AppUserRepository userRepository;
 	private final ModelMapper modelMapper;
 	private final PasswordEncoder passwordEncoder;
+	private final JwtService jwtService;
+	private final UserService userService;
 
-	public String verify(String username, String password) {
+	@Override
+	public LoginResponseDTO login(LoginRequestDTO requestDto) {
 
 		Authentication authentication = authenticationManager
-				.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+				.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getEmail(), requestDto.getPassword()));
 
-		if (authentication.isAuthenticated()) {
-			return "Login Successful";
-		}
+		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-		return "Invalid Credentials";
+		String token = jwtService.generateToken(userDetails);
+
+		UserResponseDTO dto = userService.findByEmail(userDetails.getUsername());
+
+		log.info("JWT token generated successfully for email: {}", userDetails.getUsername());
+
+		return new LoginResponseDTO(dto.getId(), dto.getFullName(), dto.getEmail(), dto.getRole(), token,
+				"Jwt created");
 	}
 
+	@Override
 	@Transactional
 	public ApiResponseDTO<UserResponseDTO> registerUser(UserRequestDTO dto) {
 
@@ -56,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
 		}
 		AppUser user = modelMapper.map(dto, AppUser.class);
 		user.setPassword(passwordEncoder.encode(dto.getPassword()));
-		user.setRole(Role.ROLE_COSTOMER);
+		user.setRole(Role.ROLE_CUSTOMER);
 		user.setIsActive(true);
 
 		AppUser savedUser = userRepository.save(user);
@@ -65,9 +76,4 @@ public class AuthServiceImpl implements AuthService {
 
 	}
 
-	@Override
-	public String verify(LoginRequestDTO loginRequestDTO) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 }
