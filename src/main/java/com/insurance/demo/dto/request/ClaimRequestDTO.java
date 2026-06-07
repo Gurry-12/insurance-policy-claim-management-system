@@ -1,6 +1,7 @@
 package com.insurance.demo.dto.request;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -28,4 +29,6 @@ public class ClaimRequestDTO {
 
 	@NotNull(message = "Incident date is required")
 	private LocalDate incidentDate;
+	
+	private List<ClaimDocumentRequestDTO> documents;
 }

@@ -1,5 +1,7 @@
 package com.insurance.demo.dto.request;
 
+import com.insurance.demo.enums.PremiumType;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -15,7 +17,7 @@ import lombok.Setter;
 public class PlanRequestDTO {
 
 	@NotNull(message = "Product Id is required")
-	private Long id;
+	private Long productId;
 
 	@NotBlank(message = "Plan name is required")
 	private String planName;
@@ -27,7 +29,7 @@ public class PlanRequestDTO {
 	private Double premiumAmount;
 
 	@NotBlank(message = "Premium type is required")
-	private String premiumType;
+	private PremiumType premiumType;
 
 	@Positive(message = "Duration must be greater than zero")
 	private Integer duration;

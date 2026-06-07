@@ -1,5 +1,7 @@
 package com.insurance.demo.dto.request;
 
+import com.insurance.demo.enums.ClaimStatus;
+
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,7 +15,7 @@ import lombok.Setter;
 public class ClaimReviewRequestDTO {
 
 	@NotBlank(message = "Status is required")
-	private String status;
+	private ClaimStatus recommendedStatus;
 
 	private String remarks;
 }
