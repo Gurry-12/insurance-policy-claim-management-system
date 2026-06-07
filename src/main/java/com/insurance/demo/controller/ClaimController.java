@@ -31,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/claims")
 @RequiredArgsConstructor
-@SecurityRequirement(name = "Basic Auth")
+@SecurityRequirement(name = "bearerAuth")
 public class ClaimController {
 
 	private final ClaimService claimService;

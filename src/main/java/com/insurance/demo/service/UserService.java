@@ -21,4 +21,6 @@ public interface UserService {
 	PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection);
 
+	UserResponseDTO findByEmail(String username);
+
 }
