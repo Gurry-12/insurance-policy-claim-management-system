@@ -1,4 +1,4 @@
-package com.insurance.demo.serviceImpl;
+package com.insurance.demo.serviceimpl;
 
 import java.time.LocalDateTime;
 

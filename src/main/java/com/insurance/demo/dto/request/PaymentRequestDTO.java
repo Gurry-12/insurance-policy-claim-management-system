@@ -1,5 +1,7 @@
 package com.insurance.demo.dto.request;
 
+import com.insurance.demo.enums.PaymentMode;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -20,8 +22,8 @@ public class PaymentRequestDTO {
 	@Positive(message = "Amount must be greater than zero")
 	private Double amount;
 
-	@NotBlank(message = "Payment mode is required")
-	private String paymentMode;
+	@NotNull(message = "Payment mode is required")
+	private PaymentMode paymentMode;
 
 	@NotBlank(message = "Transaction reference is required")
 	private String transactionReference;

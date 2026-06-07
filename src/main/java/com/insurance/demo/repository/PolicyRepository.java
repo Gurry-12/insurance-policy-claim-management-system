@@ -17,3 +17,5 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
 
 	Page<Policy> findByCustomerIdAndPolicyStatus(Long customerId, PolicyStatus policyStatus, Pageable pageable);
 }
+
+
