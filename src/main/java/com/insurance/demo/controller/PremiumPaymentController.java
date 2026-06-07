@@ -21,14 +21,18 @@ import com.insurance.demo.dto.response.PaymentResponseDTO;
 import com.insurance.demo.dto.response.ProductResponseDTO;
 import com.insurance.demo.service.PremiumPaymentService;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/payment")
+@RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class PremiumPaymentController {
 	
-	@Autowired
-	private PremiumPaymentService paymentService;
+
+	private final PremiumPaymentService paymentService;
 	
 	@PostMapping("/create")
 	@PreAuthorize("hasRole('COSTOMER')")

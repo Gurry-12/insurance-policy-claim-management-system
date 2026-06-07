@@ -12,13 +12,14 @@ import com.insurance.demo.dto.request.PolicyPurchaseRequestDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.service.PolicyService;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/policies")
 @RequiredArgsConstructor
-@Validated
+@SecurityRequirement(name = "bearerAuth")
 public class PolicyController {
 
 	private final PolicyService policyService;

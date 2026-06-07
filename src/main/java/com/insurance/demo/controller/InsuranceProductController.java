@@ -25,12 +25,14 @@ import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.exception.ProductNotFoundException;
 import com.insurance.demo.service.InsuranceProductService;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/product")
 @RequiredArgsConstructor
+@SecurityRequirement(name = "bearerAuth")
 public class InsuranceProductController {
 	
 	@Autowired
