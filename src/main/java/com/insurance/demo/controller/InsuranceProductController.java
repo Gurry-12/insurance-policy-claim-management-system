@@ -37,6 +37,7 @@ public class InsuranceProductController {
 	private InsuranceProductService productService;
 	
 	@PostMapping("/create")
+	@PreAuthorize("hasRole('ADMIN')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public ApiResponseDTO<ProductResponseDTO> createProduct(@Valid @RequestBody ProductRequestDTO dto){
 		
@@ -45,6 +46,7 @@ public class InsuranceProductController {
 	}
 	
 	@PatchMapping("/deactivate/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public void deactivateProduct(@PathVariable Long id) {
 		
 		productService.deactivateProduct(id);
@@ -53,6 +55,7 @@ public class InsuranceProductController {
 	
 	@GetMapping("/active")
 	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ProductNotFoundException{
+		
 		return productService.viewActiveProducts();
 	}
 	
@@ -67,6 +70,7 @@ public class InsuranceProductController {
 
 	    return ResponseEntity.ok(response);
 	}
+	
 	
 	@GetMapping("/page")
 	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(

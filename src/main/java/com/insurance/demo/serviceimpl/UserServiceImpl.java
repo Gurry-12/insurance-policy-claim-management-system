@@ -1,4 +1,4 @@
-package com.insurance.demo.serviceImpl;
+package com.insurance.demo.serviceimpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -119,6 +119,7 @@ public class UserServiceImpl implements UserService {
 		UserResponseDTO dto = modelMapper.map(retrivedUser, UserResponseDTO.class);
 		return new ApiResponseDTO<>("Agent Created", true, dto, LocalDateTime.now());
 	}
+	
 
 	@Override
 	@Transactional(readOnly = true)
@@ -136,6 +137,7 @@ public class UserServiceImpl implements UserService {
 				userPage.getTotalPages(), userPage.isLast(), sortDirection);
 	}
 
+	
 	private AppUser findUserById(Long id) {
 		return userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
