@@ -39,7 +39,6 @@ public class InsuranceProductController {
 	private InsuranceProductService productService;
 
 	@PostMapping("/create")
-	@PreAuthorize("hasRole('ADMIN')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public ApiResponseDTO<ProductResponseDTO> createProduct(@Valid @RequestBody ProductRequestDTO dto) {
 
@@ -48,7 +47,6 @@ public class InsuranceProductController {
 	}
 
 	@PatchMapping("/deactivate/{id}")
-	@PreAuthorize("hasRole('ADMIN')")
 	public ApiResponseDTO<ProductResponseDTO> deactivateProduct(@PathVariable Long id) {
 
 		return productService.deactivateProduct(id);
@@ -61,7 +59,6 @@ public class InsuranceProductController {
 	}
 
 	@PutMapping("/update/{id}")
-	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long id,
 			@Valid @RequestBody ProductRequestDTO requestDTO) {
 
