@@ -135,8 +135,14 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 			throw new ProductNotFoundException("No active insurance products found");
 		}
 
-		List<ProductResponseDTO> productResponseDTOs = products.stream()
-				.map(product -> modelMapper.map(product, ProductResponseDTO.class)).toList();
+		List<ProductResponseDTO> productResponseDTOs = products.stream().map(product -> {
+
+			ProductResponseDTO dto = modelMapper.map(product, ProductResponseDTO.class);
+
+			dto.setActiveStatus(product.getIsActive());
+
+			return dto;
+		}).toList();
 
 		ApiResponseDTO<List<ProductResponseDTO>> apiResponseDTO = new ApiResponseDTO<>();
 

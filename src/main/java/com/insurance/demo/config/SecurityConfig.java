@@ -70,14 +70,12 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.POST, "/api/customers/**").hasRole("CUSTOMER")
 						.requestMatchers(HttpMethod.PUT, "/api/customers/**").hasRole("CUSTOMER")
 
-						// Admin & Agent can view all customers
 						.requestMatchers(HttpMethod.GET, "/api/customers").hasAnyRole("ADMIN", "AGENT")
 						.requestMatchers(HttpMethod.GET, "/api/customers/paged").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.GET, "/api/customers/*").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
 
-						// Customer can view/update only own profile
-						.requestMatchers(HttpMethod.GET, "/api/customers/*").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.PUT, "/api/customers/*").hasRole("CUSTOMER")
-
+						.requestMatchers(HttpMethod.DELETE, "/api/customers/*").hasRole("ADMIN")
+						
 						// INSURANCE PRODUCT MANAGEMENT
 
 						.requestMatchers(HttpMethod.POST, "/api/product/create").hasRole("ADMIN")
