@@ -28,13 +28,15 @@ import lombok.extern.slf4j.Slf4j;
 public class GlobalExceptionHandler {
 
 	@ExceptionHandler(ResourceNotFoundException.class)
-	public ResponseEntity<ErrorResponseDTO> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
+	public ResponseEntity<ErrorResponseDTO> handleResourceNotFound(ResourceNotFoundException ex,
+			HttpServletRequest request) {
 		log.warn("Resource not found: {}", ex.getMessage());
 		return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
 	}
 
 	@ExceptionHandler(DuplicateResourceException.class)
-	public ResponseEntity<ErrorResponseDTO> handleDuplicateResource(DuplicateResourceException ex, HttpServletRequest request) {
+	public ResponseEntity<ErrorResponseDTO> handleDuplicateResource(DuplicateResourceException ex,
+			HttpServletRequest request) {
 		log.warn("Duplicate resource: {}", ex.getMessage());
 		return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
 	}
@@ -46,7 +48,8 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)
-	public ResponseEntity<ErrorResponseDTO> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+	public ResponseEntity<ErrorResponseDTO> handleIllegalArgument(IllegalArgumentException ex,
+			HttpServletRequest request) {
 		log.warn("Illegal argument: {}", ex.getMessage());
 		return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
 	}
@@ -66,20 +69,43 @@ public class GlobalExceptionHandler {
 		return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
 	}
 
+	@ExceptionHandler(PlanNotActiveException.class)
+	public ResponseEntity<ErrorResponseDTO> handlePlanNotActiveException(PlanNotActiveException ex,
+			HttpServletRequest request) {
+
+		ErrorResponseDTO error = new ErrorResponseDTO(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(),
+				"PLAN_NOT_ACTIVE", ex.getMessage(), request.getRequestURI());
+
+		return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler({ org.springframework.orm.ObjectOptimisticLockingFailureException.class,
+			org.hibernate.StaleObjectStateException.class })
+	public ResponseEntity<ErrorResponseDTO> handleStaleStateException(Exception ex, HttpServletRequest request) {
+
+		ErrorResponseDTO error = new ErrorResponseDTO(LocalDateTime.now(), HttpStatus.CONFLICT.value(), "CONFLICT",
+				"The requested record has already been modified or is no longer available.", request.getRequestURI());
+
+		return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+	}
+
 	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
-	public ResponseEntity<ErrorResponseDTO> handleTypeMismatch(MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+	public ResponseEntity<ErrorResponseDTO> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+			HttpServletRequest request) {
 		log.warn("Invalid path variable or request parameter: {}", ex.getMessage());
 		return buildResponse(HttpStatus.BAD_REQUEST, "Invalid input. Please provide valid data.", request);
 	}
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)
-	public ResponseEntity<ErrorResponseDTO> handleInvalidJson(HttpMessageNotReadableException ex, HttpServletRequest request) {
+	public ResponseEntity<ErrorResponseDTO> handleInvalidJson(HttpMessageNotReadableException ex,
+			HttpServletRequest request) {
 		log.warn("Invalid JSON request body");
 		return buildResponse(HttpStatus.BAD_REQUEST, "Invalid JSON request body.", request);
 	}
 
 	@ExceptionHandler(DataIntegrityViolationException.class)
-	public ResponseEntity<ErrorResponseDTO> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
+	public ResponseEntity<ErrorResponseDTO> handleDataIntegrity(DataIntegrityViolationException ex,
+			HttpServletRequest request) {
 		log.error("Database constraint violation: {}", ex.getMessage());
 		return buildResponse(HttpStatus.CONFLICT, "Duplicate or invalid database value.", request);
 	}
@@ -89,18 +115,20 @@ public class GlobalExceptionHandler {
 		log.warn("Access denied: {}", ex.getMessage());
 		return buildResponse(HttpStatus.FORBIDDEN, "You do not have permission to access this resource.", request);
 	}
-	
-	@ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponseDTO> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
-        log.warn("Bad credentials: {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid email or password.", request);
-    }
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponseDTO> handleAuthenticationException(AuthenticationException ex, HttpServletRequest request) {
-        log.warn("Authentication failed: {}", ex.getMessage());
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Authentication failed. Please login again.", request);
-    }
+	@ExceptionHandler(BadCredentialsException.class)
+	public ResponseEntity<ErrorResponseDTO> handleBadCredentials(BadCredentialsException ex,
+			HttpServletRequest request) {
+		log.warn("Bad credentials: {}", ex.getMessage());
+		return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid email or password.", request);
+	}
+
+	@ExceptionHandler(AuthenticationException.class)
+	public ResponseEntity<ErrorResponseDTO> handleAuthenticationException(AuthenticationException ex,
+			HttpServletRequest request) {
+		log.warn("Authentication failed: {}", ex.getMessage());
+		return buildResponse(HttpStatus.UNAUTHORIZED, "Authentication failed. Please login again.", request);
+	}
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorResponseDTO> handleGeneric(Exception ex, HttpServletRequest request) {
@@ -108,8 +136,9 @@ public class GlobalExceptionHandler {
 		return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong.", request);
 	}
 
-	private ResponseEntity<ErrorResponseDTO> buildResponse(HttpStatus status, String message , HttpServletRequest request) {
-		ErrorResponseDTO error =  new ErrorResponseDTO();
+	private ResponseEntity<ErrorResponseDTO> buildResponse(HttpStatus status, String message,
+			HttpServletRequest request) {
+		ErrorResponseDTO error = new ErrorResponseDTO();
 		error.setTimestamp(LocalDateTime.now());
 		error.setStatusCode(status.value());
 		error.setErrorType(status.name());
