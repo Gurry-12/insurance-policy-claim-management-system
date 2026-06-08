@@ -172,6 +172,8 @@ public class PolicyServiceImpl implements PolicyService {
 		return new ApiResponseDTO<>("Policy activated successfully", true, responseDTO, LocalDateTime.now());
 	}
 
+	
+	
 	@Override
 	public ApiResponseDTO<PolicyResponseDTO> cancelPolicy(Long policyId) {
 
@@ -186,6 +188,7 @@ public class PolicyServiceImpl implements PolicyService {
 		return new ApiResponseDTO<>("Policy cancelled successfully", true, responseDTO, LocalDateTime.now());
 	}
 
+	
 	private PolicyResponseDTO convertToResponseDTO(Policy policy) {
 
 		PolicyResponseDTO dto = modelMapper.map(policy, PolicyResponseDTO.class);

@@ -21,8 +21,8 @@ import com.insurance.demo.dto.request.ProductRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.ProductResponseDTO;
-import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.exception.ProductNotFoundException;
+import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.service.InsuranceProductService;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -30,7 +30,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/product")
+@RequestMapping("/api/products")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 public class InsuranceProductController {
@@ -47,13 +47,17 @@ public class InsuranceProductController {
 	}
 
 	@PatchMapping("/deactivate/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
+	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public ApiResponseDTO<ProductResponseDTO> deactivateProduct(@PathVariable Long id) {
 
 		return productService.deactivateProduct(id);
+
 	}
 
 	@GetMapping("/active")
-	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ProductNotFoundException {
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ResourceNotFoundException {
 
 		return productService.viewActiveProducts();
 	}
@@ -73,6 +77,16 @@ public class InsuranceProductController {
 			@RequestParam(defaultValue = "id") String sortBy,
 			@RequestParam(defaultValue = "asc") String sortDirection) {
 		return productService.getAllProductsWithPagination(pageNumber, pageSize, sortBy, sortDirection);
+	}
+	
+	
+	@PatchMapping("/active/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public ApiResponseDTO<ProductResponseDTO> activateProduct(@PathVariable Long id) {
+
+		return productService.activateProduct(id);
+
 	}
 
 }

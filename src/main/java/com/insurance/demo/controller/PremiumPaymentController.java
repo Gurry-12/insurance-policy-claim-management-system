@@ -42,17 +42,22 @@ public class PremiumPaymentController {
 	}
 
 	@GetMapping("/policy/{id}")
-	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByPolicy(@PathVariable Long id) {
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByPolicy(@PathVariable Long id){
+		
+	
 		return paymentService.getPaymentsByPolicy(id);
 	}
 
 	@GetMapping("/{id}")
-	public ApiResponseDTO<PaymentResponseDTO> getPaymentById(@PathVariable Long paymentId) {
-
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public ApiResponseDTO<PaymentResponseDTO> getPaymentById(@PathVariable Long paymentId){
+		
 		return paymentService.getPaymentById(paymentId);
 	}
 
 	@GetMapping("/page")
+	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy,

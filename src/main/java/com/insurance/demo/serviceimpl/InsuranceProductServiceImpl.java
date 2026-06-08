@@ -19,11 +19,14 @@ import com.insurance.demo.dto.request.ProductRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.ProductResponseDTO;
+import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.ProductType;
 import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ProductNotFoundException;
+import com.insurance.demo.exception.ResourceNotFoundException;
+import com.insurance.demo.model.AppUser;
 import com.insurance.demo.model.InsuranceProduct;
 import com.insurance.demo.repository.InsurenceProductRepository;
 import com.insurance.demo.service.InsuranceProductService;
@@ -69,7 +72,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	public ApiResponseDTO<ProductResponseDTO> deactivateProduct(Long id) {
 
 		InsuranceProduct product = productRepository.findById(id)
-				.orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
+				.orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
 		if (!product.getIsActive()) {
 			throw new BadRequestException("Product is already inactive");
@@ -124,15 +127,17 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 			throw new BadRequestException("Page size cannot be greater than 100.");
 	}
 
+	
+	
 	@Transactional(readOnly = true)
-	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ProductNotFoundException {
+	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ResourceNotFoundException {
 
 		log.info("fatching all active products");
 		List<InsuranceProduct> products = productRepository.findByIsActiveTrue();
 
 		if (products.isEmpty()) {
 			log.warn("No active products found");
-			throw new ProductNotFoundException("No active insurance products found");
+			throw new ResourceNotFoundException("No active insurance products found");
 		}
 
 		List<ProductResponseDTO> productResponseDTOs = products.stream()
@@ -157,7 +162,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		InsuranceProduct existingProduct = productRepository.findById(productId).orElseThrow(() -> {
 			log.error("Product not found with ID: {}", productId);
-			return new ProductNotFoundException("Product not found with ID: " + productId);
+			return new ResourceNotFoundException("Product not found with ID: " + productId);
 		});
 
 		// checking the duplicate product name
@@ -168,7 +173,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 			log.warn("Duplicate product name '{}' found", requestDTO.getProductName());
 
-			throw new IllegalArgumentException("Product name already exists: " + requestDTO.getProductName());
+			throw new DuplicateResourceException("Product name already exists: " + requestDTO.getProductName());
 		}
 
 		existingProduct.setProductName(requestDTO.getProductName().trim());
@@ -180,6 +185,33 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		log.info("Product updated successfully. Product ID: {}", productId);
 
 		return modelMapper.map(updatedProduct, ProductResponseDTO.class);
+	}
+
+	
+	
+	
+	@Override
+	@Transactional
+	public ApiResponseDTO<ProductResponseDTO> activateProduct(Long id) {
+
+		log.info("Activating product with id: {}", id);
+
+		InsuranceProduct product = productRepository.findById(id)
+				.orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
+
+		if (Boolean.TRUE.equals(product.getIsActive())) {
+			throw new BadRequestException("Product is already active");
+		}
+
+		product.setIsActive(true);
+
+		InsuranceProduct updatedProduct = productRepository.save(product);
+
+		ProductResponseDTO dto = modelMapper.map(updatedProduct, ProductResponseDTO.class);
+
+		log.info("Product activated successfully with id: {}", id);
+
+		return new ApiResponseDTO<>("Product activated successfully", true, dto, LocalDateTime.now());
 	}
 
 }

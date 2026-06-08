@@ -80,11 +80,11 @@ public class SecurityConfig {
 
 						// INSURANCE PRODUCT MANAGEMENT
 
-						.requestMatchers(HttpMethod.POST, "/api/product/create").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.PUT, "/api/product/update/**").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.PATCH, "/api/product/deactivate/**").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.GET, "/api/product/active").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/product/page").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.POST, "/api/products/create").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.PUT, "/api/products/update/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.PATCH, "/api/products/deactivate/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.GET, "/api/products/active").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/products/page").hasAnyRole("ADMIN", "AGENT")
 
 						// Fallback
 						.anyRequest().authenticated())

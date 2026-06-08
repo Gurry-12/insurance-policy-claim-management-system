@@ -7,6 +7,7 @@ import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.ProductResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
+import com.insurance.demo.model.InsuranceProduct;
 
 import jakarta.validation.Valid;
 
@@ -22,5 +23,7 @@ public interface InsuranceProductService {
 	ProductResponseDTO updateProduct(Long id, @Valid ProductRequestDTO requestDTO);
 
 	ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts();
+
+	ApiResponseDTO<ProductResponseDTO> activateProduct(Long id);
 
 }
