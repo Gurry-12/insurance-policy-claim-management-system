@@ -25,8 +25,8 @@ public class SecurityConfig {
 	SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider,
 			JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
 
-		http.csrf(AbstractHttpConfigurer::disable).authenticationProvider(authenticationProvider)
-				.authorizeHttpRequests(auth -> auth
+		http.csrf(AbstractHttpConfigurer::disable).authenticationProvider(authenticationProvider).authorizeHttpRequests(
+				auth -> auth
 
 						// PUBLIC AUTH
 						.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -64,6 +64,27 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/api/users/**").hasRole("ADMIN")
 
+						// CUSTOMER MANAGEMENT
+
+						.requestMatchers(HttpMethod.POST, "/api/customers/**").hasRole("CUSTOMER")
+						.requestMatchers(HttpMethod.PUT, "/api/customers/**").hasRole("CUSTOMER")
+
+						// Admin & Agent can view all customers
+						.requestMatchers(HttpMethod.GET, "/api/customers").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.GET, "/api/customers/paged").hasAnyRole("ADMIN", "AGENT")
+
+						// Customer can view/update only own profile
+						.requestMatchers(HttpMethod.GET, "/api/customers/*").hasRole("CUSTOMER")
+						.requestMatchers(HttpMethod.PUT, "/api/customers/*").hasRole("CUSTOMER")
+
+						// INSURANCE PRODUCT MANAGEMENT
+
+						.requestMatchers(HttpMethod.POST, "/api/product/create").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.PUT, "/api/product/update/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.PATCH, "/api/product/deactivate/**").hasRole("ADMIN")
+						.requestMatchers(HttpMethod.GET, "/api/product/active").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/product/page").hasAnyRole("ADMIN", "AGENT")
+
 						// Fallback
 						.anyRequest().authenticated())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -73,27 +94,25 @@ public class SecurityConfig {
 	}
 
 	@Bean
-    AuthenticationProvider authenticationProvider(
-            UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder) {
+	AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService,
+			PasswordEncoder passwordEncoder) {
 
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(userDetailsService);
+		DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider(userDetailsService);
 
-        authenticationProvider.setPasswordEncoder(passwordEncoder);
+		authenticationProvider.setPasswordEncoder(passwordEncoder);
 
-        return authenticationProvider;
-    }
+		return authenticationProvider;
+	}
 
-    @Bean
-    AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-            throws Exception {
-        return authenticationConfiguration.getAuthenticationManager();
-    }
+	@Bean
+	AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
+			throws Exception {
+		return authenticationConfiguration.getAuthenticationManager();
+	}
 
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
+	@Bean
+	PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
 
 }

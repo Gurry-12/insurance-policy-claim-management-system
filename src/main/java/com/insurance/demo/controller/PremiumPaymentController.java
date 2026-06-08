@@ -30,37 +30,34 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 public class PremiumPaymentController {
-	
 
 	private final PremiumPaymentService paymentService;
-	
+
 	@PostMapping("/create")
 	@PreAuthorize("hasRole('COSTOMER')")
 	@ResponseStatus(HttpStatus.CREATED)
-	public ApiResponseDTO<PaymentResponseDTO> makePayment(@Valid @RequestBody PaymentRequestDTO dto){
-		
-		return  paymentService.recordPayment(dto);
-		
-	} 
-	
+	public ApiResponseDTO<PaymentResponseDTO> makePayment(@Valid @RequestBody PaymentRequestDTO dto) {
+
+		return paymentService.recordPayment(dto);
+
+	}
+
 	@GetMapping("/policy/{id}")
-	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByPolicy(@PathVariable Long id){
+	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByPolicy(@PathVariable Long id) {
 		return paymentService.getPaymentsByPolicy(id);
 	}
-	
+
 	@GetMapping("/{id}")
-	public ApiResponseDTO<PaymentResponseDTO> getPaymentById(@PathVariable Long paymentId){
-		
+	public ApiResponseDTO<PaymentResponseDTO> getPaymentById(@PathVariable Long paymentId) {
+
 		return paymentService.getPaymentById(paymentId);
 	}
 
-	
 	@GetMapping("/page")
 	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(
-			@RequestParam(defaultValue = "0") int pageNumber,
-            @RequestParam(defaultValue = "5") int pageSize,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection) {
+			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "5") int pageSize,
+			@RequestParam(defaultValue = "id") String sortBy,
+			@RequestParam(defaultValue = "asc") String sortDirection) {
 		return paymentService.getAllPaymentsWithPagination(pageNumber, pageSize, sortBy, sortDirection);
 	}
 

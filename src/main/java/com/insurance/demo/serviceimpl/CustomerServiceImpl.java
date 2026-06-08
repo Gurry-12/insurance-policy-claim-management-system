@@ -1,6 +1,7 @@
 package com.insurance.demo.serviceimpl;
 
 import java.time.LocalDateTime;
+
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
@@ -26,6 +27,9 @@ import com.insurance.demo.repository.CustomerRepository;
 import com.insurance.demo.service.CustomerService;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @RequiredArgsConstructor
@@ -67,6 +71,8 @@ public class CustomerServiceImpl implements CustomerService {
 
 		Customer customer = findCustomerById(customerId);
 
+		validateCustomerAccess(customer);
+
 		CustomerResponseDTO dto = convertToResponseDTO(customer);
 
 		return new ApiResponseDTO<>("Customer Found", true, dto, LocalDateTime.now());
@@ -91,6 +97,8 @@ public class CustomerServiceImpl implements CustomerService {
 
 		Customer customer = findCustomerById(customerId);
 
+		validateCustomerAccess(customer);
+
 		modelMapper.map(requestDTO, customer);
 
 		Customer updatedCustomer = customerRepository.save(customer);
@@ -108,6 +116,8 @@ public class CustomerServiceImpl implements CustomerService {
 		logger.info("Deleting customer with id: {}", customerId);
 
 		Customer customer = findCustomerById(customerId);
+
+		validateCustomerAccess(customer);
 
 		customerRepository.delete(customer);
 
@@ -142,6 +152,21 @@ public class CustomerServiceImpl implements CustomerService {
 
 		return customerRepository.findById(customerId)
 				.orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
+	}
+
+	private void validateCustomerAccess(Customer customer) {
+
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+		String loggedInEmail = authentication.getName();
+
+		if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"))) {
+
+			if (!customer.getUser().getEmail().equals(loggedInEmail)) {
+
+				throw new BadRequestException("You are not allowed to access another customer's profile");
+			}
+		}
 	}
 
 	private void validatePagination(int pageNumber, int pageSize) {
