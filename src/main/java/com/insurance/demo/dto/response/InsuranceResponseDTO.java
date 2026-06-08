@@ -21,7 +21,7 @@ public class InsuranceResponseDTO {
 
 	private String description;
 
-	private Boolean activeStatus;
+	private Boolean isActive;
 
 	private LocalDateTime createdDate;
 }
