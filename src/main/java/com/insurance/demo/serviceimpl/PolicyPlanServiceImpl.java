@@ -55,11 +55,21 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 			throw new DuplicateResourceException("Policy plan already exists with name: " + dto.getPlanName());
 		}
 
-		PolicyPlan plan = modelMapper.map(dto, PolicyPlan.class);
+		PolicyPlan plan = new PolicyPlan();
+
+		plan.setPlanName(dto.getPlanName());
+		plan.setCoverageAmount(dto.getCoverageAmount());
+		plan.setPremiumAmount(dto.getPremiumAmount());
+		plan.setPremiumType(dto.getPremiumType());
+		plan.setDuration(dto.getDuration());
+		plan.setTermsAndConditions(dto.getTermsAndConditions());
+
 		plan.setInsuranceProduct(product);
 		plan.setIsActive(true);
 
 		PolicyPlan savedPlan = policyPlanRepository.save(plan);
+
+		log.info("Plan ID after save: {}", savedPlan.getId());
 
 		PlanResponseDTO responseDTO = modelMapper.map(savedPlan, PlanResponseDTO.class);
 		return new ApiResponseDTO<>("Policy Plan created successfully", true, responseDTO, LocalDateTime.now());
@@ -194,5 +204,16 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		if (!allowedFields.contains(sortBy)) {
 			throw new BadRequestException("Invalid sort field: " + sortBy);
 		}
+	}
+
+	@Override
+	public ApiResponseDTO<PlanResponseDTO> getPlanById(Long planId) {
+
+		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(planId)
+				.orElseThrow(() -> new ResourceNotFoundException("No active plan associated with id - " + planId));
+
+		return new ApiResponseDTO<>("Active Plan Found", true, modelMapper.map(plan, PlanResponseDTO.class),
+				LocalDateTime.now());
+
 	}
 }

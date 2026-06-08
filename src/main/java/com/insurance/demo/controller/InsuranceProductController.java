@@ -21,7 +21,6 @@ import com.insurance.demo.dto.request.ProductRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.ProductResponseDTO;
-import com.insurance.demo.exception.ProductNotFoundException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.service.InsuranceProductService;
 
@@ -70,7 +69,7 @@ public class InsuranceProductController {
 
 		return ResponseEntity.ok(response);
 	}
-
+	
 	@GetMapping("/page")
 	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,

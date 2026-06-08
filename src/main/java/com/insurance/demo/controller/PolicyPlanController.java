@@ -83,11 +83,10 @@ public class PolicyPlanController {
         return policyPlanService.getAllPlansWithPagination(pageNumber, pageSize, sortBy, sortDirection);
     }
 
-//    @GetMapping("/{planId}")
-//    @Operation(summary = "Get details of a specific Policy Plan")
-//    public ResponseEntity<PlanResponseDTO> getPlanById(@PathVariable Long planId) {
-//        // You can implement getById in service if needed
-//        // For now, returning from active plans logic or extend service
-//        return ResponseEntity.ok().build(); // Extend service if required
-//    }
+    @GetMapping("/{planId}")
+    @Operation(summary = "Get details of a specific Policy Plan")
+    public ApiResponseDTO<PlanResponseDTO> getPlanById(@PathVariable Long planId) {
+        
+        return policyPlanService.getPlanById(planId); 
+    }
 }

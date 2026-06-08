@@ -5,5 +5,6 @@ public enum ProductType {
 	HEALTH,
 	MOTOR,
 	LIFE,
-	TRAVEL
+	TRAVEL,
+	INSURANCE
 }
