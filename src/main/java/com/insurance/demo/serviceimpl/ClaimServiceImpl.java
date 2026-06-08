@@ -103,7 +103,7 @@ public class ClaimServiceImpl implements ClaimService {
 					: "DOC-" + System.currentTimeMillis());
 			document.setUploadedDate(LocalDateTime.now());
 
-			claimDocumentRepository.save(document); // You need to inject ClaimDocumentRepository
+			claimDocumentRepository.save(document); 
 		}
 
 		// Record History

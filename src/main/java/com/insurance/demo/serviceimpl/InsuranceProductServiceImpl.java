@@ -65,17 +65,23 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	}
 
 	@Override
-	public void deactivateProduct(Long id) {
+	@Transactional
+	public ApiResponseDTO<ProductResponseDTO> deactivateProduct(Long id) {
 
 		InsuranceProduct product = productRepository.findById(id)
-				.orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+				.orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
 
 		if (!product.getIsActive()) {
-			throw new RuntimeException("Product is already inactive");
+			throw new BadRequestException("Product is already inactive");
 		}
 
 		product.setIsActive(false);
-		productRepository.save(product);
+
+		InsuranceProduct updatedProduct = productRepository.save(product);
+
+		ProductResponseDTO response = modelMapper.map(updatedProduct, ProductResponseDTO.class);
+
+		return new ApiResponseDTO<>("Product deactivated successfully", true, response, LocalDateTime.now());
 	}
 
 	@Override

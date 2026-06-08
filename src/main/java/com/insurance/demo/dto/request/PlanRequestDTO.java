@@ -28,7 +28,7 @@ public class PlanRequestDTO {
 	@Positive(message = "Premium amount must be greater than zero")
 	private Double premiumAmount;
 
-	@NotBlank(message = "Premium type is required")
+	@NotNull(message = "Premium type is required")
 	private PremiumType premiumType;
 
 	@Positive(message = "Duration must be greater than zero")

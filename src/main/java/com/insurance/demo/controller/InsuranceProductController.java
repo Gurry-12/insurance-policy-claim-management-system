@@ -34,56 +34,48 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
 public class InsuranceProductController {
-	
+
 	@Autowired
 	private InsuranceProductService productService;
-	
+
 	@PostMapping("/create")
 	@PreAuthorize("hasRole('ADMIN')")
 	@ResponseStatus(HttpStatus.CREATED)
-	public ApiResponseDTO<ProductResponseDTO> createProduct(@Valid @RequestBody ProductRequestDTO dto){
-		
-		return  productService.createProduct(dto);
-		
+	public ApiResponseDTO<ProductResponseDTO> createProduct(@Valid @RequestBody ProductRequestDTO dto) {
+
+		return productService.createProduct(dto);
+
 	}
-	
+
 	@PatchMapping("/deactivate/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
-	public void deactivateProduct(@PathVariable Long id) {
-		
-		productService.deactivateProduct(id);
+	public ApiResponseDTO<ProductResponseDTO> deactivateProduct(@PathVariable Long id) {
+
+		return productService.deactivateProduct(id);
 	}
-	
-	
+
 	@GetMapping("/active")
-	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ProductNotFoundException{
-		
+	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ProductNotFoundException {
+
 		return productService.viewActiveProducts();
 	}
-	
-	
+
 	@PutMapping("/update/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
-	public ResponseEntity<ProductResponseDTO> updateProduct(
-	        @PathVariable Long id,
-	        @Valid @RequestBody ProductRequestDTO requestDTO) {
+	public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long id,
+			@Valid @RequestBody ProductRequestDTO requestDTO) {
 
-	    ProductResponseDTO response = productService.updateProduct(id, requestDTO);
+		ProductResponseDTO response = productService.updateProduct(id, requestDTO);
 
-	    return ResponseEntity.ok(response);
+		return ResponseEntity.ok(response);
 	}
-	
-	
+
 	@GetMapping("/page")
 	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(
-			@RequestParam(defaultValue = "0") int pageNumber,
-            @RequestParam(defaultValue = "5") int pageSize,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDirection) {
+			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "5") int pageSize,
+			@RequestParam(defaultValue = "id") String sortBy,
+			@RequestParam(defaultValue = "asc") String sortDirection) {
 		return productService.getAllProductsWithPagination(pageNumber, pageSize, sortBy, sortDirection);
 	}
 
-	
 }
-	
-
