@@ -55,10 +55,15 @@ public class UserController {
 		return userService.createAgentUser(agentRequestDTO);
 	}
 	
+	@GetMapping("/{id}")
+	public ApiResponseDTO<UserResponseDTO> findUserById(@PathVariable Long id){
+		return userService.findUserById(id);
+	}
+	
 	@GetMapping("/page")
 	public PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber,
-            @RequestParam(defaultValue = "5") int pageSize,
+            @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
 		return userService.getAllUsersWithPagination(pageNumber, pageSize, sortBy, sortDirection);

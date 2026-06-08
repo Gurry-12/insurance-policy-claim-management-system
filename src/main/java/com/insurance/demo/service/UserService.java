@@ -22,5 +22,7 @@ public interface UserService {
 			String sortDirection);
 
 	UserResponseDTO findByEmail(String username);
+	
+	ApiResponseDTO<UserResponseDTO> findUserById(Long id);
 
 }

@@ -36,7 +36,7 @@ public class ClaimDocument {
 
     @NotBlank(message = "Document type is required")
     @Column(name = "document_type", nullable = false)
-    private String type;
+    private String documentType;
 
     @Column(name = "document_reference")
     private String documentReference;

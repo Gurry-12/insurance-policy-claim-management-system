@@ -72,7 +72,7 @@ public class InsuranceProductController {
 
 	@GetMapping("/page")
 	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(
-			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "5") int pageSize,
+			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy,
 			@RequestParam(defaultValue = "asc") String sortDirection) {
 		return productService.getAllProductsWithPagination(pageNumber, pageSize, sortBy, sortDirection);

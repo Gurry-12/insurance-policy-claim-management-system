@@ -50,7 +50,7 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
             ClaimDocument document = new ClaimDocument();
             document.setClaim(claim);
             document.setName(docDTO.getDocumentName());
-            document.setType(docDTO.getDocumentType());
+            document.setDocumentType(docDTO.getDocumentType());
             document.setDocumentReference(docDTO.getDocumentReference());
             document.setUploadedDate(LocalDateTime.now());
 

@@ -54,6 +54,7 @@ public class SecurityConfig {
 						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
 						.requestMatchers(HttpMethod.GET, "/api/claims/{claimId}/history").hasAnyRole("ADMIN", "AGENT")
 						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/review").hasRole("AGENT")
+						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/under-review").hasRole("AGENT")
 						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/final-decision").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.GET, "/api/claims").hasAnyRole("ADMIN", "AGENT")
 						.requestMatchers(HttpMethod.POST, "/api/claims/*/documents")
