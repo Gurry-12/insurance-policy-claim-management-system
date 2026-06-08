@@ -21,7 +21,7 @@ public class ProductResponseDTO {
 
 	private String description;
 
-	private boolean activeStatus;
+	private boolean isActive;
 
 	private LocalDateTime createdDate;
 }

@@ -21,4 +21,6 @@ public interface PolicyPlanService {
 
     PageResponseDTO<PlanResponseDTO> getAllPlansWithPagination(int pageNumber, int pageSize, 
                                                               String sortBy, String sortDirection);
+
+	ApiResponseDTO<PlanResponseDTO> getPlanById(Long planId);
 }

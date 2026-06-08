@@ -4,36 +4,27 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.commons.logging.Log;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.insurance.demo.dto.request.ProductRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.ProductResponseDTO;
-import com.insurance.demo.dto.response.UserResponseDTO;
-import com.insurance.demo.enums.ProductType;
-import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ProductNotFoundException;
 import com.insurance.demo.exception.ResourceNotFoundException;
-import com.insurance.demo.model.AppUser;
 import com.insurance.demo.model.InsuranceProduct;
 import com.insurance.demo.repository.InsurenceProductRepository;
 import com.insurance.demo.service.InsuranceProductService;
 
-import jakarta.validation.Valid;
-
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -144,7 +135,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 			ProductResponseDTO dto = modelMapper.map(product, ProductResponseDTO.class);
 
-			dto.setActiveStatus(product.getIsActive());
+			dto.setActive(product.getIsActive());
 
 			return dto;
 		}).toList();

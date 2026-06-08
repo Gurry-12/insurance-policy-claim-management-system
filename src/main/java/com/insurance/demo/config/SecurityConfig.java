@@ -82,7 +82,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.PUT, "/api/products/update/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/api/products/deactivate/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.GET, "/api/products/active").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/products/page").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.GET, "/api/products/**").hasAnyRole("ADMIN", "AGENT")
 
 						// Fallback
 						.anyRequest().authenticated())
