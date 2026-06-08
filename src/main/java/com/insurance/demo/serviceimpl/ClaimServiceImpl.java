@@ -14,7 +14,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.insurance.demo.dto.request.ClaimDocumentRequestDTO;
 import com.insurance.demo.dto.request.ClaimRequestDTO;
 import com.insurance.demo.dto.request.ClaimReviewRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
@@ -27,14 +26,13 @@ import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.model.Claim;
-import com.insurance.demo.model.ClaimDocument;
 import com.insurance.demo.model.ClaimStatusHistory;
 import com.insurance.demo.model.Policy;
 import com.insurance.demo.repository.AppUserRepository;
-import com.insurance.demo.repository.ClaimDocumentRepository;
 import com.insurance.demo.repository.ClaimRepository;
 import com.insurance.demo.repository.ClaimStatusHistoryRepository;
 import com.insurance.demo.repository.PolicyRepository;
+import com.insurance.demo.service.ClaimDocumentService;
 import com.insurance.demo.service.ClaimService;
 import com.insurance.demo.util.ClaimNumberGenerator;
 
@@ -50,7 +48,7 @@ public class ClaimServiceImpl implements ClaimService {
 	private final PolicyRepository policyRepository;
 	private final ClaimStatusHistoryRepository historyRepository;
 	private final AppUserRepository userRepository;
-	private final ClaimDocumentRepository claimDocumentRepository;
+	private final ClaimDocumentService claimDocumentService;
 	private final ModelMapper modelMapper;
 
 	@Override
@@ -86,25 +84,26 @@ public class ClaimServiceImpl implements ClaimService {
 		claim.setPolicy(policy);
 		claim.setClaimStatus(ClaimStatus.SUBMITTED);
 		claim.setClaimNumber(ClaimNumberGenerator.generateClaimNumber());
-
-		Claim savedClaim = claimRepository.save(claim);
-
-		// === Handle Documents (Important as per SRS) ===
+		
 		if (dto.getDocuments() == null || dto.getDocuments().isEmpty()) {
 			throw new BadRequestException("At least one supporting document is required for claim");
 		}
 
-		for (ClaimDocumentRequestDTO docDTO : dto.getDocuments()) {
-			ClaimDocument document = new ClaimDocument();
-			document.setClaim(savedClaim);
-			document.setName(docDTO.getDocumentName());
-			document.setType(docDTO.getDocumentType());
-			document.setDocumentReference(docDTO.getDocumentReference() != null ? docDTO.getDocumentReference()
-					: "DOC-" + System.currentTimeMillis());
-			document.setUploadedDate(LocalDateTime.now());
+//		for (ClaimDocumentRequestDTO docDTO : dto.getDocuments()) {
+//			ClaimDocument document = new ClaimDocument();
+//			document.setClaim(savedClaim);
+//			document.setName(docDTO.getDocumentName());
+//			document.setDocumentType(docDTO.getDocumentType());
+//			document.setDocumentReference(docDTO.getDocumentReference() != null ? docDTO.getDocumentReference()
+//					: "DOC-" + System.currentTimeMillis());
+//			document.setUploadedDate(LocalDateTime.now());
+//
+//			claimDocumentRepository.save(document);
+//		}
 
-			claimDocumentRepository.save(document); 
-		}
+		Claim savedClaim = claimRepository.save(claim);
+
+		claimDocumentService.addDocumentsToClaim(savedClaim.getId(), dto.getDocuments());
 
 		// Record History
 		recordClaimHistory(savedClaim, null, ClaimStatus.SUBMITTED, "Claim submitted by customer with documents",
@@ -118,6 +117,12 @@ public class ClaimServiceImpl implements ClaimService {
 	@Transactional
 	public ApiResponseDTO<ClaimResponseDTO> reviewClaim(Long claimId, ClaimReviewRequestDTO dto) {
 
+		if (dto.getRecommendedStatus() != ClaimStatus.RECOMMENDED_FOR_APPROVAL
+				&& dto.getRecommendedStatus() != ClaimStatus.RECOMMENDED_FOR_REJECTION) {
+
+			throw new BadRequestException("Agent can only recommend approval or rejection");
+		}
+
 		Claim claim = claimRepository.findById(claimId)
 				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
 
@@ -125,6 +130,11 @@ public class ClaimServiceImpl implements ClaimService {
 			throw new BadRequestException("Finalized claims cannot be modified");
 		}
 
+		if (claim.getClaimStatus() != ClaimStatus.UNDER_REVIEW) {
+		    throw new BadRequestException(
+		        "Claim must be under review before recommendation");
+		}
+		
 		ClaimStatus previous = claim.getClaimStatus();
 
 		// Agent recommends
@@ -144,11 +154,23 @@ public class ClaimServiceImpl implements ClaimService {
 	@Transactional
 	public ApiResponseDTO<ClaimResponseDTO> finalDecision(Long claimId, ClaimReviewRequestDTO dto) {
 
+		if (dto.getRecommendedStatus() != ClaimStatus.APPROVED && dto.getRecommendedStatus() != ClaimStatus.REJECTED) {
+
+			throw new BadRequestException("Admin can only approve or reject claims");
+		}
+		
 		Claim claim = claimRepository.findById(claimId)
 				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
 
 		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
 			throw new BadRequestException("Claim already finalized");
+		}
+		
+		if (claim.getClaimStatus() != ClaimStatus.RECOMMENDED_FOR_APPROVAL
+		        && claim.getClaimStatus() != ClaimStatus.RECOMMENDED_FOR_REJECTION) {
+
+		    throw new BadRequestException(
+		            "Claim must be reviewed by an agent before final decision");
 		}
 
 		ClaimStatus previous = claim.getClaimStatus();
@@ -230,7 +252,7 @@ public class ClaimServiceImpl implements ClaimService {
 		return new ApiResponseDTO<>("Claim history retrieved successfully", true, responseList, LocalDateTime.now());
 	}
 
-	// ====================== Helper Methods ======================
+	// Helper Methods
 
 	private void recordClaimHistory(Claim claim, ClaimStatus previous, ClaimStatus newStatus, String remarks,
 			String updatedBy) {
@@ -260,5 +282,35 @@ public class ClaimServiceImpl implements ClaimService {
 		if (!allowed.contains(sortBy)) {
 			throw new BadRequestException("Invalid sort field: " + sortBy);
 		}
+	}
+
+	@Override
+	public ApiResponseDTO<ClaimResponseDTO> underReviewClaim(Long claimId) {
+
+		Claim claim = claimRepository.findById(claimId)
+				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
+
+		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
+			throw new BadRequestException("Finalized claims cannot be modified");
+		}
+		
+		if (claim.getClaimStatus() != ClaimStatus.SUBMITTED) {
+		    throw new BadRequestException(
+		        "Only submitted claims can be moved to under review");
+		}
+
+		ClaimStatus previous = claim.getClaimStatus();
+		
+		// Agent recommends
+		claim.setClaimStatus(ClaimStatus.UNDER_REVIEW);
+		claim.setAgentRemarks("Claim under review");
+		
+		Claim updated = claimRepository.save(claim);
+
+		recordClaimHistory(updated, previous, claim.getClaimStatus(), updated.getAgentRemarks(),
+				SecurityContextHolder.getContext().getAuthentication().getName());
+
+		ClaimResponseDTO response = modelMapper.map(updated, ClaimResponseDTO.class);
+		return new ApiResponseDTO<>("Claim under review by agent", true, response, LocalDateTime.now());
 	}
 }

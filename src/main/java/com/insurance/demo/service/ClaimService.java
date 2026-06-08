@@ -7,6 +7,8 @@ import com.insurance.demo.dto.response.ClaimHistoryResponseDTO;
 import com.insurance.demo.dto.response.ClaimResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 
+import jakarta.validation.Valid;
+
 import java.util.List;
 
 public interface ClaimService {
@@ -25,4 +27,6 @@ public interface ClaimService {
                                                                 String sortBy, String sortDirection);
 
     ApiResponseDTO<List<ClaimHistoryResponseDTO>> getClaimHistory(Long claimId);
+
+	ApiResponseDTO<ClaimResponseDTO> underReviewClaim(Long claimId);
 }

@@ -34,7 +34,6 @@ public class PremiumPaymentController {
 	private final PremiumPaymentService paymentService;
 
 	@PostMapping("/create")
-	@PreAuthorize("hasRole('COSTOMER')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public ApiResponseDTO<PaymentResponseDTO> makePayment(@Valid @RequestBody PaymentRequestDTO dto) {
 
@@ -55,7 +54,7 @@ public class PremiumPaymentController {
 
 	@GetMapping("/page")
 	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(
-			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "5") int pageSize,
+			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy,
 			@RequestParam(defaultValue = "asc") String sortDirection) {
 		return paymentService.getAllPaymentsWithPagination(pageNumber, pageSize, sortBy, sortDirection);

@@ -77,6 +77,13 @@ public class ClaimController {
 
 	//  AGENT ENDPOINTS 
 
+	@PatchMapping("/{claimId}/under-review")
+	@Operation(summary = "Agent reviews and recommends claim decision")
+	public ApiResponseDTO<ClaimResponseDTO> underReviewClaim(@PathVariable Long claimId) {
+
+		return claimService.underReviewClaim(claimId);
+	}
+	
 	@PatchMapping("/{claimId}/review")
 	@Operation(summary = "Agent reviews and recommends claim decision")
 	public ApiResponseDTO<ClaimResponseDTO> reviewClaim(@PathVariable Long claimId,

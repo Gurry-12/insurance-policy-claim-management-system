@@ -8,12 +8,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.insurance.demo.dto.request.CreateAgentRequestDTO;
-import com.insurance.demo.dto.request.UserRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
@@ -42,7 +43,7 @@ public class UserServiceImpl implements UserService {
 	public ApiResponseDTO<List<UserResponseDTO>> viewAllUsers() {
 
 		log.info("fatching all users");
-		List<AppUser> users = userRepository.findByRoleIn(List.of(Role.ROLE_CUSTOMER, Role.ROLE_AGENT));
+		List<AppUser> users = userRepository.findAll();
 
 		List<UserResponseDTO> userResponseDTOs = users.stream()
 				.map(user -> modelMapper.map(user, UserResponseDTO.class)).toList();
@@ -62,8 +63,12 @@ public class UserServiceImpl implements UserService {
 
 		log.info("Activating user by id: {}", userId);
 
-		AppUser user = findUserById(userId);
 
+		if (userId.equals(currentUserId()))
+			throw new BadRequestException("Cannot activate your own account");
+		
+		AppUser user = getById(userId);
+		
 		if (Boolean.TRUE.equals(user.getIsActive())) {
 			UserResponseDTO dto = modelMapper.map(user, UserResponseDTO.class);
 			log.info("user already active with id {} ", userId);
@@ -78,13 +83,25 @@ public class UserServiceImpl implements UserService {
 		return new ApiResponseDTO<>("User Actived", true, dto, LocalDateTime.now());
 	}
 
+	private Long currentUserId() {
+
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+		String email = authentication.getName();
+
+		return findByEmail(email).getId();
+	}
+
 	@Override
 	@Transactional
 	public ApiResponseDTO<UserResponseDTO> deactivateUser(Long userId) {
 
 		log.info("Deactivating user by id: {}", userId);
 
-		AppUser user = findUserById(userId);
+		if(userId.equals(currentUserId()))
+		    throw new BadRequestException("Cannot deactivate your own account");
+		
+		AppUser user = getById(userId);
 
 		if (Boolean.FALSE.equals(user.getIsActive())) {
 			UserResponseDTO dto = modelMapper.map(user, UserResponseDTO.class);
@@ -119,7 +136,6 @@ public class UserServiceImpl implements UserService {
 		UserResponseDTO dto = modelMapper.map(retrivedUser, UserResponseDTO.class);
 		return new ApiResponseDTO<>("Agent Created", true, dto, LocalDateTime.now());
 	}
-	
 
 	@Override
 	@Transactional(readOnly = true)
@@ -137,8 +153,27 @@ public class UserServiceImpl implements UserService {
 				userPage.getTotalPages(), userPage.isLast(), sortDirection);
 	}
 
-	
-	private AppUser findUserById(Long id) {
+	@Override
+	public UserResponseDTO findByEmail(String username) {
+
+		AppUser user = userRepository.findByEmail(username)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with email : " + username));
+
+		return modelMapper.map(user, UserResponseDTO.class);
+	}
+
+	@Override
+	public ApiResponseDTO<UserResponseDTO> findUserById(Long id) {
+		
+		log.info("Fetching User with id - {} " , id);
+		AppUser appUser = getById(id);
+
+		UserResponseDTO dto =  modelMapper.map(appUser, UserResponseDTO.class);
+		
+		return new ApiResponseDTO<>("User found", false, dto, LocalDateTime.now());
+	}
+
+	private AppUser getById(Long id) {
 		return userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 	}
@@ -166,12 +201,4 @@ public class UserServiceImpl implements UserService {
 		throw new BadRequestException("Sort direction must be asc or desc.");
 	}
 
-	@Override
-	public UserResponseDTO findByEmail(String username) {
-
-		AppUser user = userRepository.findByEmail(username)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with email : " + username));
-
-		return modelMapper.map(user, UserResponseDTO.class);
-	}
 }
