@@ -207,7 +207,7 @@ public class UserServiceImpl implements UserService {
 	}
 
 	private void validateUserSortField(String sortBy) {
-		if (!List.of("id", "fullName", "email", "mobileNumber").contains(sortBy)) {
+		if (!List.of("id", "fullName", "email", "mobileNumber", "role", "isActive").contains(sortBy)) {
 			throw new BadRequestException("Invalid sort field for course: " + sortBy);
 		}
 	}

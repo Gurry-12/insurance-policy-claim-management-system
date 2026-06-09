@@ -28,7 +28,7 @@ public class CustomerRequestDTO {
 	@NotBlank(message = "State is required")
 	private String state;
 
-	@Pattern(regexp = "^[1-9][0-9]{6}$", message = "Enter valid PIN code")
+	@Pattern(regexp = "^[1-9][0-9]{5}$", message = "Enter valid PIN code")
 	private String pinCode;
 
 	@NotBlank(message = "Nominee name is required")

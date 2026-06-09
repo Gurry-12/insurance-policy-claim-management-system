@@ -35,10 +35,9 @@ public class PolicyController {
 	@PostMapping("/purchase")
 	@ResponseStatus(HttpStatus.CREATED)
 	@PreAuthorize("hasRole('CUSTOMER')")
-	public ApiResponseDTO<PolicyResponseDTO> purchasePolicy(@Valid @RequestBody PolicyPurchaseRequestDTO requestDTO,
-			Authentication authentication) {
+	public ApiResponseDTO<PolicyResponseDTO> purchasePolicy(@Valid @RequestBody PolicyPurchaseRequestDTO requestDTO) {
 
-		return policyService.purchasePolicy(requestDTO, authentication.getName());
+		return policyService.purchasePolicy(requestDTO);
 	}
 
 	@PostMapping("/issue")
