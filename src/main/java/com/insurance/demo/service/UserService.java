@@ -1,0 +1,28 @@
+package com.insurance.demo.service;
+
+import java.util.List;
+
+import com.insurance.demo.dto.request.CreateAgentRequestDTO;
+import com.insurance.demo.dto.response.ApiResponseDTO;
+import com.insurance.demo.dto.response.PageResponseDTO;
+import com.insurance.demo.dto.response.UserResponseDTO;
+
+public interface UserService {
+
+	
+	ApiResponseDTO<List<UserResponseDTO>> viewAllUsers();
+
+	ApiResponseDTO<UserResponseDTO> activateUser(Long userId);
+
+	ApiResponseDTO<UserResponseDTO> deactivateUser(Long userId);
+
+	ApiResponseDTO<UserResponseDTO> createAgentUser(CreateAgentRequestDTO agentRequestDTO);
+
+	PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
+			String sortDirection, String role, Boolean isActive);
+
+	UserResponseDTO findByEmail(String username);
+	
+	ApiResponseDTO<UserResponseDTO> findUserById(Long id);
+
+}
