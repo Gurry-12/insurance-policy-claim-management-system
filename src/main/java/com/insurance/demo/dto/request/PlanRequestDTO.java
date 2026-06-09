@@ -34,4 +34,7 @@ public class PlanRequestDTO {
 
 	@NotBlank(message = "Terms and conditions are required")
 	private String termsAndConditions;
+
+	@NotNull(message = "Active status is required")
+	private Boolean activeStatus;
 }

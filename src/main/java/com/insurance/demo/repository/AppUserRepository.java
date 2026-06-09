@@ -21,4 +21,12 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 	List<AppUser> findByRoleIn(List<Role> roles);
 	
 	List<AppUser> findByRoleNot(Role role);
+
+	@org.springframework.data.jpa.repository.Query("SELECT u FROM AppUser u WHERE " +
+			"(:role IS NULL OR u.role = :role) AND " +
+			"(:isActive IS NULL OR u.isActive = :isActive)")
+	org.springframework.data.domain.Page<AppUser> findByFilters(
+			@org.springframework.data.repository.query.Param("role") Role role,
+			@org.springframework.data.repository.query.Param("isActive") Boolean isActive,
+			org.springframework.data.domain.Pageable pageable);
 }

@@ -4,6 +4,8 @@ import java.time.LocalDate;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.insurance.demo.dto.request.PolicyIssueRequestDTO;
@@ -11,6 +13,7 @@ import com.insurance.demo.dto.request.PolicyPurchaseRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.enums.PolicyStatus;
+import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.PlanNotActiveException;
 import com.insurance.demo.exception.PolicyNotFoundException;
 import com.insurance.demo.model.Customer;
@@ -23,17 +26,19 @@ import com.insurance.demo.service.PolicyService;
 import com.insurance.demo.util.PolicyNumberGenerator;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
 import com.insurance.demo.dto.response.PageResponseDTO;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PolicyServiceImpl implements PolicyService {
@@ -109,13 +114,41 @@ public class PolicyServiceImpl implements PolicyService {
 	}
 
 	@Override
-	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int page, int size, String sortBy, String direction) {
+	@Transactional(readOnly = true)
+	public ApiResponseDTO<PolicyResponseDTO> getPolicyById(Long policyId) {
+		log.info("Fetching policy by id: {}", policyId);
+		Policy policy = policyRepository.findById(policyId)
+				.orElseThrow(() -> new PolicyNotFoundException(policyId));
+
+		org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String email = auth.getName();
+		boolean isCustomer = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+
+		if (isCustomer && !policy.getCustomer().getUser().getEmail().equals(email)) {
+			throw new AccessDeniedException("You are not allowed to access another customer's policy details");
+		}
+
+		PolicyResponseDTO responseDTO = convertToResponseDTO(policy);
+		return new ApiResponseDTO<>("Policy details retrieved successfully", true, responseDTO, LocalDateTime.now());
+	}
+
+	@Override
+	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int page, int size, String sortBy, String direction, Long customerId, String status) {
 
 		Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
 
 		Pageable pageable = PageRequest.of(page, size, sort);
 
-		Page<Policy> policyPage = policyRepository.findAll(pageable);
+		PolicyStatus statusEnum = null;
+		if (status != null && !status.trim().isEmpty()) {
+			try {
+				statusEnum = PolicyStatus.valueOf(status.trim().toUpperCase());
+			} catch (IllegalArgumentException e) {
+				throw new BadRequestException("Invalid policy status filter: " + status);
+			}
+		}
+
+		Page<Policy> policyPage = policyRepository.findByFilters(customerId, statusEnum, pageable);
 
 		List<PolicyResponseDTO> content = policyPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
@@ -158,20 +191,6 @@ public class PolicyServiceImpl implements PolicyService {
 				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), direction);
 	}
 
-	@Override
-	public ApiResponseDTO<PolicyResponseDTO> activatePolicy(Long policyId) {
-
-		Policy policy = policyRepository.findById(policyId).orElseThrow(() -> new PolicyNotFoundException(policyId));
-
-		policy.setPolicyStatus(PolicyStatus.ACTIVE);
-
-		Policy updatedPolicy = policyRepository.save(policy);
-
-		PolicyResponseDTO responseDTO = convertToResponseDTO(updatedPolicy);
-
-		return new ApiResponseDTO<>("Policy activated successfully", true, responseDTO, LocalDateTime.now());
-	}
-
 	
 	
 	@Override
@@ -205,6 +224,28 @@ public class PolicyServiceImpl implements PolicyService {
 
 		dto.setPolicyStatus(policy.getPolicyStatus().name());
 
+		dto.setProductType(policy.getPolicyPlan().getInsuranceProduct().getProductType().name());
+		dto.setCoverageAmount(policy.getPolicyPlan().getCoverageAmount());
+		dto.setPremiumAmount(policy.getPolicyPlan().getPremiumAmount());
+		dto.setPremiumType(policy.getPolicyPlan().getPremiumType().name());
+
 		return dto;
+	}
+
+	@org.springframework.scheduling.annotation.Scheduled(cron = "0 0 0 * * ?") // Daily at midnight
+	@Transactional
+	public void expirePolicies() {
+		log.info("Running daily scheduled task to expire policies");
+		List<Policy> activePolicies = policyRepository.findByPolicyStatus(PolicyStatus.ACTIVE);
+		LocalDate today = LocalDate.now();
+		int expiredCount = 0;
+		for (Policy policy : activePolicies) {
+			if (policy.getEndDate().isBefore(today)) {
+				policy.setPolicyStatus(PolicyStatus.EXPIRED);
+				policyRepository.save(policy);
+				expiredCount++;
+			}
+		}
+		log.info("Expired policy check completed. Marked {} policies as EXPIRED", expiredCount);
 	}
 }

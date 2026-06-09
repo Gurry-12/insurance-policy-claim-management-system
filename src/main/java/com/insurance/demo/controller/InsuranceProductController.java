@@ -2,7 +2,6 @@ package com.insurance.demo.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,58 +33,56 @@ import lombok.RequiredArgsConstructor;
 @SecurityRequirement(name = "bearerAuth")
 public class InsuranceProductController {
 
-	@Autowired
-	private InsuranceProductService productService;
+	private final InsuranceProductService productService;
 
-	@PostMapping("/create")
+	@PostMapping
+	@PreAuthorize("hasRole('ADMIN')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public ApiResponseDTO<ProductResponseDTO> createProduct(@Valid @RequestBody ProductRequestDTO dto) {
-
 		return productService.createProduct(dto);
-
 	}
 
-	@PatchMapping("/deactivate/{id}")
+	@PatchMapping("/{id}/deactivate")
 	@PreAuthorize("hasRole('ADMIN')")
-	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public ApiResponseDTO<ProductResponseDTO> deactivateProduct(@PathVariable Long id) {
-
 		return productService.deactivateProduct(id);
-
 	}
 
 	@GetMapping("/active")
-	@ResponseStatus(HttpStatus.NOT_FOUND)
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
 	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ResourceNotFoundException {
-
 		return productService.viewActiveProducts();
 	}
 
-	@PutMapping("/update/{id}")
+	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long id,
 			@Valid @RequestBody ProductRequestDTO requestDTO) {
-
 		ProductResponseDTO response = productService.updateProduct(id, requestDTO);
-
 		return ResponseEntity.ok(response);
 	}
 	
+	@GetMapping("/{id}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	public ApiResponseDTO<ProductResponseDTO> getProductById(@PathVariable Long id) {
+		return productService.getProductById(id);
+	}
+	
 	@GetMapping("/page")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(
-			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
+			@RequestParam(defaultValue = "0") int pageNumber,
+			@RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy,
-			@RequestParam(defaultValue = "asc") String sortDirection) {
-		return productService.getAllProductsWithPagination(pageNumber, pageSize, sortBy, sortDirection);
+			@RequestParam(defaultValue = "asc") String sortDirection,
+			@RequestParam(required = false) String productType,
+			@RequestParam(required = false) Boolean isActive) {
+		return productService.getAllProductsWithPagination(pageNumber, pageSize, sortBy, sortDirection, productType, isActive);
 	}
 	
-	
-	@PatchMapping("/active/{id}")
+	@PatchMapping("/{id}/active")
 	@PreAuthorize("hasRole('ADMIN')")
-	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public ApiResponseDTO<ProductResponseDTO> activateProduct(@PathVariable Long id) {
-
 		return productService.activateProduct(id);
-
 	}
-
 }

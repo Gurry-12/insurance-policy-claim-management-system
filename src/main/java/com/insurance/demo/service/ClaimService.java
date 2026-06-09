@@ -24,9 +24,10 @@ public interface ClaimService {
     ApiResponseDTO<List<ClaimResponseDTO>> getMyClaims();   // Customer
 
     PageResponseDTO<ClaimResponseDTO> getAllClaimsWithPagination(int pageNumber, int pageSize, 
-                                                                String sortBy, String sortDirection);
+                                                                String sortBy, String sortDirection, Long customerId, String status);
 
-    ApiResponseDTO<List<ClaimHistoryResponseDTO>> getClaimHistory(Long claimId);
+    PageResponseDTO<ClaimHistoryResponseDTO> getClaimHistory(Long claimId, int pageNumber, int pageSize, 
+                                                             String sortBy, String sortDirection, String updatedBy, String status);
 
 	ApiResponseDTO<ClaimResponseDTO> underReviewClaim(Long claimId);
 }

@@ -3,6 +3,7 @@ package com.insurance.demo.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,14 +36,16 @@ public class PolicyPlanController {
 
     //  ADMIN ONLY 
 
-    @PostMapping("/create")
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Admin creates a new Policy Plan")
     public ApiResponseDTO<PlanResponseDTO> createPolicyPlan(@Valid @RequestBody PlanRequestDTO dto) {
         return policyPlanService.createPolicyPlan(dto);
     }
 
-    @PutMapping("/update/{planId}")
+    @PutMapping("/{planId}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Admin updates an existing Policy Plan")
     public ApiResponseDTO<PlanResponseDTO> updatePolicyPlan(
             @PathVariable Long planId,
@@ -50,21 +53,31 @@ public class PolicyPlanController {
         return policyPlanService.updatePolicyPlan(planId, dto);
     }
 
-    @PatchMapping("/deactivate/{planId}")
+    @PatchMapping("/{planId}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Admin deactivates a Policy Plan")
     public ApiResponseDTO<PlanResponseDTO> deactivatePolicyPlan(@PathVariable Long planId) {
         return policyPlanService.deactivatePolicyPlan(planId);
     }
 
+    @PatchMapping("/{planId}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Admin activates a Policy Plan")
+    public ApiResponseDTO<PlanResponseDTO> activatePolicyPlan(@PathVariable Long planId) {
+        return policyPlanService.activatePolicyPlan(planId);
+    }
+
     //  PUBLIC / ALL ROLES 
 
     @GetMapping("/active")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
     @Operation(summary = "All users can view active Policy Plans")
     public ApiResponseDTO<List<PlanResponseDTO>> getAllActivePlans() {
         return policyPlanService.viewActivePlans();
     }
 
-    @GetMapping("/product/{productId}/active")
+    @GetMapping("/{productId}/active")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
     @Operation(summary = "View active plans under a specific Insurance Product")
     public ApiResponseDTO<List<PlanResponseDTO>> getActivePlansByProduct(@PathVariable Long productId) {
         return policyPlanService.viewActivePlansUnderInsuranceProduct(productId);
@@ -73,20 +86,23 @@ public class PolicyPlanController {
     // PAGINATION (Admin/Agent) 
 
     @GetMapping("/page")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Paginated list of active Policy Plans")
     public PageResponseDTO<PlanResponseDTO> getAllPlansWithPagination(
             @RequestParam(defaultValue = "0") int pageNumber,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "createdDate") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection) {
+            @RequestParam(defaultValue = "desc") String sortDirection,
+            @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) Boolean isActive) {
 
-        return policyPlanService.getAllPlansWithPagination(pageNumber, pageSize, sortBy, sortDirection);
+        return policyPlanService.getAllPlansWithPagination(pageNumber, pageSize, sortBy, sortDirection, productId, isActive);
     }
 
     @GetMapping("/{planId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
     @Operation(summary = "Get details of a specific Policy Plan")
     public ApiResponseDTO<PlanResponseDTO> getPlanById(@PathVariable Long planId) {
-        
         return policyPlanService.getPlanById(planId); 
     }
 }

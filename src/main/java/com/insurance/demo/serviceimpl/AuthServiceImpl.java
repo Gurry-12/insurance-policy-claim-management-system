@@ -17,6 +17,7 @@ import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.LoginResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
+import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.repository.AppUserRepository;
@@ -41,20 +42,27 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public LoginResponseDTO login(LoginRequestDTO requestDto) {
+		String email = requestDto.getEmail().toLowerCase();
+		AppUser appUser = userRepository.findByEmail(email)
+				.orElseThrow(() -> new BadRequestException("Invalid email or password"));
+
+		if (Boolean.FALSE.equals(appUser.getIsActive())) {
+			throw new BadRequestException("User is inactive can't login");
+		}
 
 		Authentication authentication = authenticationManager
 				.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getEmail(), requestDto.getPassword()));
 
 		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
+		
 		String token = jwtService.generateToken(userDetails);
 
 		UserResponseDTO dto = userService.findByEmail(userDetails.getUsername());
-
+		
 		log.info("JWT token generated successfully for email: {}", userDetails.getUsername());
 
 		return new LoginResponseDTO(dto.getId(), dto.getFullName(), dto.getEmail(), dto.getRole(), token,
-				"Jwt created");
+				"Jwt created", "Bearer");
 	}
 
 	@Override
@@ -66,6 +74,7 @@ public class AuthServiceImpl implements AuthService {
 			throw new DuplicateResourceException("Duplicate user found with email - " + dto.getEmail());
 		}
 		AppUser user = modelMapper.map(dto, AppUser.class);
+		user.setEmail(dto.getEmail().toLowerCase());
 		user.setPassword(passwordEncoder.encode(dto.getPassword()));
 		user.setRole(Role.ROLE_CUSTOMER);
 		user.setIsActive(true);

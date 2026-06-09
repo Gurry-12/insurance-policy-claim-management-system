@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.insurance.demo.dto.request.CreateAgentRequestDTO;
+import com.insurance.demo.dto.request.UserStatusUpdateRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
@@ -63,24 +64,27 @@ public class UserServiceImpl implements UserService {
 
 		log.info("Activating user by id: {}", userId);
 
-
 		if (userId.equals(currentUserId()))
 			throw new BadRequestException("Cannot activate your own account");
-		
+
 		AppUser user = getById(userId);
 		
+//		if (Boolean.FALSE.equals(dto.getIsActive())) {
+//			throw new BadRequestException("Active status must be true for activation");
+//		}
+		
 		if (Boolean.TRUE.equals(user.getIsActive())) {
-			UserResponseDTO dto = modelMapper.map(user, UserResponseDTO.class);
+			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
 			log.info("user already active with id {} ", userId);
-			return new ApiResponseDTO<>("User Already Active", false, dto, LocalDateTime.now());
+			return new ApiResponseDTO<>("User Already Active", false, responseDto, LocalDateTime.now());
 		}
 
 		user.setIsActive(true);
 
 		AppUser retrivedUser = userRepository.save(user);
 
-		UserResponseDTO dto = modelMapper.map(retrivedUser, UserResponseDTO.class);
-		return new ApiResponseDTO<>("User Actived", true, dto, LocalDateTime.now());
+		UserResponseDTO responseDto = modelMapper.map(retrivedUser, UserResponseDTO.class);
+		return new ApiResponseDTO<>("User Activated successfully", true, responseDto, LocalDateTime.now());
 	}
 
 	private Long currentUserId() {
@@ -98,23 +102,27 @@ public class UserServiceImpl implements UserService {
 
 		log.info("Deactivating user by id: {}", userId);
 
-		if(userId.equals(currentUserId()))
+		if (userId.equals(currentUserId()))
 		    throw new BadRequestException("Cannot deactivate your own account");
+//
+//		if (Boolean.TRUE.equals(dto.getIsActive())) {
+//			throw new BadRequestException("Active status must be false for deactivation");
+//		}
 		
 		AppUser user = getById(userId);
 
 		if (Boolean.FALSE.equals(user.getIsActive())) {
-			UserResponseDTO dto = modelMapper.map(user, UserResponseDTO.class);
+			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
 			log.info("Already deactivated user by id: {}", userId);
-			return new ApiResponseDTO<>("User Already Deactivated", false, dto, LocalDateTime.now());
+			return new ApiResponseDTO<>("User Already Deactivated", false, responseDto, LocalDateTime.now());
 		}
 
 		user.setIsActive(false);
 
 		AppUser retrivedUser = userRepository.save(user);
 
-		UserResponseDTO dto = modelMapper.map(retrivedUser, UserResponseDTO.class);
-		return new ApiResponseDTO<>("User Deactived", true, dto, LocalDateTime.now());
+		UserResponseDTO responseDto = modelMapper.map(retrivedUser, UserResponseDTO.class);
+		return new ApiResponseDTO<>("User Deactivated successfully", true, responseDto, LocalDateTime.now());
 	}
 
 	@Override
@@ -128,6 +136,7 @@ public class UserServiceImpl implements UserService {
 		}
 
 		AppUser user = modelMapper.map(agentRequestDTO, AppUser.class);
+		user.setEmail(agentRequestDTO.getEmail().toLowerCase());
 		user.setPassword(passwordEncoder.encode(agentRequestDTO.getPassword()));
 		user.setRole(Role.ROLE_AGENT);
 		user.setIsActive(true);
@@ -140,13 +149,23 @@ public class UserServiceImpl implements UserService {
 	@Override
 	@Transactional(readOnly = true)
 	public PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection) {
-		log.info("Fetching Users with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}",
-				pageNumber, pageSize, sortBy, sortDirection);
+			String sortDirection, String role, Boolean isActive) {
+		log.info("Fetching Users with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, role: {}, isActive: {}",
+				pageNumber, pageSize, sortBy, sortDirection, role, isActive);
 		validatePagination(pageNumber, pageSize);
 		validateUserSortField(sortBy);
+		
+		Role roleEnum = null;
+		if (role != null && !role.trim().isEmpty()) {
+			try {
+				roleEnum = Role.valueOf(role.trim().toUpperCase());
+			} catch (IllegalArgumentException e) {
+				throw new BadRequestException("Invalid role filter: " + role);
+			}
+		}
+
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
-		Page<AppUser> userPage = userRepository.findAll(pageable);
+		Page<AppUser> userPage = userRepository.findByFilters(roleEnum, isActive, pageable);
 		List<UserResponseDTO> content = userPage.getContent().stream()
 				.map(user -> modelMapper.map(user, UserResponseDTO.class)).toList();
 		return new PageResponseDTO<>(content, userPage.getNumber(), userPage.getSize(), userPage.getTotalElements(),
@@ -170,7 +189,7 @@ public class UserServiceImpl implements UserService {
 
 		UserResponseDTO dto =  modelMapper.map(appUser, UserResponseDTO.class);
 		
-		return new ApiResponseDTO<>("User found", false, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>("User found", true, dto, LocalDateTime.now());
 	}
 
 	private AppUser getById(Long id) {

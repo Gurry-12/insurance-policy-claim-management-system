@@ -24,4 +24,12 @@ public interface ClaimRepository extends JpaRepository<Claim, Long>{
 
     Page<Claim> findByClaimStatus(ClaimStatus status, Pageable pageable);
     Page<Claim> findByPolicyCustomerId(Long customerId, Pageable pageable);
+
+	@org.springframework.data.jpa.repository.Query("SELECT c FROM Claim c WHERE " +
+			"(:customerId IS NULL OR c.policy.customer.id = :customerId) AND " +
+			"(:status IS NULL OR c.claimStatus = :status)")
+	Page<Claim> findByFilters(
+			@org.springframework.data.repository.query.Param("customerId") Long customerId,
+			@org.springframework.data.repository.query.Param("status") ClaimStatus status,
+			Pageable pageable);
 }

@@ -1,7 +1,7 @@
 package com.insurance.demo.serviceimpl;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
@@ -11,9 +11,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.insurance.demo.enums.Role;
 import com.insurance.demo.dto.request.CustomerRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.CustomerResponseDTO;
@@ -27,9 +30,6 @@ import com.insurance.demo.repository.CustomerRepository;
 import com.insurance.demo.service.CustomerService;
 
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @RequiredArgsConstructor
@@ -47,8 +47,31 @@ public class CustomerServiceImpl implements CustomerService {
 
 		logger.info("Creating customer profile for userId: {}", userId);
 
+		if (requestDTO.getDateOfBirth().isAfter(LocalDate.now().minusYears(18))) {
+
+			throw new BadRequestException("Customer must be at least 18 years old");
+		}
+
 		AppUser user = appUserRepository.findById(userId)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+		if (user.getRole() != Role.ROLE_CUSTOMER) {
+			throw new BadRequestException("Only users with customer role can have a customer profile");
+		}
+
+		if (customerRepository.existsByUserId(userId)) {
+			throw new BadRequestException("Customer profile already exists for this user");
+		}
+
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+		String loggedInEmail = authentication.getName();
+		Customer loggedInCustomer = customerRepository.findByUserEmail(loggedInEmail)
+				.orElseThrow(() -> new ResourceNotFoundException("customer's profile not found"));
+		
+		if (!user.getId().equals(loggedInCustomer.getUser().getId())) {
+			throw new BadRequestException("You can not create another user as customer");
+		}
 
 		Customer customer = modelMapper.map(requestDTO, Customer.class);
 
@@ -111,36 +134,22 @@ public class CustomerServiceImpl implements CustomerService {
 	}
 
 	@Override
-	public ApiResponseDTO<String> deleteCustomer(Long customerId) {
-
-		logger.info("Deleting customer with id: {}", customerId);
-
-		Customer customer = findCustomerById(customerId);
-
-		validateCustomerAccess(customer);
-
-		customerRepository.delete(customer);
-
-		logger.info("Customer deleted successfully with id: {}", customerId);
-
-		return new ApiResponseDTO<>("Customer Deleted Successfully", true,
-				"Customer with id " + customerId + " deleted successfully", LocalDateTime.now());
-	}
-
-	@Override
 	@Transactional(readOnly = true)
 	public PageResponseDTO<CustomerResponseDTO> getAllCustomersWithPagination(int pageNumber, int pageSize,
-			String sortBy, String sortDirection) {
+			String sortBy, String sortDirection, String city, String state) {
 
-		logger.info("Fetching customers with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}",
-				pageNumber, pageSize, sortBy, sortDirection);
+		logger.info(
+				"Fetching customers with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, city: {}, state: {}",
+				pageNumber, pageSize, sortBy, sortDirection, city, state);
 
 		validatePagination(pageNumber, pageSize);
 		validateCustomerSortField(sortBy);
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
 
-		Page<Customer> customerPage = customerRepository.findAll(pageable);
+		Page<Customer> customerPage = customerRepository.findByFilters(
+				(city != null && !city.trim().isEmpty()) ? city.trim() : null,
+				(state != null && !state.trim().isEmpty()) ? state.trim() : null, pageable);
 
 		List<CustomerResponseDTO> content = customerPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
@@ -221,4 +230,22 @@ public class CustomerServiceImpl implements CustomerService {
 
 		return dto;
 	}
+
+	@Override
+	public ApiResponseDTO<CustomerResponseDTO> getCustomerProfile() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+		String loggedInEmail = authentication.getName();
+
+		if (!authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"))) {
+			throw new BadRequestException("Permission Denied ");
+		}
+		Customer customer = customerRepository.findByUserEmail(loggedInEmail)
+				.orElseThrow(() -> new ResourceNotFoundException("customer's profile not found"));
+
+		CustomerResponseDTO dto = convertToResponseDTO(customer);
+
+		return new ApiResponseDTO<>("Customer Found", true, dto, LocalDateTime.now());
+	}
+
 }

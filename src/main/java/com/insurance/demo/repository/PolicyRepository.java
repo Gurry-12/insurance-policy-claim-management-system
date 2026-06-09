@@ -16,6 +16,16 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
 	Page<Policy> findByPolicyStatus(PolicyStatus policyStatus, Pageable pageable);
 
 	Page<Policy> findByCustomerIdAndPolicyStatus(Long customerId, PolicyStatus policyStatus, Pageable pageable);
+
+	java.util.List<Policy> findByPolicyStatus(PolicyStatus policyStatus);
+
+	@org.springframework.data.jpa.repository.Query("SELECT p FROM Policy p WHERE " +
+			"(:customerId IS NULL OR p.customer.id = :customerId) AND " +
+			"(:policyStatus IS NULL OR p.policyStatus = :policyStatus)")
+	Page<Policy> findByFilters(
+			@org.springframework.data.repository.query.Param("customerId") Long customerId,
+			@org.springframework.data.repository.query.Param("policyStatus") PolicyStatus policyStatus,
+			Pageable pageable);
 }
 
 

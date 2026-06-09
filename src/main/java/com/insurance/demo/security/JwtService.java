@@ -56,4 +56,8 @@ public class JwtService {
 		byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
 		return Keys.hmacShaKeyFor(keyBytes);
 	}
+
+	public long getJwtExpirationMs() {
+		return jwtExpirationMs;
+	}
 }

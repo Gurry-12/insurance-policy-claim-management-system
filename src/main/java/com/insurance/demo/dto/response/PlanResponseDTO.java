@@ -31,7 +31,7 @@ public class PlanResponseDTO {
 
 	private String termsAndConditions;
 
-	private boolean activeStatus;
+	private boolean isActive;
 
 	private LocalDateTime createdDate;
 }
