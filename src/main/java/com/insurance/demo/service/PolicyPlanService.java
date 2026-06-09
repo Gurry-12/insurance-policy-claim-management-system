@@ -15,12 +15,14 @@ public interface PolicyPlanService {
 
     ApiResponseDTO<PlanResponseDTO> deactivatePolicyPlan(Long planId);
 
+    ApiResponseDTO<PlanResponseDTO> activatePolicyPlan(Long planId);
+
     ApiResponseDTO<List<PlanResponseDTO>> viewActivePlans();
 
     ApiResponseDTO<List<PlanResponseDTO>> viewActivePlansUnderInsuranceProduct(Long productId);
 
     PageResponseDTO<PlanResponseDTO> getAllPlansWithPagination(int pageNumber, int pageSize, 
-                                                              String sortBy, String sortDirection);
+                                                              String sortBy, String sortDirection, Long productId, Boolean isActive);
 
 	ApiResponseDTO<PlanResponseDTO> getPlanById(Long planId);
 }

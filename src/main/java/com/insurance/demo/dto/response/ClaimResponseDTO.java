@@ -30,9 +30,13 @@ public class ClaimResponseDTO {
 
 	private String claimStatus;
 
-	private String agentRemark;
+	private String agentRemarks;
 
-	private String adminRemark;
+	private String adminRemarks;
+
+	private String customerName;
 
 	private LocalDateTime createdDate;
+
+	private LocalDateTime updatedDate;
 }

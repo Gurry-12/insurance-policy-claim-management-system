@@ -34,5 +34,13 @@ public class PolicyResponseDTO {
 
 	private Double totalPremiumPaid;
 
+	private String productType;
+
+	private Double coverageAmount;
+
+	private Double premiumAmount;
+
+	private String premiumType;
+
 	private LocalDateTime createdDate;
 }

@@ -1,7 +1,5 @@
 package com.insurance.demo.dto.request;
 
-import com.insurance.demo.enums.ProductType;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -13,17 +11,11 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProductRequestDTO {
-
-	@NotBlank(message = "Product name is required")
-	private String productName;
-
-	@NotNull(message = "Product type is required")
-	private ProductType productType;
-
-	@NotBlank(message = "Description is required")
-	private String description;
+public class UserStatusUpdateRequestDTO {
 
 	@NotNull(message = "Active status is required")
-	private Boolean activeStatus;
+	private Boolean isActive;
+
+	@NotBlank(message = "Remarks are required")
+	private String remarks;
 }

@@ -3,6 +3,7 @@ package com.insurance.demo.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.insurance.demo.dto.request.CustomerRequestDTO;
@@ -25,6 +26,7 @@ public class CustomerController {
 
 	@PostMapping("/{userId}")
 	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasRole('CUSTOMER')")
 	public ApiResponseDTO<CustomerResponseDTO> createCustomer(@PathVariable Long userId,
 			@Valid @RequestBody CustomerRequestDTO requestDTO) {
 
@@ -32,36 +34,43 @@ public class CustomerController {
 	}
 
 	@GetMapping("/{customerId}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	public ApiResponseDTO<CustomerResponseDTO> getCustomerById(@PathVariable Long customerId) {
 
 		return customerService.getCustomerById(customerId);
 	}
 
 	@GetMapping
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	public ApiResponseDTO<List<CustomerResponseDTO>> getAllCustomers() {
 
 		return customerService.getAllCustomers();
 	}
 
 	@PutMapping("/{customerId}")
+	@PreAuthorize("hasRole('CUSTOMER')")
 	public ApiResponseDTO<CustomerResponseDTO> updateCustomer(@PathVariable Long customerId,
 			@Valid @RequestBody CustomerRequestDTO requestDTO) {
 
 		return customerService.updateCustomer(customerId, requestDTO);
 	}
 
-	@DeleteMapping("/{customerId}")
-	public ApiResponseDTO<String> deleteCustomer(@PathVariable Long customerId) {
-
-		return customerService.deleteCustomer(customerId);
-	}
-
-	@GetMapping("/paged")
+	@GetMapping("/page")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	public PageResponseDTO<CustomerResponseDTO> getAllCustomersWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy,
-			@RequestParam(defaultValue = "asc") String sortDirection) {
+			@RequestParam(defaultValue = "asc") String sortDirection,
+			@RequestParam(required = false) String city,
+			@RequestParam(required = false) String state) {
 
-		return customerService.getAllCustomersWithPagination(pageNumber, pageSize, sortBy, sortDirection);
+		return customerService.getAllCustomersWithPagination(pageNumber, pageSize, sortBy, sortDirection, city, state);
+	}
+	
+	@GetMapping("/profile")
+	@PreAuthorize("hasRole('CUSTOMER')")
+	public ApiResponseDTO<CustomerResponseDTO> getCustomerProfile() {
+
+		return customerService.getCustomerProfile();
 	}
 }

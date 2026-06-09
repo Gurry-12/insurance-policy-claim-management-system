@@ -17,8 +17,8 @@ public interface CustomerService {
 
 	ApiResponseDTO<CustomerResponseDTO> updateCustomer(Long customerId, CustomerRequestDTO requestDTO);
 
-	ApiResponseDTO<String> deleteCustomer(Long customerId);
-
 	PageResponseDTO<CustomerResponseDTO> getAllCustomersWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection);
+			String sortDirection, String city, String state);
+
+	ApiResponseDTO<CustomerResponseDTO> getCustomerProfile();
 }

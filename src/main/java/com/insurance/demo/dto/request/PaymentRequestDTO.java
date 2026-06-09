@@ -1,6 +1,7 @@
 package com.insurance.demo.dto.request;
 
 import com.insurance.demo.enums.PaymentMode;
+import com.insurance.demo.enums.PaymentStatus;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,7 +18,7 @@ import lombok.Setter;
 public class PaymentRequestDTO {
 
 	@NotNull(message = "Policy Id is required")
-	private Long id;
+	private Long policyId;
 
 	@Positive(message = "Amount must be greater than zero")
 	private Double amount;

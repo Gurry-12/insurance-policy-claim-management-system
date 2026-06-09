@@ -1,8 +1,17 @@
 package com.insurance.demo.controller;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.insurance.demo.dto.request.PolicyIssueRequestDTO;
 import com.insurance.demo.dto.request.PolicyPurchaseRequestDTO;
@@ -25,6 +34,7 @@ public class PolicyController {
 
 	@PostMapping("/purchase")
 	@ResponseStatus(HttpStatus.CREATED)
+	@PreAuthorize("hasRole('CUSTOMER')")
 	public ApiResponseDTO<PolicyResponseDTO> purchasePolicy(@Valid @RequestBody PolicyPurchaseRequestDTO requestDTO,
 			Authentication authentication) {
 
@@ -32,6 +42,7 @@ public class PolicyController {
 	}
 
 	@PostMapping("/issue")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	@ResponseStatus(HttpStatus.CREATED)
 	public ApiResponseDTO<PolicyResponseDTO> issuePolicy(@Valid @RequestBody PolicyIssueRequestDTO requestDTO) {
 
@@ -39,6 +50,7 @@ public class PolicyController {
 	}
 
 	@GetMapping("/my-policies")
+	@PreAuthorize("hasRole('CUSTOMER')")
 	public PageResponseDTO<PolicyResponseDTO> getMyPolicies(Authentication authentication,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
 			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String direction) {
@@ -47,6 +59,7 @@ public class PolicyController {
 	}
 
 	@GetMapping("/customer/{customerId}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	public PageResponseDTO<PolicyResponseDTO> getPoliciesByCustomer(@PathVariable Long customerId,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
 			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String direction) {
@@ -55,20 +68,24 @@ public class PolicyController {
 	}
 
 	@GetMapping
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue = "id") String sortBy,
-			@RequestParam(defaultValue = "asc") String direction) {
+			@RequestParam(defaultValue = "asc") String direction,
+			@RequestParam(required = false) Long customerId,
+			@RequestParam(required = false) String status) {
 
-		return policyService.getAllPolicies(page, size, sortBy, direction);
+		return policyService.getAllPolicies(page, size, sortBy, direction, customerId, status);
 	}
 
-	@PatchMapping("/{policyId}/activate")
-	public ApiResponseDTO<PolicyResponseDTO> activatePolicy(@PathVariable Long policyId) {
-
-		return policyService.activatePolicy(policyId);
+	@GetMapping("/{policyId}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	public ApiResponseDTO<PolicyResponseDTO> getPolicyById(@PathVariable Long policyId) {
+		return policyService.getPolicyById(policyId);
 	}
-
+	
 	@PatchMapping("/{policyId}/cancel")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	public ApiResponseDTO<PolicyResponseDTO> cancelPolicy(@PathVariable Long policyId) {
 
 		return policyService.cancelPolicy(policyId);

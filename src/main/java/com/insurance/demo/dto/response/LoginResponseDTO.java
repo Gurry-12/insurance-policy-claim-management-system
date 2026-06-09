@@ -7,8 +7,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class LoginResponseDTO {
 	
 	private Long userId;
@@ -22,6 +22,8 @@ public class LoginResponseDTO {
 	private String token;
 	
 	private String message;
-	
 
+	private String tokenType = "Bearer";
+
+	
 }

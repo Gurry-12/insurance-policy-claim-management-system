@@ -18,8 +18,10 @@ public interface PremiumPaymentService {
 
 	public ApiResponseDTO<PaymentResponseDTO> getPaymentById(Long paymentId);
 
-	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(int pageNumber, int pageSize, String sortBy,String sortDirection );
+	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(int pageNumber, int pageSize, String sortBy,
+			String sortDirection, Long policyId, String paymentStatus);
 
-	
+	public ApiResponseDTO<List<PaymentResponseDTO>> getMyPayments();
 
+	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByMyPolicy(Long policyId);
 }

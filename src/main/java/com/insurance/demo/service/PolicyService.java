@@ -12,7 +12,9 @@ public interface PolicyService {
 
 	ApiResponseDTO<PolicyResponseDTO> issuePolicy(PolicyIssueRequestDTO requestDTO);
 
-	PageResponseDTO<PolicyResponseDTO> getAllPolicies(int page, int size, String sortBy, String direction);
+	ApiResponseDTO<PolicyResponseDTO> getPolicyById(Long policyId);
+
+	PageResponseDTO<PolicyResponseDTO> getAllPolicies(int page, int size, String sortBy, String direction, Long customerId, String status);
 
 	PageResponseDTO<PolicyResponseDTO> getCustomerPolicies(String email, int page, int size, String sortBy,
 			String direction);
@@ -20,7 +22,6 @@ public interface PolicyService {
 	PageResponseDTO<PolicyResponseDTO> getPoliciesByCustomer(Long customerId, int page, int size, String sortBy,
 			String direction);
 
-	ApiResponseDTO<PolicyResponseDTO> activatePolicy(Long policyId);
 
 	ApiResponseDTO<PolicyResponseDTO> cancelPolicy(Long policyId);
 }

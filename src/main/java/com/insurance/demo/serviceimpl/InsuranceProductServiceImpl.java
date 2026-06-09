@@ -22,7 +22,7 @@ import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ProductNotFoundException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.InsuranceProduct;
-import com.insurance.demo.repository.InsurenceProductRepository;
+import com.insurance.demo.repository.InsuranceProductRepository;
 import com.insurance.demo.service.InsuranceProductService;
 
 import lombok.RequiredArgsConstructor;
@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 	private final ModelMapper modelMapper;
-	private final InsurenceProductRepository productRepository;
+	private final InsuranceProductRepository productRepository;
 
 	@Override
 	@Transactional
@@ -49,7 +49,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		product.setProductName(dto.getProductName());
 		product.setProductType(dto.getProductType());
 		product.setDescription(dto.getDescription());
-		product.setIsActive(true);
+		product.setIsActive(dto.getActiveStatus() != null ? dto.getActiveStatus() : true);
 
 		InsuranceProduct savedProduct = productRepository.save(product);
 
@@ -81,14 +81,24 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	@Override
 	@Transactional
 	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection) {
+			String sortDirection, String productType, Boolean isActive) {
 
-		log.info("Fetching Users with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}",
-				pageNumber, pageSize, sortBy, sortDirection);
+		log.info("Fetching products with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, type: {}, active: {}",
+				pageNumber, pageSize, sortBy, sortDirection, productType, isActive);
 		validatePagination(pageNumber, pageSize);
 		validateUserSortField(sortBy);
+
+		com.insurance.demo.enums.ProductType typeEnum = null;
+		if (productType != null && !productType.trim().isEmpty()) {
+			try {
+				typeEnum = com.insurance.demo.enums.ProductType.valueOf(productType.trim().toUpperCase());
+			} catch (IllegalArgumentException e) {
+				throw new BadRequestException("Invalid product type filter: " + productType);
+			}
+		}
+
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
-		Page<InsuranceProduct> productPage = productRepository.findAll(pageable);
+		Page<InsuranceProduct> productPage = productRepository.findByFilters(typeEnum, isActive, pageable);
 		List<ProductResponseDTO> content = productPage.getContent().stream()
 				.map(product -> modelMapper.map(product, ProductResponseDTO.class)).toList();
 		return new PageResponseDTO<>(content, productPage.getNumber(), productPage.getSize(),
@@ -176,6 +186,9 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		existingProduct.setProductName(requestDTO.getProductName().trim());
 		existingProduct.setProductType(requestDTO.getProductType());
 		existingProduct.setDescription(requestDTO.getDescription().trim());
+		if (requestDTO.getActiveStatus() != null) {
+			existingProduct.setIsActive(requestDTO.getActiveStatus());
+		}
 
 		InsuranceProduct updatedProduct = productRepository.save(existingProduct);
 
@@ -209,6 +222,16 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		log.info("Product activated successfully with id: {}", id);
 
 		return new ApiResponseDTO<>("Product activated successfully", true, dto, LocalDateTime.now());
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public ApiResponseDTO<ProductResponseDTO> getProductById(Long id) {
+		log.info("Fetching product with id: {}", id);
+		InsuranceProduct product = productRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+		ProductResponseDTO dto = modelMapper.map(product, ProductResponseDTO.class);
+		return new ApiResponseDTO<>("Product details retrieved successfully", true, dto, LocalDateTime.now());
 	}
 
 }

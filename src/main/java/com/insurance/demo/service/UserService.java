@@ -19,7 +19,7 @@ public interface UserService {
 	ApiResponseDTO<UserResponseDTO> createAgentUser(CreateAgentRequestDTO agentRequestDTO);
 
 	PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection);
+			String sortDirection, String role, Boolean isActive);
 
 	UserResponseDTO findByEmail(String username);
 	

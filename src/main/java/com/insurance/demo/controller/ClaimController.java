@@ -3,6 +3,7 @@ package com.insurance.demo.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,6 +41,7 @@ public class ClaimController {
 	//  CUSTOMER ENDPOINTS 
 
 	@PostMapping("/raise")
+	@PreAuthorize("hasRole('CUSTOMER')")
 	@ResponseStatus(HttpStatus.CREATED)
 	@Operation(summary = "Customer raises a new claim")
 	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(@Valid @RequestBody ClaimRequestDTO dto) {
@@ -47,6 +49,7 @@ public class ClaimController {
 	}
 
 	@GetMapping("/my-claims")
+	@PreAuthorize("hasRole('CUSTOMER')")
 	@Operation(summary = "Customer views their own claims")
 	public ApiResponseDTO<List<ClaimResponseDTO>> getMyClaims() {
 		return claimService.getMyClaims();
@@ -55,36 +58,51 @@ public class ClaimController {
 	//  AGENT & ADMIN ENDPOINTS 
 
 	@GetMapping
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	@Operation(summary = "Agent/Admin - View all claims with pagination")
-	public PageResponseDTO<ClaimResponseDTO> getAllClaims(@RequestParam(defaultValue = "0") int pageNumber,
-			@RequestParam(defaultValue = "10") int pageSize, @RequestParam(defaultValue = "createdDate") String sortBy,
-			@RequestParam(defaultValue = "desc") String sortDirection) {
+	public PageResponseDTO<ClaimResponseDTO> getAllClaims(
+			@RequestParam(defaultValue = "0") int pageNumber,
+			@RequestParam(defaultValue = "10") int pageSize,
+			@RequestParam(defaultValue = "createdDate") String sortBy,
+			@RequestParam(defaultValue = "desc") String sortDirection,
+			@RequestParam(required = false) Long customerId,
+			@RequestParam(required = false) String status) {
 
-		return claimService.getAllClaimsWithPagination(pageNumber, pageSize, sortBy, sortDirection);
+		return claimService.getAllClaimsWithPagination(pageNumber, pageSize, sortBy, sortDirection, customerId, status);
 	}
 
 	@GetMapping("/{claimId}")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
 	@Operation(summary = "Get claim details by ID (with ownership check in service)")
 	public ApiResponseDTO<ClaimResponseDTO> getClaimById(@PathVariable Long claimId) {
 		return claimService.getClaimById(claimId);
 	}
 
 	@GetMapping("/{claimId}/history")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
 	@Operation(summary = "View claim status history")
-	public ApiResponseDTO<List<ClaimHistoryResponseDTO>> getClaimHistory(@PathVariable Long claimId) {
-		return claimService.getClaimHistory(claimId);
+	public PageResponseDTO<ClaimHistoryResponseDTO> getClaimHistory(
+			@PathVariable Long claimId,
+			@RequestParam(defaultValue = "0") int pageNumber,
+			@RequestParam(defaultValue = "10") int pageSize,
+			@RequestParam(defaultValue = "id") String sortBy,
+			@RequestParam(defaultValue = "desc") String sortDirection,
+			@RequestParam(required = false) String updatedBy,
+			@RequestParam(required = false) String status) {
+		return claimService.getClaimHistory(claimId, pageNumber, pageSize, sortBy, sortDirection, updatedBy, status);
 	}
 
 	//  AGENT ENDPOINTS 
 
 	@PatchMapping("/{claimId}/under-review")
-	@Operation(summary = "Agent reviews and recommends claim decision")
+	@PreAuthorize("hasRole('AGENT')")
+	@Operation(summary = "Agent marks claim under review")
 	public ApiResponseDTO<ClaimResponseDTO> underReviewClaim(@PathVariable Long claimId) {
-
 		return claimService.underReviewClaim(claimId);
 	}
 	
 	@PatchMapping("/{claimId}/review")
+	@PreAuthorize("hasRole('AGENT')")
 	@Operation(summary = "Agent reviews and recommends claim decision")
 	public ApiResponseDTO<ClaimResponseDTO> reviewClaim(@PathVariable Long claimId,
 			@Valid @RequestBody ClaimReviewRequestDTO dto) {
@@ -94,6 +112,7 @@ public class ClaimController {
 
 	//  ADMIN ENDPOINTS 
 
+	@PreAuthorize("hasRole('ADMIN')")
 	@PatchMapping("/{claimId}/final-decision")
 	@Operation(summary = "Admin makes final approval or rejection")
 	public ApiResponseDTO<ClaimResponseDTO> finalDecision(@PathVariable Long claimId,
@@ -103,6 +122,7 @@ public class ClaimController {
 	}
 
 	// Optional: Add documents to existing claim
+	@PreAuthorize("hasRole('CUSTOMER')")
 	@PostMapping("/{claimId}/documents")
 	@Operation(summary = "Add supporting documents to a claim")
 	public ApiResponseDTO<String> addDocuments(@PathVariable Long claimId,
