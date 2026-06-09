@@ -66,10 +66,11 @@ public class CustomerServiceImpl implements CustomerService {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
 		String loggedInEmail = authentication.getName();
-		Customer loggedInCustomer = customerRepository.findByUserEmail(loggedInEmail)
-				.orElseThrow(() -> new ResourceNotFoundException("customer's profile not found"));
 		
-		if (!user.getId().equals(loggedInCustomer.getUser().getId())) {
+		AppUser loggedInUser = appUserRepository.findByEmail(loggedInEmail)
+				.orElseThrow(() -> new ResourceNotFoundException("user's profile not found"));
+		
+		if (!user.getId().equals(loggedInUser.getId())) {
 			throw new BadRequestException("You can not create another user as customer");
 		}
 

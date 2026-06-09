@@ -42,17 +42,10 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 
-	@Autowired
-	private PremiumPaymentRepository paymentRepository;
-
-	@Autowired
-	private PolicyRepository policyRepository;
-
-	@Autowired
-	private ModelMapper modelMapper;
-
-	@Autowired
-	private AppUserRepository userRepository;
+	private final PremiumPaymentRepository paymentRepository;
+	private final PolicyRepository policyRepository;
+	private final ModelMapper modelMapper;
+	private final AppUserRepository userRepository;
 
 	@Override
 	@Transactional
@@ -87,15 +80,8 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		payment.setTransactionReference(dto.getTransactionReference());
 		payment.setPolicy(policy);
 		payment.setPaymentDate(LocalDateTime.now());
+		payment.setPaymentStatus(dto.getPaymentStatus());
 		
-		if(dto.getAmount() >= policy.getPolicyPlan().getPremiumAmount()) {
-			
-			payment.setPaymentStatus(PaymentStatus.SUCCESS);
-			
-		}
-		else {
-			payment.setPaymentStatus(PaymentStatus.FAILED);
-		}
 
 		PremiumPayment savedPayment = paymentRepository.save(payment);
 
