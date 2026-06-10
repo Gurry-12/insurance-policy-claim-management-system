@@ -1,5 +1,6 @@
 package com.insurance.demo.serviceimpl;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,10 +14,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.insurance.demo.dto.request.ClaimRequestDTO;
 import com.insurance.demo.dto.request.ClaimReviewRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
+import com.insurance.demo.dto.response.ClaimDocumentResponseDTO;
 import com.insurance.demo.dto.response.ClaimHistoryResponseDTO;
 import com.insurance.demo.dto.response.ClaimResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
@@ -52,7 +55,7 @@ public class ClaimServiceImpl implements ClaimService {
 
 	@Override
 	@Transactional
-	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(ClaimRequestDTO dto) {
+	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(ClaimRequestDTO dto, List<MultipartFile> files) throws IOException{// Customer only
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
@@ -66,9 +69,13 @@ public class ClaimServiceImpl implements ClaimService {
 			throw new BadRequestException("You can only raise a claim on your own policy");
 		}
 
-		if (policy.getPolicyStatus() != PolicyStatus.ACTIVE) {
-			throw new BadRequestException("Claim can only be raised against Active policies");
+		if (!PolicyStatus.ACTIVE.equals(policy.getPolicyStatus())) {
+		    throw new BadRequestException("Claim can only be raised against Active policies");
 		}
+		
+//		if (policy.getPolicyStatus() != PolicyStatus.ACTIVE) {
+//			throw new BadRequestException("Claim can only be raised against Active policies");
+//		}
 
 		if (dto.getClaimAmount() > policy.getPolicyPlan().getCoverageAmount()) {
 			throw new BadRequestException("Claim amount cannot exceed policy coverage amount");
@@ -87,20 +94,20 @@ public class ClaimServiceImpl implements ClaimService {
 		claim.setClaimStatus(ClaimStatus.SUBMITTED);
 		claim.setClaimNumber(ClaimNumberGenerator.generateClaimNumber());
 		
-		if (dto.getDocuments() == null || dto.getDocuments().isEmpty()) {
+		if (files == null || files.isEmpty()) {
 			throw new BadRequestException("At least one supporting document is required for claim");
 		}
 
 		Claim savedClaim = claimRepository.save(claim);
 
-		claimDocumentService.addDocumentsToClaim(savedClaim.getId(), dto.getDocuments());
+	List<ClaimDocumentResponseDTO> response = claimDocumentService.addDocumentsToClaim(savedClaim.getId(), files);
 
 		// Record History
 		recordClaimHistory(savedClaim, null, ClaimStatus.SUBMITTED, "Claim submitted by customer with documents",
 				email);
 
-		ClaimResponseDTO response = convertToResponseDTO(savedClaim);
-		return new ApiResponseDTO<>("Claim raised successfully with documents", true, response, LocalDateTime.now());
+		ClaimResponseDTO responseDto = convertToResponseDTO(savedClaim);
+		return new ApiResponseDTO<>("Claim raised successfully with documents", true, responseDto, LocalDateTime.now());
 	}
 
 	@Override

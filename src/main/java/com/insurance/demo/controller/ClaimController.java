@@ -1,9 +1,13 @@
 package com.insurance.demo.controller;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,8 +15,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.insurance.demo.dto.request.ClaimDocumentRequestDTO;
 import com.insurance.demo.dto.request.ClaimRequestDTO;
@@ -21,6 +27,7 @@ import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.ClaimHistoryResponseDTO;
 import com.insurance.demo.dto.response.ClaimResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
+import com.insurance.demo.model.ClaimDocument;
 import com.insurance.demo.service.ClaimDocumentService;
 import com.insurance.demo.service.ClaimService;
 
@@ -38,14 +45,34 @@ public class ClaimController {
 	private final ClaimService claimService;
 	private final ClaimDocumentService claimDocumentService;
 
-	//  CUSTOMER ENDPOINTS 
+	// CUSTOMER ENDPOINTS
 
-	@PostMapping("/raise")
+//	@PostMapping("/raise")
+//	@PreAuthorize("hasRole('CUSTOMER')")
+//	@ResponseStatus(HttpStatus.CREATED)
+//	@Operation(summary = "Customer raises a new claim")
+//	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(@Valid @RequestBody ClaimRequestDTO dto) {
+//		return claimService.raiseClaim(dto);
+//	}
+
+	@PostMapping(
+
+			value = "/raise",
+
+			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+
 	@PreAuthorize("hasRole('CUSTOMER')")
+
 	@ResponseStatus(HttpStatus.CREATED)
-	@Operation(summary = "Customer raises a new claim")
-	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(@Valid @RequestBody ClaimRequestDTO dto) {
-		return claimService.raiseClaim(dto);
+
+	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(
+
+			@Valid @RequestPart("claim") ClaimRequestDTO dto, @RequestPart("files")
+
+			List<MultipartFile> files) throws IOException {
+
+		return claimService.raiseClaim(dto, files);
+
 	}
 
 	@GetMapping("/my-claims")
@@ -55,17 +82,14 @@ public class ClaimController {
 		return claimService.getMyClaims();
 	}
 
-	//  AGENT & ADMIN ENDPOINTS 
+	// AGENT & ADMIN ENDPOINTS
 
 	@GetMapping
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	@Operation(summary = "Agent/Admin - View all claims with pagination")
-	public PageResponseDTO<ClaimResponseDTO> getAllClaims(
-			@RequestParam(defaultValue = "0") int pageNumber,
-			@RequestParam(defaultValue = "10") int pageSize,
-			@RequestParam(defaultValue = "createdDate") String sortBy,
-			@RequestParam(defaultValue = "desc") String sortDirection,
-			@RequestParam(required = false) Long customerId,
+	public PageResponseDTO<ClaimResponseDTO> getAllClaims(@RequestParam(defaultValue = "0") int pageNumber,
+			@RequestParam(defaultValue = "10") int pageSize, @RequestParam(defaultValue = "createdDate") String sortBy,
+			@RequestParam(defaultValue = "desc") String sortDirection, @RequestParam(required = false) Long customerId,
 			@RequestParam(required = false) String status) {
 
 		return claimService.getAllClaimsWithPagination(pageNumber, pageSize, sortBy, sortDirection, customerId, status);
@@ -81,18 +105,14 @@ public class ClaimController {
 	@GetMapping("/{claimId}/history")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
 	@Operation(summary = "View claim status history")
-	public PageResponseDTO<ClaimHistoryResponseDTO> getClaimHistory(
-			@PathVariable Long claimId,
-			@RequestParam(defaultValue = "0") int pageNumber,
-			@RequestParam(defaultValue = "10") int pageSize,
-			@RequestParam(defaultValue = "id") String sortBy,
-			@RequestParam(defaultValue = "desc") String sortDirection,
-			@RequestParam(required = false) String updatedBy,
-			@RequestParam(required = false) String status) {
+	public PageResponseDTO<ClaimHistoryResponseDTO> getClaimHistory(@PathVariable Long claimId,
+			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
+			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "desc") String sortDirection,
+			@RequestParam(required = false) String updatedBy, @RequestParam(required = false) String status) {
 		return claimService.getClaimHistory(claimId, pageNumber, pageSize, sortBy, sortDirection, updatedBy, status);
 	}
 
-	//  AGENT ENDPOINTS 
+	// AGENT ENDPOINTS
 
 	@PatchMapping("/{claimId}/under-review")
 	@PreAuthorize("hasRole('AGENT')")
@@ -100,7 +120,7 @@ public class ClaimController {
 	public ApiResponseDTO<ClaimResponseDTO> underReviewClaim(@PathVariable Long claimId) {
 		return claimService.underReviewClaim(claimId);
 	}
-	
+
 	@PatchMapping("/{claimId}/review")
 	@PreAuthorize("hasRole('AGENT')")
 	@Operation(summary = "Agent reviews and recommends claim decision")
@@ -110,7 +130,7 @@ public class ClaimController {
 		return claimService.reviewClaim(claimId, dto);
 	}
 
-	//  ADMIN ENDPOINTS 
+	// ADMIN ENDPOINTS
 
 	@PreAuthorize("hasRole('ADMIN')")
 	@PatchMapping("/{claimId}/final-decision")
@@ -122,11 +142,12 @@ public class ClaimController {
 	}
 
 	// Optional: Add documents to existing claim
-	@PreAuthorize("hasRole('CUSTOMER')")
-	@PostMapping("/{claimId}/documents")
-	@Operation(summary = "Add supporting documents to a claim")
-	public ApiResponseDTO<String> addDocuments(@PathVariable Long claimId,
-			@RequestBody List<ClaimDocumentRequestDTO> documents) {
-		return claimDocumentService.addDocumentsToClaim(claimId, documents);
-	}
+//	@PreAuthorize("hasRole('CUSTOMER')")
+//	@PostMapping("/{claimId}/documents")
+//	@Operation(summary = "Add supporting documents to a claim")
+//	public ApiResponseDTO<String> addDocuments(@PathVariable Long claimId,
+//			@RequestBody List<ClaimDocumentRequestDTO> documents) {
+//		return claimDocumentService.addDocumentsToClaim(claimId, documents);
+//	}
+
 }
