@@ -41,6 +41,12 @@ public class ClaimDocument {
     @Column(name = "document_reference")
     private String documentReference;
 
+    @Column(name = "document_url")
+    private String documentUrl;
+
+    @Column(name = "public_id")
+    private String publicId;
+    
     @Column(name = "uploaded_date")
     private LocalDateTime uploadedDate;
 
