@@ -18,6 +18,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -29,7 +30,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = { @UniqueConstraint(name = "user_valid_email", columnNames = "email"),
+		@UniqueConstraint(name = "user_valid_phone", columnNames = "mobile_number") })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -57,12 +59,11 @@ public class AppUser {
 
 	@Column(name = "mobile_number", nullable = false, unique = true)
 	@NotBlank(message = "mobile number can not be blank")
-	@Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter valid 10 digit mobile number")
 	private String mobileNumber;
 
 	@Column(name = "is_active", nullable = false)
 	@NotNull(message = "status can not be null")
-	private Boolean isActive = true;
+	private Boolean isActive;
 
 	@Column(name = "created_date", updatable = false)
 	@CreationTimestamp
@@ -80,4 +81,6 @@ public class AppUser {
 	@OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private Customer customer;
 
+	private boolean emailVerified;
+    private boolean phoneVerified;
 }

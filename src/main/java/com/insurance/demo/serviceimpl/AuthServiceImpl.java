@@ -13,18 +13,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.insurance.demo.dto.request.LoginRequestDTO;
 import com.insurance.demo.dto.request.UserRequestDTO;
+import com.insurance.demo.dto.request.VerifyOtpRequest;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.LoginResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
+import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.security.JwtService;
 import com.insurance.demo.service.AuthService;
 import com.insurance.demo.service.UserService;
+import com.insurance.demo.verification.OtpService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final JwtService jwtService;
 	private final UserService userService;
+	private final OtpService otpService;
 
 	@Override
 	public LoginResponseDTO login(LoginRequestDTO requestDto) {
@@ -54,15 +59,15 @@ public class AuthServiceImpl implements AuthService {
 				.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getEmail(), requestDto.getPassword()));
 
 		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-		
+
 		String token = jwtService.generateToken(userDetails);
 
 		UserResponseDTO dto = userService.findByEmail(userDetails.getUsername());
-		
+
 		log.info("JWT token generated successfully for email: {}", userDetails.getUsername());
 
-		return new LoginResponseDTO(dto.getId(), dto.getFullName(), dto.getEmail(), dto.getRole(), token,
-				"Jwt created", "Bearer");
+		return new LoginResponseDTO(dto.getId(), dto.getFullName(), dto.getEmail(), dto.getRole(), token, "Jwt created",
+				"Bearer");
 	}
 
 	@Override
@@ -77,12 +82,37 @@ public class AuthServiceImpl implements AuthService {
 		user.setEmail(dto.getEmail().toLowerCase());
 		user.setPassword(passwordEncoder.encode(dto.getPassword()));
 		user.setRole(Role.ROLE_CUSTOMER);
-		user.setIsActive(true);
-
+		user.setIsActive(false);
+		user.setEmailVerified(false);
+		user.setPhoneVerified(false);
+		
 		AppUser savedUser = userRepository.save(user);
+		otpService.createAndSendOtp(savedUser);
+		
 		UserResponseDTO responseDTO = modelMapper.map(savedUser, UserResponseDTO.class);
-		return new ApiResponseDTO<>("User Created", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>("OTP sent to email and phone. Verify both OTPs to complete registration.", true,
+				responseDTO, LocalDateTime.now());
 
+	}
+
+	@Override
+	public ApiResponseDTO<UserResponseDTO> verifyOtp(@Valid VerifyOtpRequest request) {
+		AppUser user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+
+        if (Boolean.TRUE.equals(user.getIsActive())) {
+            throw new BadRequestException("user is already verified");
+        }
+
+        otpService.verifyOtp(user, request.getEmailOtp(), request.getPhoneOtp());
+
+        user.setEmailVerified(true);
+        user.setPhoneVerified(true);
+        user.setIsActive(true);
+
+        AppUser saved = userRepository.save(user);
+        
+        return new ApiResponseDTO<>("User is verified", true, modelMapper.map(saved, UserResponseDTO.class), LocalDateTime.now());
 	}
 
 }
