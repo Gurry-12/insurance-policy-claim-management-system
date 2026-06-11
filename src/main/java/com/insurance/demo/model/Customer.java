@@ -18,6 +18,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -52,23 +53,27 @@ public class Customer {
 	private String address;
 
 	@Column(name = "city", nullable = false)
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "City is required")
 	private String city;
 
 	@Column(name = "state", nullable = false)
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "State can not be blank")
 	private String state;
 
 	@Column(name = "pin_code", nullable = false)
 	@NotBlank(message = "Pin code is required")
-	@Size(min = 6 , message = "pin code should be min 6 chars")
+	@Size(min = 6, message = "pin code should be min 6 chars")
 	private String pinCode;
 
 	@Column(name = "nominee_name", nullable = false)
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "Nominee name can not be blank")
 	private String nomineeName;
 
 	@Column(name = "nominee_relation", nullable = false)
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "Nominee relation can not be blank")
 	private String nomineeRelation;
 

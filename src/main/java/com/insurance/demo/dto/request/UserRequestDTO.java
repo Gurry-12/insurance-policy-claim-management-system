@@ -17,6 +17,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UserRequestDTO {
 
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "Full name is required")
 	@Size(min = 2, max = 100, message = "name should be beteeen 2 - 100 characters")
 	private String fullName;
