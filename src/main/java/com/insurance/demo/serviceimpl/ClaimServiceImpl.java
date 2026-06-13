@@ -55,7 +55,8 @@ public class ClaimServiceImpl implements ClaimService {
 
 	@Override
 	@Transactional
-	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(ClaimRequestDTO dto, List<MultipartFile> files) throws IOException{// Customer only
+	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(ClaimRequestDTO dto, List<MultipartFile> files)
+			throws IOException {// Customer only
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
@@ -70,9 +71,9 @@ public class ClaimServiceImpl implements ClaimService {
 		}
 
 		if (!PolicyStatus.ACTIVE.equals(policy.getPolicyStatus())) {
-		    throw new BadRequestException("Claim can only be raised against Active policies");
+			throw new BadRequestException("Claim can only be raised against Active policies");
 		}
-		
+
 //		if (policy.getPolicyStatus() != PolicyStatus.ACTIVE) {
 //			throw new BadRequestException("Claim can only be raised against Active policies");
 //		}
@@ -93,14 +94,15 @@ public class ClaimServiceImpl implements ClaimService {
 		claim.setIncidentDate(dto.getIncidentDate().atStartOfDay());
 		claim.setClaimStatus(ClaimStatus.SUBMITTED);
 		claim.setClaimNumber(ClaimNumberGenerator.generateClaimNumber());
-		
+
 		if (files == null || files.isEmpty()) {
+
 			throw new BadRequestException("At least one supporting document is required for claim");
 		}
 
 		Claim savedClaim = claimRepository.save(claim);
 
-	List<ClaimDocumentResponseDTO> response = claimDocumentService.addDocumentsToClaim(savedClaim.getId(), files);
+		List<ClaimDocumentResponseDTO> response = claimDocumentService.addDocumentsToClaim(savedClaim.getId(), files);
 
 		// Record History
 		recordClaimHistory(savedClaim, null, ClaimStatus.SUBMITTED, "Claim submitted by customer with documents",
@@ -128,10 +130,9 @@ public class ClaimServiceImpl implements ClaimService {
 		}
 
 		if (claim.getClaimStatus() != ClaimStatus.UNDER_REVIEW) {
-		    throw new BadRequestException(
-		        "Claim must be under review before recommendation");
+			throw new BadRequestException("Claim must be under review before recommendation");
 		}
-		
+
 		ClaimStatus previous = claim.getClaimStatus();
 
 		// Agent recommends
@@ -155,19 +156,18 @@ public class ClaimServiceImpl implements ClaimService {
 
 			throw new BadRequestException("Admin can only approve or reject claims");
 		}
-		
+
 		Claim claim = claimRepository.findById(claimId)
 				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
 
 		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
 			throw new BadRequestException("Claim already finalized");
 		}
-		
-		if (claim.getClaimStatus() != ClaimStatus.RECOMMENDED_FOR_APPROVAL
-		        && claim.getClaimStatus() != ClaimStatus.RECOMMENDED_FOR_REJECTION) {
 
-		    throw new BadRequestException(
-		            "Claim must be reviewed by an agent before final decision");
+		if (claim.getClaimStatus() != ClaimStatus.RECOMMENDED_FOR_APPROVAL
+				&& claim.getClaimStatus() != ClaimStatus.RECOMMENDED_FOR_REJECTION) {
+
+			throw new BadRequestException("Claim must be reviewed by an agent before final decision");
 		}
 
 		ClaimStatus previous = claim.getClaimStatus();
@@ -192,13 +192,12 @@ public class ClaimServiceImpl implements ClaimService {
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String loggedInEmail = authentication.getName();
-		boolean isCustomer = authentication.getAuthorities()
-				.stream()
+		boolean isCustomer = authentication.getAuthorities().stream()
 				.anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 
-		if (isCustomer && (claim.getPolicy() == null || claim.getPolicy().getCustomer() == null ||
-				claim.getPolicy().getCustomer().getUser() == null ||
-				!claim.getPolicy().getCustomer().getUser().getEmail().equals(loggedInEmail))) {
+		if (isCustomer && (claim.getPolicy() == null || claim.getPolicy().getCustomer() == null
+				|| claim.getPolicy().getCustomer().getUser() == null
+				|| !claim.getPolicy().getCustomer().getUser().getEmail().equals(loggedInEmail))) {
 			throw new AccessDeniedException("You are not allowed to view this claim");
 		}
 
@@ -218,8 +217,7 @@ public class ClaimServiceImpl implements ClaimService {
 
 		List<Claim> claims = claimRepository.findByPolicyCustomerUserId(user.getId());
 
-		List<ClaimResponseDTO> responseList = claims.stream()
-				.map(this::convertToResponseDTO).toList();
+		List<ClaimResponseDTO> responseList = claims.stream().map(this::convertToResponseDTO).toList();
 
 		return new ApiResponseDTO<>("My claims retrieved successfully", true, responseList, LocalDateTime.now());
 	}
@@ -229,7 +227,8 @@ public class ClaimServiceImpl implements ClaimService {
 	public PageResponseDTO<ClaimResponseDTO> getAllClaimsWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, Long customerId, String status) {
 
-		log.info("Fetching claims with pagination: page={}, size={}, sortBy={}, customerId={}, status={}", pageNumber, pageSize, sortBy, customerId, status);
+		log.info("Fetching claims with pagination: page={}, size={}, sortBy={}, customerId={}, status={}", pageNumber,
+				pageSize, sortBy, customerId, status);
 
 		validatePagination(pageNumber, pageSize);
 		validateSortField(sortBy);
@@ -248,8 +247,7 @@ public class ClaimServiceImpl implements ClaimService {
 
 		Page<Claim> claimPage = claimRepository.findByFilters(customerId, claimStatus, pageable);
 
-		List<ClaimResponseDTO> content = claimPage.getContent().stream()
-				.map(this::convertToResponseDTO).toList();
+		List<ClaimResponseDTO> content = claimPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
 		return new PageResponseDTO<>(content, claimPage.getNumber(), claimPage.getSize(), claimPage.getTotalElements(),
 				claimPage.getTotalPages(), claimPage.isLast(), sortDirection);
@@ -265,13 +263,12 @@ public class ClaimServiceImpl implements ClaimService {
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String loggedInEmail = authentication.getName();
-		boolean isCustomer = authentication.getAuthorities()
-				.stream()
+		boolean isCustomer = authentication.getAuthorities().stream()
 				.anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 
-		if (isCustomer && (claim.getPolicy() == null || claim.getPolicy().getCustomer() == null ||
-				claim.getPolicy().getCustomer().getUser() == null ||
-				!claim.getPolicy().getCustomer().getUser().getEmail().equals(loggedInEmail))) {
+		if (isCustomer && (claim.getPolicy() == null || claim.getPolicy().getCustomer() == null
+				|| claim.getPolicy().getCustomer().getUser() == null
+				|| !claim.getPolicy().getCustomer().getUser().getEmail().equals(loggedInEmail))) {
 			throw new AccessDeniedException("You are not allowed to access another customer's claim history");
 		}
 
@@ -283,8 +280,8 @@ public class ClaimServiceImpl implements ClaimService {
 
 		Page<ClaimStatusHistory> historyPage = historyRepository.findByFilters(claimId, updatedBy, status, pageable);
 
-		List<ClaimHistoryResponseDTO> content = historyPage.getContent().stream()
-				.map(this::convertToHistoryResponseDTO).toList();
+		List<ClaimHistoryResponseDTO> content = historyPage.getContent().stream().map(this::convertToHistoryResponseDTO)
+				.toList();
 
 		return new PageResponseDTO<>(content, historyPage.getNumber(), historyPage.getSize(),
 				historyPage.getTotalElements(), historyPage.getTotalPages(), historyPage.isLast(), sortDirection);
@@ -300,18 +297,17 @@ public class ClaimServiceImpl implements ClaimService {
 		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
 			throw new BadRequestException("Finalized claims cannot be modified");
 		}
-		
+
 		if (claim.getClaimStatus() != ClaimStatus.SUBMITTED) {
-		    throw new BadRequestException(
-		        "Only submitted claims can be moved to under review");
+			throw new BadRequestException("Only submitted claims can be moved to under review");
 		}
 
 		ClaimStatus previous = claim.getClaimStatus();
-		
+
 		// Agent recommends
 		claim.setClaimStatus(ClaimStatus.UNDER_REVIEW);
 		claim.setAgentRemarks("Claim under review");
-		
+
 		Claim updated = claimRepository.save(claim);
 
 		recordClaimHistory(updated, previous, claim.getClaimStatus(), updated.getAgentRemarks(),

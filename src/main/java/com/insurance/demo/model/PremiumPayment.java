@@ -48,8 +48,8 @@ public class PremiumPayment {
 	private Double amount;
 
 	@Column(name = "payment_date", nullable = false)
-    private LocalDateTime paymentDate = LocalDateTime.now();
-	
+	private LocalDateTime paymentDate = LocalDateTime.now();
+
 	@Enumerated(EnumType.STRING)
 	@NotNull(message = "payment mode can't be null")
 	@Column(name = "payment_mode", nullable = false)
@@ -60,10 +60,10 @@ public class PremiumPayment {
 	private String transactionReference;
 
 	@NotNull(message = "payment status can not be null")
-	@Column(name = "payment_status",  nullable = false)
-    private PaymentStatus paymentStatus;
+	@Column(name = "payment_status", nullable = false)
+	private PaymentStatus paymentStatus;
 
-    @Column(name = "created_date", updatable = false)
-    @CreationTimestamp
-    private LocalDateTime createdDate;
+	@Column(name = "created_date", updatable = false)
+	@CreationTimestamp
+	private LocalDateTime createdDate;
 }

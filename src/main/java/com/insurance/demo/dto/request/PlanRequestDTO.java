@@ -4,6 +4,7 @@ import com.insurance.demo.enums.PremiumType;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,6 +18,7 @@ public class PlanRequestDTO {
 	@NotNull(message = "Product Id is required")
 	private Long productId;
 
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "Plan name is required")
 	private String planName;
 

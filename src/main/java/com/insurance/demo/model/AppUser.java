@@ -44,6 +44,7 @@ public class AppUser {
 	private Long id;
 
 	@Column(name = "full_name", nullable = false)
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "name can not be blank")
 	@Size(min = 2, max = 100, message = "name should be beteeen 2 - 100 characters")
 	private String fullName;
