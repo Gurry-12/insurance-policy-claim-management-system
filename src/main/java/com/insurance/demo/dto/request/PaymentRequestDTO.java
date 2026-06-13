@@ -28,4 +28,7 @@ public class PaymentRequestDTO {
 
 	@NotBlank(message = "Transaction reference is required")
 	private String transactionReference;
+
+	@NotNull(message = "Payment status is required")
+	private PaymentStatus paymentStatus;
 }

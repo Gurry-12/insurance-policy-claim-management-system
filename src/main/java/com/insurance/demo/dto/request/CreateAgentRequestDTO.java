@@ -15,6 +15,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CreateAgentRequestDTO {
 
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "Full name is required")
 	@Size(min = 2, max = 100, message = "name should be beteeen 2 - 100 characters")
 	private String fullName;
@@ -28,6 +29,6 @@ public class CreateAgentRequestDTO {
 	private String password;
 
 	@NotBlank(message = "Mobile number is required")
-	@Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter valid mobile number")
+	@Pattern(regexp = "^\\+[1-9]\\d{7,14}$", message = "Use international format, example: +919876543210")
 	private String mobileNumber;
 }

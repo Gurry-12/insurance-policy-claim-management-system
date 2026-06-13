@@ -1,16 +1,24 @@
 package com.insurance.demo.serviceimpl;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.insurance.demo.dto.request.PolicyIssueRequestDTO;
 import com.insurance.demo.dto.request.PolicyPurchaseRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
+import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.enums.PolicyStatus;
 import com.insurance.demo.exception.BadRequestException;
@@ -28,32 +36,22 @@ import com.insurance.demo.util.PolicyNumberGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-
-import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
-import java.util.List;
-
-import com.insurance.demo.dto.response.PageResponseDTO;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PolicyServiceImpl implements PolicyService {
 
 	private final PolicyRepository policyRepository;
-
 	private final PolicyPlanRepository policyPlanRepository;
-
 	private final CustomerRepository customerRepository;
-
 	private final ModelMapper modelMapper;
 
 	@Override
-	public ApiResponseDTO<PolicyResponseDTO> purchasePolicy(PolicyPurchaseRequestDTO requestDTO, String customerEmail) {
+	public ApiResponseDTO<PolicyResponseDTO> purchasePolicy(PolicyPurchaseRequestDTO requestDTO) {
 
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+		String customerEmail = authentication.getName();
 		Customer customer = customerRepository.findByUserEmail(customerEmail)
 				.orElseThrow(() -> new RuntimeException("Customer not found"));
 
@@ -67,9 +65,9 @@ public class PolicyServiceImpl implements PolicyService {
 
 		policy.setPolicyNumber(PolicyNumberGenerator.generatePolicyNumber());
 
-		policy.setStartDate(LocalDate.now());
+		policy.setStartDate(requestDTO.getStartDate());
 
-		policy.setEndDate(LocalDate.now().plusYears(plan.getDuration()));
+		policy.setEndDate(requestDTO.getStartDate().plusYears(plan.getDuration()));
 
 		policy.setPolicyStatus(PolicyStatus.PENDING_PAYMENT);
 
@@ -120,7 +118,7 @@ public class PolicyServiceImpl implements PolicyService {
 		Policy policy = policyRepository.findById(policyId)
 				.orElseThrow(() -> new PolicyNotFoundException(policyId));
 
-		org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
 		boolean isCustomer = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 

@@ -30,5 +30,5 @@ public class ClaimRequestDTO {
 	@NotNull(message = "Incident date is required")
 	private LocalDate incidentDate;
 	
-	private List<ClaimDocumentRequestDTO> documents;
+	//private List<ClaimDocumentRequestDTO> documents;
 }

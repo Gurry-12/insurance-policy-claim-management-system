@@ -42,72 +42,61 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 
-	@Autowired
-	private PremiumPaymentRepository paymentRepository;
-
-	@Autowired
-	private PolicyRepository policyRepository;
-
-	@Autowired
-	private ModelMapper modelMapper;
-
-	@Autowired
-	private AppUserRepository userRepository;
+	private final PremiumPaymentRepository paymentRepository;
+	private final PolicyRepository policyRepository;
+	private final ModelMapper modelMapper;
+	private final AppUserRepository userRepository;
 
 	@Override
 	@Transactional
-	public ApiResponseDTO<PaymentResponseDTO> recordPayment(@Valid PaymentRequestDTO dto) {
+	public ApiResponseDTO<PaymentResponseDTO> recordPayment(PaymentRequestDTO dto) {
 
-		log.info("Recording payment for policy id: {}", dto.getPolicyId());
+	    log.info("Recording payment for policy id: {}", dto.getPolicyId());
 
-		Policy policy = policyRepository.findById(dto.getPolicyId())
-				.orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + dto.getPolicyId()));
+	    Policy policy = policyRepository.findById(dto.getPolicyId())
+	            .orElseThrow(() ->
+	                    new ResourceNotFoundException("Policy not found with id: " + dto.getPolicyId()));
 
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		String email = authentication.getName();
-		boolean isCustomer = authentication.getAuthorities()
-		        .stream()
-		        .anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+	    String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-		if (isCustomer && !policy.getCustomer().getUser().getEmail().equals(email)) {
-			throw new AccessDeniedException("You are not allowed to record payment for another customer's policy");
-		}
+	    boolean isCustomer = SecurityContextHolder.getContext()
+	            .getAuthentication()
+	            .getAuthorities()
+	            .stream()
+	            .anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 
-		if (paymentRepository.existsByTransactionReference(dto.getTransactionReference())) {
-			throw new DuplicateResourceException("Transaction reference already exists");
-		}
+	    if (isCustomer && !policy.getCustomer().getUser().getEmail().equals(email)) {
+	        throw new AccessDeniedException("You are not allowed to record payment for another customer's policy");
+	    }
 
-		if (Double.compare(policy.getPolicyPlan().getPremiumAmount(), dto.getAmount()) != 0) {
-			throw new BadRequestException("Payment amount must exactly match the policy premium amount");
-		}
+	    if (paymentRepository.existsByTransactionReference(dto.getTransactionReference())) {
+	        throw new DuplicateResourceException("Transaction reference already exists");
+	    }
 
-		PremiumPayment payment = new PremiumPayment();
-		payment.setAmount(dto.getAmount());
-		payment.setPaymentMode(dto.getPaymentMode());
-		payment.setTransactionReference(dto.getTransactionReference());
-		payment.setPolicy(policy);
-		payment.setPaymentDate(LocalDateTime.now());
-		
-		if(dto.getAmount() >= policy.getPolicyPlan().getPremiumAmount()) {
-			
-			payment.setPaymentStatus(PaymentStatus.SUCCESS);
-			
-		}
-		else {
-			payment.setPaymentStatus(PaymentStatus.FAILED);
-		}
+	    if (policy.getPolicyPlan().getPremiumAmount().compareTo(dto.getAmount()) != 0) {
+	        throw new BadRequestException("Payment amount must match premium amount");
+	    }
 
-		PremiumPayment savedPayment = paymentRepository.save(payment);
+	    PremiumPayment payment = new PremiumPayment();
+	    payment.setAmount(dto.getAmount());
+	    payment.setPaymentMode(dto.getPaymentMode());
+	    payment.setTransactionReference(dto.getTransactionReference());
+	    payment.setPolicy(policy);
+	    payment.setPaymentDate(LocalDateTime.now());
 
-		if (savedPayment.getPaymentStatus() == PaymentStatus.SUCCESS) {
-			policy.setTotalPremiumPaid(policy.getTotalPremiumPaid() + dto.getAmount());
-			policy.setPolicyStatus(PolicyStatus.ACTIVE);
-			policyRepository.save(policy);
-		}
+	    // IMPORTANT: do NOT trust frontend blindly
+	    payment.setPaymentStatus(PaymentStatus.SUCCESS);
 
-		PaymentResponseDTO responseDTO = modelMapper.map(savedPayment, PaymentResponseDTO.class);
-		responseDTO.setPolicyNumber(policy.getPolicyNumber());
-		return new ApiResponseDTO<>("Payment recorded successfully", true, responseDTO, LocalDateTime.now());
+	    PremiumPayment savedPayment = paymentRepository.save(payment);
+
+	    policy.setTotalPremiumPaid(policy.getTotalPremiumPaid() + dto.getAmount());
+	    policy.setPolicyStatus(PolicyStatus.ACTIVE);
+	    policyRepository.save(policy);
+
+	    PaymentResponseDTO responseDTO = modelMapper.map(savedPayment, PaymentResponseDTO.class);
+	    responseDTO.setPolicyNumber(policy.getPolicyNumber());
+
+	    return new ApiResponseDTO<>("Payment recorded successfully", true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override

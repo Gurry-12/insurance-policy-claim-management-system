@@ -12,6 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,6 +31,7 @@ public class ClaimDocument {
     @Column(name = "id")
     private Long id; 
 
+    @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
     @NotBlank(message = "Document name is required")
     @Column(name = "document_name", nullable = false)
     private String name;
@@ -41,6 +43,12 @@ public class ClaimDocument {
     @Column(name = "document_reference")
     private String documentReference;
 
+    @Column(name = "document_url")
+    private String documentUrl;
+
+    @Column(name = "public_id")
+    private String publicId;
+    
     @Column(name = "uploaded_date")
     private LocalDateTime uploadedDate;
 

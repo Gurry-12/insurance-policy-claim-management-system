@@ -8,7 +8,7 @@ import com.insurance.demo.dto.response.PolicyResponseDTO;
 
 public interface PolicyService {
 
-	ApiResponseDTO<PolicyResponseDTO> purchasePolicy(PolicyPurchaseRequestDTO requestDTO, String customerEmail);
+	ApiResponseDTO<PolicyResponseDTO> purchasePolicy(PolicyPurchaseRequestDTO requestDTO);
 
 	ApiResponseDTO<PolicyResponseDTO> issuePolicy(PolicyIssueRequestDTO requestDTO);
 
