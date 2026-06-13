@@ -1,6 +1,7 @@
 package com.insurance.demo.controller;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.insurance.demo.dto.request.LoginRequestDTO;
 import com.insurance.demo.dto.request.UserRequestDTO;
+import com.insurance.demo.dto.request.VerifyOtpRequest;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.LoginResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
@@ -17,6 +19,7 @@ import com.insurance.demo.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/auth")
@@ -28,11 +31,11 @@ public class AuthController {
 	@PostMapping("/login")
 	@ResponseStatus(HttpStatus.OK)
 	public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO requestDto) {
- 
+
 		log.info("Login request received for email: {}", requestDto.getEmail());
- 
+
 		return authService.login(requestDto);
- 
+
 	}
 
 	@PostMapping("/register")
@@ -40,6 +43,12 @@ public class AuthController {
 	public ApiResponseDTO<UserResponseDTO> registerUser(@Valid @RequestBody UserRequestDTO dto) {
 
 		return authService.registerUser(dto);
+	}
+
+	@PostMapping("/verify-otp")
+
+	public ApiResponseDTO<UserResponseDTO> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+		return authService.verifyOtp(request);
 	}
 
 }

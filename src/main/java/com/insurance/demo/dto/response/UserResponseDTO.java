@@ -26,6 +26,9 @@ public class UserResponseDTO {
 	private String role;
 
 	private Boolean isActive;
+	
+	private boolean emailVerified;
+    private boolean phoneVerified;
 
 	private LocalDateTime createdDate;
 

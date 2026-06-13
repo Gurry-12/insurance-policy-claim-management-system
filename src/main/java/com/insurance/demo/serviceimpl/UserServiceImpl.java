@@ -26,6 +26,7 @@ import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.service.UserService;
+import com.insurance.demo.verification.OtpService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class UserServiceImpl implements UserService {
 	private final AppUserRepository userRepository;
 	private final ModelMapper modelMapper;
 	private final PasswordEncoder passwordEncoder;
+	private final OtpService otpService;
 
 	@Override
 	@Transactional(readOnly = true)
@@ -139,8 +141,10 @@ public class UserServiceImpl implements UserService {
 		user.setEmail(agentRequestDTO.getEmail().toLowerCase());
 		user.setPassword(passwordEncoder.encode(agentRequestDTO.getPassword()));
 		user.setRole(Role.ROLE_AGENT);
-		user.setIsActive(true);
+		user.setIsActive(false);
 		AppUser retrivedUser = userRepository.save(user);
+		
+		otpService.createAndSendOtp(retrivedUser);
 
 		UserResponseDTO dto = modelMapper.map(retrivedUser, UserResponseDTO.class);
 		return new ApiResponseDTO<>("Agent Created", true, dto, LocalDateTime.now());

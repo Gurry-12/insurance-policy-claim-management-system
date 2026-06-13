@@ -29,6 +29,6 @@ public class CreateAgentRequestDTO {
 	private String password;
 
 	@NotBlank(message = "Mobile number is required")
-	@Pattern(regexp = "^[6-9]\\d{9}$", message = "Enter valid mobile number")
+	@Pattern(regexp = "^\\+[1-9]\\d{7,14}$", message = "Use international format, example: +919876543210")
 	private String mobileNumber;
 }
