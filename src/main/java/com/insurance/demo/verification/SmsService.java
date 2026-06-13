@@ -23,6 +23,7 @@ public class SmsService {
     @Value("${app.twilio.from-phone}")
     private String fromPhone;
 
+    
     public void sendOtp(String toPhone, String otp) {
         if (!StringUtils.hasText(accountSid) || !StringUtils.hasText(authToken) || !StringUtils.hasText(fromPhone)) {
             log.warn("Twilio is not configured. Phone OTP for {} is {}", toPhone, otp);

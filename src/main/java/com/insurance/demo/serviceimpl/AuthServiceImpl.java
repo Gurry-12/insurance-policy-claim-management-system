@@ -51,6 +51,10 @@ public class AuthServiceImpl implements AuthService {
 		AppUser appUser = userRepository.findByEmail(email)
 				.orElseThrow(() -> new BadRequestException("Invalid email or password"));
 
+		if(!appUser.isEmailVerified() && !appUser.isPhoneVerified()) {
+			throw new BadRequestException("User is not varified can't login");
+		}
+		
 		if (Boolean.FALSE.equals(appUser.getIsActive())) {
 			throw new BadRequestException("User is inactive can't login");
 		}
