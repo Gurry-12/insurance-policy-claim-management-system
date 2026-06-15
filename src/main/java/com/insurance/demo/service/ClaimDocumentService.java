@@ -1,6 +1,5 @@
 package com.insurance.demo.service;
 
-import com.insurance.demo.dto.request.ClaimDocumentRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.ClaimDocumentResponseDTO;
 import com.insurance.demo.model.ClaimDocument;
@@ -14,11 +13,9 @@ public interface ClaimDocumentService {
 
 	 List<ClaimDocumentResponseDTO> addDocumentsToClaim(Long claimId, List<MultipartFile> files) throws IOException;
     
-    ClaimDocument uploadDocument(
+    ApiResponseDTO<List<ClaimDocumentResponseDTO>> uploadDocuments(
             Long claimId,
-            MultipartFile file)
+            List<MultipartFile> files)
             throws IOException;
 
-    void deleteDocument(Long documentId)
-            throws IOException;
 }
