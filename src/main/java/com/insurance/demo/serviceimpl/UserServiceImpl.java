@@ -70,10 +70,6 @@ public class UserServiceImpl implements UserService {
 
 		AppUser user = getById(userId);
 		
-//		if (Boolean.FALSE.equals(dto.getIsActive())) {
-//			throw new BadRequestException("Active status must be true for activation");
-//		}
-		
 		if (Boolean.TRUE.equals(user.getIsActive())) {
 			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
 			log.info("user already active with id {} ", userId);
@@ -105,10 +101,6 @@ public class UserServiceImpl implements UserService {
 
 		if (userId.equals(currentUserId()))
 		    throw new BadRequestException("Cannot deactivate your own account");
-//
-//		if (Boolean.TRUE.equals(dto.getIsActive())) {
-//			throw new BadRequestException("Active status must be false for deactivation");
-//		}
 		
 		AppUser user = getById(userId);
 
@@ -141,6 +133,7 @@ public class UserServiceImpl implements UserService {
 		user.setPassword(passwordEncoder.encode(agentRequestDTO.getPassword()));
 		user.setRole(Role.ROLE_AGENT);
 		user.setIsActive(false);
+		user.setEmailVerified(false);
 		AppUser retrivedUser = userRepository.save(user);
 		
 		otpService.createAndSendOtp(retrivedUser);

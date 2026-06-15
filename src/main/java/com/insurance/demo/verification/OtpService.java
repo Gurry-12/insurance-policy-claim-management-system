@@ -30,23 +30,20 @@ public class OtpService {
     @Transactional
     public void createAndSendOtp(AppUser user) {
         String emailOtp = generateSixDigitOtp();
-        String phoneOtp = generateSixDigitOtp();
-
+       
         OtpVerification otpVerification = OtpVerification.builder()
                 .user(user)
                 .emailOtp(emailOtp)
-                .phoneOtp(phoneOtp)
                 .expiresAt(LocalDateTime.now().plusMinutes(expiryMinutes))
                 .used(false)
                 .build();
 
         otpRepository.save(otpVerification);
         emailService.sendOtp(user.getEmail(), emailOtp);
-        smsService.sendOtp(user.getMobileNumber(), phoneOtp);
     }
 
     @Transactional
-    public void verifyOtp(AppUser user, String emailOtp, String phoneOtp) {
+    public void verifyOtp(AppUser user, String emailOtp) {
         OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
                 .orElseThrow(() -> new BadRequestException("No active OTP found. Please register again."));
 
@@ -57,11 +54,7 @@ public class OtpService {
         if (!latestOtp.getEmailOtp().equals(emailOtp)) {
             throw new BadRequestException("Invalid email OTP");
         }
-
-//        if (!latestOtp.getPhoneOtp().equals(phoneOtp)) {
-//            throw new BadRequestException("Invalid phone OTP");
-//        }
-
+        
         latestOtp.setUsed(true);
         otpRepository.save(latestOtp);
     }
