@@ -47,16 +47,22 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public LoginResponseDTO login(LoginRequestDTO requestDto) {
+		
+		log.info("Login attempt received. Email={}", requestDto.getEmail());
 		String email = requestDto.getEmail().toLowerCase();
 		AppUser appUser = userRepository.findByEmail(email)
-				.orElseThrow(() -> new BadRequestException("Invalid email or password"));
+				.orElseThrow(() -> { 
+					log.warn("Login failed due to invalid credentials. Email={}", requestDto.getEmail());
+					throw new BadRequestException("Invalid email or password");});
 
-		if(!appUser.isEmailVerified() && !appUser.isPhoneVerified()) {
-			throw new BadRequestException("User is not varified can't login");
+		if(!appUser.isEmailVerified() || !appUser.isPhoneVerified()) {
+			log.warn("Login blocked. Email or phone not verified. UserId={}", appUser.getId());
+			throw new BadRequestException("Please verify your mobile number and email before logging in.");
 		}
 		
 		if (Boolean.FALSE.equals(appUser.getIsActive())) {
-			throw new BadRequestException("User is inactive can't login");
+			log.warn("Login blocked. Inactive account. UserId={}", appUser.getId());
+			throw new BadRequestException("Your account is inactive. Please contact support.");
 		}
 
 		Authentication authentication = authenticationManager
@@ -68,7 +74,7 @@ public class AuthServiceImpl implements AuthService {
 
 		UserResponseDTO dto = userService.findByEmail(userDetails.getUsername());
 
-		log.info("JWT token generated successfully for email: {}", userDetails.getUsername());
+		log.info("User login successful. UserId={}, Role={}", appUser.getId(), appUser.getRole());
 
 		return new LoginResponseDTO(dto.getId(), dto.getFullName(), dto.getEmail(), dto.getRole(), token, "Jwt created",
 				"Bearer");
@@ -78,9 +84,10 @@ public class AuthServiceImpl implements AuthService {
 	@Transactional
 	public ApiResponseDTO<UserResponseDTO> registerUser(UserRequestDTO dto) {
 
-		log.info("creating user by email: {}", dto.getEmail());
+
 		if (userRepository.existsByEmail(dto.getEmail())) {
-			throw new DuplicateResourceException("Duplicate user found with email - " + dto.getEmail());
+			log.warn("Registration failed. Email already exists. Email={}", dto.getEmail());
+			throw new DuplicateResourceException("Email is already registered.");
 		}
 		AppUser user = modelMapper.map(dto, AppUser.class);
 		user.setEmail(dto.getEmail().toLowerCase());
@@ -94,6 +101,7 @@ public class AuthServiceImpl implements AuthService {
 		otpService.createAndSendOtp(savedUser);
 		
 		UserResponseDTO responseDTO = modelMapper.map(savedUser, UserResponseDTO.class);
+		log.info("Customer registration successful. UserId={}, Email={}", user.getId(), user.getEmail());
 		return new ApiResponseDTO<>("OTP sent to email and phone. Verify both OTPs to complete registration.", true,
 				responseDTO, LocalDateTime.now());
 

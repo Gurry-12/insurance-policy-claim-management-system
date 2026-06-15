@@ -74,10 +74,6 @@ public class ClaimServiceImpl implements ClaimService {
 			throw new BadRequestException("Claim can only be raised against Active policies");
 		}
 
-//		if (policy.getPolicyStatus() != PolicyStatus.ACTIVE) {
-//			throw new BadRequestException("Claim can only be raised against Active policies");
-//		}
-
 		if (dto.getClaimAmount() > policy.getPolicyPlan().getCoverageAmount()) {
 			throw new BadRequestException("Claim amount cannot exceed policy coverage amount");
 		}

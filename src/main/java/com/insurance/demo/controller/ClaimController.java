@@ -45,34 +45,15 @@ public class ClaimController {
 	private final ClaimService claimService;
 	private final ClaimDocumentService claimDocumentService;
 
-	// CUSTOMER ENDPOINTS
-
-//	@PostMapping("/raise")
-//	@PreAuthorize("hasRole('CUSTOMER')")
-//	@ResponseStatus(HttpStatus.CREATED)
-//	@Operation(summary = "Customer raises a new claim")
-//	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(@Valid @RequestBody ClaimRequestDTO dto) {
-//		return claimService.raiseClaim(dto);
-//	}
-
 	@PostMapping(
-
 			value = "/raise",
-
 			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-
 	@PreAuthorize("hasRole('CUSTOMER')")
-
 	@ResponseStatus(HttpStatus.CREATED)
-
 	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(
-
 			@Valid @RequestPart("claim") ClaimRequestDTO dto, @RequestPart("files")
-
 			List<MultipartFile> files) throws IOException {
-
 		return claimService.raiseClaim(dto, files);
-
 	}
 
 	@GetMapping("/my-claims")
@@ -141,13 +122,5 @@ public class ClaimController {
 		return claimService.finalDecision(claimId, dto);
 	}
 
-	// Optional: Add documents to existing claim
-//	@PreAuthorize("hasRole('CUSTOMER')")
-//	@PostMapping("/{claimId}/documents")
-//	@Operation(summary = "Add supporting documents to a claim")
-//	public ApiResponseDTO<String> addDocuments(@PathVariable Long claimId,
-//			@RequestBody List<ClaimDocumentRequestDTO> documents) {
-//		return claimDocumentService.addDocumentsToClaim(claimId, documents);
-//	}
 
 }

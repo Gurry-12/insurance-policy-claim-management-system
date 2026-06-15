@@ -56,16 +56,6 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 			throw new BadRequestException("At least one document is required");
 		}
 
-//		for (ClaimDocumentRequestDTO docDTO : documentDTOs) {
-//			ClaimDocument document = new ClaimDocument();
-//			document.setClaim(claim);
-//			document.setName(docDTO.getDocumentName());
-//			document.setDocumentType(docDTO.getDocumentType());
-//			document.setDocumentReference(docDTO.getDocumentReference());
-//			document.setUploadedDate(LocalDateTime.now());
-
-		// claimDocumentRepository.save(document);
-
 		List<ClaimDocument> documents = new ArrayList<>();
 
 		for (MultipartFile file : files) {
@@ -95,57 +85,18 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 
 	@Transactional
 	@Override
-	public ClaimDocument uploadDocument(Long claimId, MultipartFile file) throws IOException {
+	public ApiResponseDTO<List<ClaimDocumentResponseDTO>> uploadDocuments(Long claimId, List<MultipartFile> files) throws IOException {
 
-		if (file == null || file.isEmpty()) {
-			throw new BadRequestException("Please select a file");
-		}
-
-		String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-
-		Claim claim = claimRepository.findById(claimId)
-				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
-
-		if (!claim.getPolicy().getCustomer().getUser().getEmail().equals(currentUserEmail)) {
-
-			throw new BadRequestException("You can only upload documents to your own claim");
-		}
-
-		Map<String, Object> uploadResult = cloudinaryService.uploadFile(file);
-
-		ClaimDocument document = new ClaimDocument();
-
-		document.setClaim(claim);
-		document.setName(file.getOriginalFilename());
-		document.setDocumentType(file.getContentType());
-		document.setDocumentUrl(uploadResult.get("secure_url").toString());
-		document.setPublicId(uploadResult.get("public_id").toString());
-		document.setUploadedDate(LocalDateTime.now());
-
-		return claimDocumentRepository.save(document);
+		List<ClaimDocumentResponseDTO> responseDTOs = addDocumentsToClaim(claimId, files);
+		
+		return new ApiResponseDTO<>(
+				"Added documents to claim",
+				true, 
+				responseDTOs,
+				LocalDateTime.now()
+				);
+		
 	}
 
-	@Transactional
-	@Override
-	public void deleteDocument(Long documentId) throws IOException {
-
-		ClaimDocument document = claimDocumentRepository.findById(documentId)
-				.orElseThrow(() -> new ResourceNotFoundException("Document not found with id: " + documentId));
-
-		String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-
-		// Security Check
-		if (!document.getClaim().getPolicy().getCustomer().getUser().getEmail().equals(currentUserEmail)) {
-
-			throw new BadRequestException("You can only delete your own documents");
-		}
-
-		// Delete from Cloudinary
-		cloudinaryService.deleteFile(document.getPublicId());
-
-		// Delete from DB
-		claimDocumentRepository.delete(document);
-
-		log.info("Document {} deleted successfully", documentId);
-	}
+	
 }
