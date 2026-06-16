@@ -109,8 +109,11 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 
 	    PremiumPayment savedPayment = paymentRepository.save(payment);
 
-	    policy.setTotalPremiumPaid(policy.getTotalPremiumPaid() + dto.getAmount());
-	    policy.setPolicyStatus(PolicyStatus.ACTIVE);
+	    if(PaymentStatus.SUCCESS.equals(dto.getPaymentStatus())) {
+	    	policy.setTotalPremiumPaid(policy.getTotalPremiumPaid() + dto.getAmount());
+		    policy.setPolicyStatus(PolicyStatus.ACTIVE);
+		    }
+	    
 	    policyRepository.save(policy);
 
 	    PaymentResponseDTO responseDTO = modelMapper.map(savedPayment, PaymentResponseDTO.class);
