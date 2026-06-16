@@ -22,8 +22,10 @@ import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.enums.PolicyStatus;
 import com.insurance.demo.exception.BadRequestException;
+import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.PlanNotActiveException;
 import com.insurance.demo.exception.PolicyNotFoundException;
+import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.Customer;
 import com.insurance.demo.model.Policy;
 import com.insurance.demo.model.PolicyPlan;
@@ -32,6 +34,7 @@ import com.insurance.demo.repository.PolicyPlanRepository;
 import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.service.PolicyService;
 import com.insurance.demo.util.PolicyNumberGenerator;
+import com.sun.jdi.request.DuplicateRequestException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,10 +56,15 @@ public class PolicyServiceImpl implements PolicyService {
 
 		String customerEmail = authentication.getName();
 		Customer customer = customerRepository.findByUserEmail(customerEmail)
-				.orElseThrow(() -> new RuntimeException("Customer not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
+
+		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
+				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
+			throw new DuplicateResourceException("Policy is already active / pending");
+		}
 
 		Policy policy = new Policy();
 
@@ -89,6 +97,11 @@ public class PolicyServiceImpl implements PolicyService {
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
 
+		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
+				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
+			throw new DuplicateResourceException("Policy is already active / pending");
+		}
+
 		Policy policy = new Policy();
 
 		policy.setCustomer(customer);
@@ -115,8 +128,7 @@ public class PolicyServiceImpl implements PolicyService {
 	@Transactional(readOnly = true)
 	public ApiResponseDTO<PolicyResponseDTO> getPolicyById(Long policyId) {
 		log.info("Fetching policy by id: {}", policyId);
-		Policy policy = policyRepository.findById(policyId)
-				.orElseThrow(() -> new PolicyNotFoundException(policyId));
+		Policy policy = policyRepository.findById(policyId).orElseThrow(() -> new PolicyNotFoundException(policyId));
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
@@ -131,7 +143,8 @@ public class PolicyServiceImpl implements PolicyService {
 	}
 
 	@Override
-	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int page, int size, String sortBy, String direction, Long customerId, String status) {
+	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int page, int size, String sortBy, String direction,
+			Long customerId, String status) {
 
 		Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
 
@@ -189,8 +202,6 @@ public class PolicyServiceImpl implements PolicyService {
 				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), direction);
 	}
 
-	
-	
 	@Override
 	public ApiResponseDTO<PolicyResponseDTO> cancelPolicy(Long policyId) {
 
@@ -205,7 +216,6 @@ public class PolicyServiceImpl implements PolicyService {
 		return new ApiResponseDTO<>("Policy cancelled successfully", true, responseDTO, LocalDateTime.now());
 	}
 
-	
 	private PolicyResponseDTO convertToResponseDTO(Policy policy) {
 
 		PolicyResponseDTO dto = modelMapper.map(policy, PolicyResponseDTO.class);

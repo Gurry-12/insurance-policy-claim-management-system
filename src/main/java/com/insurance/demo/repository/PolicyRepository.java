@@ -1,5 +1,7 @@
 package com.insurance.demo.repository;
 
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,7 +19,13 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
 
 	Page<Policy> findByCustomerIdAndPolicyStatus(Long customerId, PolicyStatus policyStatus, Pageable pageable);
 
-	java.util.List<Policy> findByPolicyStatus(PolicyStatus policyStatus);
+	List<Policy> findByPolicyStatus(PolicyStatus policyStatus);
+	
+	boolean existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(
+	        Long customerId,
+	        Long policyPlanId,
+	        List<PolicyStatus> statuses
+	);
 
 	@org.springframework.data.jpa.repository.Query("SELECT p FROM Policy p WHERE " +
 			"(:customerId IS NULL OR p.customer.id = :customerId) AND " +
