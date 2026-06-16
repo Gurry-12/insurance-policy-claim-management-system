@@ -9,13 +9,10 @@ import lombok.Setter;
 @Setter
 public class VerifyOtpRequest {
 
-    @NotBlank
-    @Email
-    private String email;
+	@NotBlank
+	@Email
+	private String email;
 
-    @NotBlank
-    private String emailOtp;
-
-//    @NotBlank
-//    private String phoneOtp;
+	@NotBlank
+	private String emailOtp;
 }
