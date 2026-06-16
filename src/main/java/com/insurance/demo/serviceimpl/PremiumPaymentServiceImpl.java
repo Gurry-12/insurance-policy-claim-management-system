@@ -87,6 +87,10 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 	    if (paymentRepository.existsByTransactionReference(transactionReferance)) {
 	        throw new DuplicateResourceException("Transaction reference already exists");
 	    }
+	    
+	    if(policy.getPolicyPlan().getCoverageAmount() <= (policy.getTotalPremiumPaid() + dto.getAmount())) {
+	    	throw new BadRequestException("Required premium already paid. Policy is active.");
+	    }
 
 	    PremiumPayment payment = new PremiumPayment();
 	    payment.setAmount(dto.getAmount());
@@ -178,7 +182,16 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		}
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
-		Page<PremiumPayment> paymentPage = paymentRepository.findByFilters(policyId, statusEnum, pageable);
+		Page<PremiumPayment> paymentPage;
+		if (policyId != null && statusEnum != null) {
+			paymentPage = paymentRepository.findByPolicyIdAndPaymentStatus(policyId, statusEnum, pageable);
+		} else if (policyId != null) {
+			paymentPage = paymentRepository.findByPolicyId(policyId, pageable);
+		} else if (statusEnum != null) {
+			paymentPage = paymentRepository.findByPaymentStatus(statusEnum, pageable);
+		} else {
+			paymentPage = paymentRepository.findAll(pageable);
+		}
 
 		List<PaymentResponseDTO> content = paymentPage.getContent().stream()
 				.map(payment -> {
@@ -189,6 +202,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		return new PageResponseDTO<>(content, paymentPage.getNumber(), paymentPage.getSize(),
 				paymentPage.getTotalElements(), paymentPage.getTotalPages(), paymentPage.isLast(), sortDirection);
 	}
+
 
 	private Direction getSortDirection(String sortDirection) {
 		if (sortDirection == null || sortDirection.equalsIgnoreCase("asc"))

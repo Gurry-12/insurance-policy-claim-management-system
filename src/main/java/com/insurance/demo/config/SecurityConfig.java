@@ -1,5 +1,6 @@
 package com.insurance.demo.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import com.insurance.demo.security.JwtAuthenticationFilter;
 
@@ -25,10 +27,16 @@ public class SecurityConfig {
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider authenticationProvider,
-			JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+			JwtAuthenticationFilter jwtAuthenticationFilter,
+			@Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver) throws Exception {
 
-		http.csrf(AbstractHttpConfigurer::disable).authenticationProvider(authenticationProvider).authorizeHttpRequests(
-				auth -> auth
+		http.csrf(AbstractHttpConfigurer::disable).authenticationProvider(authenticationProvider)
+				.exceptionHandling(exceptionHandling -> exceptionHandling
+						.authenticationEntryPoint((request, response, authException) -> handlerExceptionResolver
+								.resolveException(request, response, null, authException))
+						.accessDeniedHandler((request, response, accessDeniedException) -> handlerExceptionResolver
+								.resolveException(request, response, null, accessDeniedException)))
+				.authorizeHttpRequests(auth -> auth
 
 						// PUBLIC AUTH
 						.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -39,15 +47,17 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.PUT, "/api/plans/*").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/api/plans/*/deactivate").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/api/plans/*/activate").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.GET, "/api/plans/active", "/api/plans/*/active").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/plans/page").hasAnyRole("ADMIN", "AGENT")
-						.requestMatchers(HttpMethod.GET, "/api/plans/**").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.GET, "/api/plans/active", "/api/plans/*/active")
+						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER").requestMatchers(HttpMethod.GET, "/api/plans/page")
+						.hasAnyRole("ADMIN", "AGENT").requestMatchers(HttpMethod.GET, "/api/plans/**")
+						.hasAnyRole("ADMIN", "AGENT")
 
 						// POLICIES
 						.requestMatchers(HttpMethod.POST, "/api/policies/purchase").hasRole("CUSTOMER")
 						.requestMatchers(HttpMethod.POST, "/api/policies/issue").hasAnyRole("ADMIN", "AGENT")
 						.requestMatchers(HttpMethod.GET, "/api/policies/my-policies").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/policies/{policyId}").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/policies/{policyId}")
+						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
 						.requestMatchers(HttpMethod.GET, "/api/policies/customer/*").hasAnyRole("ADMIN", "AGENT")
 						.requestMatchers(HttpMethod.GET, "/api/policies/**").hasAnyRole("ADMIN", "AGENT")
 						.requestMatchers(HttpMethod.PATCH, "/api/policies/*/cancel").hasAnyRole("ADMIN", "AGENT")
@@ -55,15 +65,18 @@ public class SecurityConfig {
 						// CLAIMS
 						.requestMatchers(HttpMethod.POST, "/api/claims/raise").hasRole("CUSTOMER")
 						.requestMatchers(HttpMethod.GET, "/api/claims/my-claims").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/claims/{claimId}").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/claims/{claimId}/history").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/claims/{claimId}")
+						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/claims/{claimId}/history")
+						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
 						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/review").hasRole("AGENT")
 						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/under-review").hasRole("AGENT")
 						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/final-decision").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.GET, "/api/claims").hasAnyRole("ADMIN", "AGENT")
-						.requestMatchers(HttpMethod.POST, "/api/claims/*/documents").hasAnyRole("CUSTOMER", "AGENT", "ADMIN")
-						
-						//CLAIM DOCUMENT
+						.requestMatchers(HttpMethod.POST, "/api/claims/*/documents")
+						.hasAnyRole("CUSTOMER", "AGENT", "ADMIN")
+
+						// CLAIM DOCUMENT
 						.requestMatchers(HttpMethod.POST, "/api/document/upload/**").hasRole("CUSTOMER")
 						.requestMatchers(HttpMethod.DELETE, "/api/document/**").hasRole("CUSTOMER")
 
@@ -79,14 +92,15 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/customers").hasAnyRole("ADMIN", "AGENT")
 						.requestMatchers(HttpMethod.GET, "/api/customers/page").hasAnyRole("ADMIN", "AGENT")
 						.requestMatchers(HttpMethod.GET, "/api/customers/*").hasAnyRole("ADMIN", "AGENT")
-						
+
 						// INSURANCE PRODUCT MANAGEMENT
 						.requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/api/products/**").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.GET, "/api/products/active").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/products/**").hasAnyRole("ADMIN", "AGENT")
-						
+						.requestMatchers(HttpMethod.GET, "/api/products/active")
+						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER").requestMatchers(HttpMethod.GET, "/api/products/**")
+						.hasAnyRole("ADMIN", "AGENT")
+
 						// payment
 						.requestMatchers(HttpMethod.POST, "/api/payments").hasAnyRole("CUSTOMER", "AGENT")
 						.requestMatchers(HttpMethod.GET, "/api/payment/my-paymentss").hasRole("CUSTOMER")

@@ -3,6 +3,8 @@ package com.insurance.demo.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -24,11 +26,10 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 	
 	List<AppUser> findByRoleNot(Role role);
 
-	@org.springframework.data.jpa.repository.Query("SELECT u FROM AppUser u WHERE " +
-			"(:role IS NULL OR u.role = :role) AND " +
-			"(:isActive IS NULL OR u.isActive = :isActive)")
-	org.springframework.data.domain.Page<AppUser> findByFilters(
-			@org.springframework.data.repository.query.Param("role") Role role,
-			@org.springframework.data.repository.query.Param("isActive") Boolean isActive,
-			org.springframework.data.domain.Pageable pageable);
+	Page<AppUser> findByRoleAndIsActive(Role role, Boolean isActive, Pageable pageable);
+
+	Page<AppUser> findByRole(Role role, Pageable pageable);
+
+	Page<AppUser> findByIsActive(Boolean isActive, Pageable pageable);
+
 }

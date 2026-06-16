@@ -49,11 +49,11 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 
 		// Security Check - Only owner or agent/admin can add documents
 		if (!claim.getPolicy().getCustomer().getUser().getEmail().equals(currentUserEmail)) {
-			throw new BadRequestException("You can only add documents to your own claim");
+			throw new BadRequestException("You are only permitted to upload supporting documents to your own claims.");
 		}
 
 		if (files == null || files.isEmpty()) {
-			throw new BadRequestException("At least one document is required");
+			throw new BadRequestException("At least one supporting document must be provided.");
 		}
 
 		List<ClaimDocument> documents = new ArrayList<>();
@@ -90,7 +90,7 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 		List<ClaimDocumentResponseDTO> responseDTOs = addDocumentsToClaim(claimId, files);
 		
 		return new ApiResponseDTO<>(
-				"Added documents to claim",
+				"Supporting documents uploaded successfully.",
 				true, 
 				responseDTOs,
 				LocalDateTime.now()

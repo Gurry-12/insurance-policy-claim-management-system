@@ -44,7 +44,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		log.info("Creating policy plan: {}", dto.getPlanName());
 
 		if (dto.getCoverageAmount() <= dto.getPremiumAmount()) {
-			throw new BadRequestException("Coverage amount must be higher than premium amount");
+			throw new BadRequestException("The policy coverage amount must strictly exceed the required premium amount.");
 		}
 
 		// Validate Product exists and is active
@@ -52,7 +52,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 				.orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + dto.getProductId()));
 
 		if (!Boolean.TRUE.equals(product.getIsActive())) {
-			throw new BadRequestException("Cannot create plan under inactive product");
+			throw new BadRequestException("Cannot create a policy plan under an inactive insurance product.");
 		}
 
 		// Check duplicate plan name
@@ -62,7 +62,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		PolicyPlan plan = new PolicyPlan();
 
-		plan.setPlanName(dto.getPlanName());
+		plan.setPlanName(dto.getPlanName().toLowerCase());
 		plan.setCoverageAmount(dto.getCoverageAmount());
 		plan.setPremiumAmount(dto.getPremiumAmount());
 		plan.setPremiumType(dto.getPremiumType());
@@ -87,14 +87,14 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		log.info("Updating policy plan with id: {}", planId);
 
 		if (dto.getCoverageAmount() <= dto.getPremiumAmount()) {
-			throw new BadRequestException("Coverage amount must be higher than premium amount");
+			throw new BadRequestException("Cannot create a policy plan under an inactive insurance product.");
 		}
 
 		PolicyPlan existingPlan = policyPlanRepository.findById(planId)
 				.orElseThrow(() -> new ResourceNotFoundException("Policy plan not found with id: " + planId));
 
 		if (!Boolean.TRUE.equals(existingPlan.getIsActive())) {
-			throw new BadRequestException("Cannot update inactive policy plan");
+			throw new BadRequestException("Cannot update an inactive policy plan. Please activate it first.");
 		}
 
 		// Validate product if changed
@@ -103,7 +103,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 					() -> new ResourceNotFoundException("Product not found with id: " + dto.getProductId()));
 
 			if (!Boolean.TRUE.equals(newProduct.getIsActive())) {
-				throw new BadRequestException("Cannot link plan to inactive product");
+				throw new BadRequestException("Cannot link a policy plan to an inactive insurance product.");
 			}
 			existingPlan.setInsuranceProduct(newProduct);
 		}
@@ -115,7 +115,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		}
 
 		// Update fields
-		existingPlan.setPlanName(dto.getPlanName());
+		existingPlan.setPlanName(dto.getPlanName().toLowerCase());
 		existingPlan.setCoverageAmount(dto.getCoverageAmount());
 		existingPlan.setPremiumAmount(dto.getPremiumAmount());
 		existingPlan.setPremiumType(dto.getPremiumType());
@@ -142,7 +142,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		if (Boolean.FALSE.equals(plan.getIsActive())) {
 			PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
-			return new ApiResponseDTO<>("Policy plan is already deactivated", false, dto, LocalDateTime.now());
+			return new ApiResponseDTO<>("The policy plan is already marked as inactive", false, dto, LocalDateTime.now());
 		}
 
 		plan.setIsActive(false);
@@ -163,7 +163,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		if (Boolean.TRUE.equals(plan.getIsActive())) {
 			PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
-			return new ApiResponseDTO<>("Policy plan is already active", false, dto, LocalDateTime.now());
+			return new ApiResponseDTO<>("The policy plan is already marked as active", false, dto, LocalDateTime.now());
 		}
 
 		plan.setIsActive(true);
@@ -213,7 +213,16 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
 
-		Page<PolicyPlan> planPage = policyPlanRepository.findByFilters(productId, isActive, pageable);
+		Page<PolicyPlan> planPage;
+		if (productId != null && isActive != null) {
+			planPage = policyPlanRepository.findByInsuranceProductIdAndIsActive(productId, isActive, pageable);
+		} else if (productId != null) {
+			planPage = policyPlanRepository.findByInsuranceProductId(productId, pageable);
+		} else if (isActive != null) {
+			planPage = policyPlanRepository.findByIsActive(isActive, pageable);
+		} else {
+			planPage = policyPlanRepository.findAll(pageable);
+		}
 
 		List<PlanResponseDTO> content = planPage.getContent().stream()
 				.map(plan -> modelMapper.map(plan, PlanResponseDTO.class)).toList();
@@ -221,6 +230,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		return new PageResponseDTO<>(content, planPage.getNumber(), planPage.getSize(), planPage.getTotalElements(),
 				planPage.getTotalPages(), planPage.isLast(), sortDirection);
 	}
+
 
 	// Helper methods
 	private void validatePagination(int pageNumber, int pageSize) {
@@ -252,7 +262,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 			throw new ResourceNotFoundException("No active plan associated with id - " + planId);
 		}
 
-		return new ApiResponseDTO<>("Plan Found", true, modelMapper.map(plan, PlanResponseDTO.class),
+		return new ApiResponseDTO<>("Policy plan retrieved successfully.", true, modelMapper.map(plan, PlanResponseDTO.class),
 				LocalDateTime.now());
 
 	}

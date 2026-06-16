@@ -47,22 +47,22 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public LoginResponseDTO login(LoginRequestDTO requestDto) {
-		
+
 		log.info("Login attempt received. Email={}", requestDto.getEmail());
 		String email = requestDto.getEmail().toLowerCase();
-		AppUser appUser = userRepository.findByEmail(email)
-				.orElseThrow(() -> { 
-					log.warn("Login failed due to invalid credentials. Email={}", requestDto.getEmail());
-					throw new BadRequestException("Invalid email or password");});
+		AppUser appUser = userRepository.findByEmail(email).orElseThrow(() -> {
+			log.warn("Login failed due to invalid credentials. Email={}", requestDto.getEmail());
+			throw new BadRequestException("Invalid email or password");
+		});
 
-		if(!appUser.isEmailVerified()) {
+		if (!appUser.isEmailVerified()) {
 			log.warn("Login blocked. Email not verified. UserId={}", appUser.getId());
-			throw new BadRequestException("Please verify  email before logging in.");
+			throw new BadRequestException("Please verify email before logging in.");
 		}
-		
+
 		if (Boolean.FALSE.equals(appUser.getIsActive())) {
 			log.warn("Login blocked. Inactive account. UserId={}", appUser.getId());
-			throw new BadRequestException("Your account is inactive. Please contact support.");
+			throw new BadRequestException("Your account is deactivated. Please contact support.");
 		}
 
 		Authentication authentication = authenticationManager
@@ -76,20 +76,19 @@ public class AuthServiceImpl implements AuthService {
 
 		log.info("User login successful. UserId={}, Role={}", appUser.getId(), appUser.getRole());
 
-		return new LoginResponseDTO(dto.getId(), dto.getFullName(), dto.getEmail(), dto.getRole(), token, "Jwt created",
-				"Bearer");
+		return new LoginResponseDTO(dto.getId(), dto.getFullName(), dto.getEmail(), dto.getRole(), token,
+				"User logged in successfully.", "Bearer");
 	}
 
 	@Override
 	@Transactional
 	public ApiResponseDTO<UserResponseDTO> registerUser(UserRequestDTO dto) {
 
-
 		if (userRepository.existsByEmail(dto.getEmail())) {
 			log.warn("Registration failed. Email already exists. Email={}", dto.getEmail());
-			throw new DuplicateResourceException("Email is already registered.");
+			throw new DuplicateResourceException("Email Address is already registered.");
 		}
-		
+
 		if (userRepository.existsByMobileNumber(dto.getMobileNumber())) {
 			throw new DuplicateResourceException("Duplicate user found with mobile Number - " + dto.getMobileNumber());
 		}
@@ -99,13 +98,13 @@ public class AuthServiceImpl implements AuthService {
 		user.setRole(Role.ROLE_CUSTOMER);
 		user.setIsActive(false);
 		user.setEmailVerified(false);
-		
+
 		AppUser savedUser = userRepository.save(user);
 		otpService.createAndSendOtp(savedUser);
-		
+
 		UserResponseDTO responseDTO = modelMapper.map(savedUser, UserResponseDTO.class);
 		log.info("Customer registration successful. UserId={}, Email={}", user.getId(), user.getEmail());
-		return new ApiResponseDTO<>("OTP sent to email and phone. Verify both OTPs to complete registration.", true,
+		return new ApiResponseDTO<>("Customer registered successfully. OTP sent to email and phone.", true,
 				responseDTO, LocalDateTime.now());
 
 	}
@@ -113,21 +112,22 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	public ApiResponseDTO<UserResponseDTO> verifyOtp(@Valid VerifyOtpRequest request) {
 		AppUser user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
 
-        if (Boolean.TRUE.equals(user.getIsActive())) {
-            throw new BadRequestException("user is already verified");
-        }
+		if (Boolean.TRUE.equals(user.getIsActive())) {
+			throw new BadRequestException("user is already verified");
+		}
 
-        otpService.verifyOtp(user, request.getEmailOtp());
+		otpService.verifyOtp(user, request.getEmailOtp());
 
-        user.setEmailVerified(true);
+		user.setEmailVerified(true);
 //        user.setPhoneVerified(true);
-        user.setIsActive(true);
+		user.setIsActive(true);
 
-        AppUser saved = userRepository.save(user);
-        
-        return new ApiResponseDTO<>("User is verified", true, modelMapper.map(saved, UserResponseDTO.class), LocalDateTime.now());
+		AppUser saved = userRepository.save(user);
+
+		return new ApiResponseDTO<>("User account activated successfully.", true, modelMapper.map(saved, UserResponseDTO.class),
+				LocalDateTime.now());
 	}
 
 }
