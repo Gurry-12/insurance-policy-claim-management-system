@@ -30,7 +30,7 @@ public class EmailService {
 			message.setTo(toEmail);
 			message.setSubject("User Registration Email OTP");
 			message.setText("Dear User,\n\n" + "Your email verification OTP is: " + otp + "\n\n"
-					+ "This OTP is valid for 5 minutes.\n\n" + "Regards,\n" + "Student Verification Team");
+					+ "This OTP is valid for 5 minutes.\n\n" + "Regards,\n" + "Insurance Verification Team");
 
 			mailSender.send(message);
 
