@@ -31,7 +31,7 @@ public class ClaimDocument {
     @Column(name = "id")
     private Long id; 
 
-    @Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
+
     @NotBlank(message = "Document name is required")
     @Column(name = "document_name", nullable = false)
     private String name;

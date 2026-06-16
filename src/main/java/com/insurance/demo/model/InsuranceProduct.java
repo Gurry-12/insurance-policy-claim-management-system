@@ -40,39 +40,34 @@ public class InsuranceProduct {
 	@Column(name = "id")
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	
+
 	@Column(name = "product_name", nullable = false, unique = true)
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "Product name is required")
-	@Size(min = 2, max = 100 , message = "name should be beteeen 2 - 100 characters")
+	@Size(min = 2, max = 100, message = "name should be beteeen 2 - 100 characters")
 	private String productName;
-	
+
 	@Enumerated(EnumType.STRING)
-	@Column(name = "product_type" , nullable = false)
+	@Column(name = "product_type", nullable = false)
 	@NotNull(message = "Product type is required")
 	private ProductType productType;
-	
-	@Column(name = "description" , nullable = false)
+
+	@Column(name = "description", nullable = false)
 	@NotBlank(message = "Description is required")
 	@Size(min = 10, message = "description should be min 10 characters")
 	private String description;
-	
-	@Column(name = "is_active" , nullable = false)
+
+	@Column(name = "is_active", nullable = false)
 	@NotNull(message = "Status is required")
 	private Boolean isActive = true;
 
-	@Column(name = "created_date",  updatable = false)
+	@Column(name = "created_date", updatable = false)
 	@CreationTimestamp
 	private LocalDateTime createdDate;
 
 	@Column(name = "updated_date")
 	@UpdateTimestamp
 	private LocalDateTime updatedDate;
-	
-	@OneToMany(
-	        mappedBy = "insuranceProduct",
-	        cascade = CascadeType.ALL,
-	        orphanRemoval = true
-	)
+
+	@OneToMany(mappedBy = "insuranceProduct", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<PolicyPlan> policyPlans = new ArrayList<>();
 }
