@@ -89,6 +89,10 @@ public class AuthServiceImpl implements AuthService {
 			log.warn("Registration failed. Email already exists. Email={}", dto.getEmail());
 			throw new DuplicateResourceException("Email is already registered.");
 		}
+		
+		if (userRepository.existsByMobileNumber(dto.getMobileNumber())) {
+			throw new DuplicateResourceException("Duplicate user found with mobile Number - " + dto.getMobileNumber());
+		}
 		AppUser user = modelMapper.map(dto, AppUser.class);
 		user.setEmail(dto.getEmail().toLowerCase());
 		user.setPassword(passwordEncoder.encode(dto.getPassword()));
