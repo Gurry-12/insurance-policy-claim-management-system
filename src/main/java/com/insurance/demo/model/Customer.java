@@ -53,12 +53,10 @@ public class Customer {
 	private String address;
 
 	@Column(name = "city", nullable = false)
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "City is required")
 	private String city;
 
 	@Column(name = "state", nullable = false)
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "State can not be blank")
 	private String state;
 
@@ -68,12 +66,10 @@ public class Customer {
 	private String pinCode;
 
 	@Column(name = "nominee_name", nullable = false)
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "Nominee name can not be blank")
 	private String nomineeName;
 
 	@Column(name = "nominee_relation", nullable = false)
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
 	@NotBlank(message = "Nominee relation can not be blank")
 	private String nomineeRelation;
 

@@ -1,6 +1,5 @@
 package com.insurance.demo.verification;
 
-
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 
@@ -19,48 +18,43 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OtpService {
 
-    private final OtpVerificationRepository otpRepository;
-    private final EmailService emailService;
-    private final SmsService smsService;
-    private final SecureRandom secureRandom = new SecureRandom();
+	private final OtpVerificationRepository otpRepository;
+	private final EmailService emailService;
+	private final SecureRandom secureRandom = new SecureRandom();
 
-    @Value("${app.otp.expiry-minutes}")
-    private long expiryMinutes;
+	@Value("${app.otp.expiry-minutes}")
+	private long expiryMinutes;
 
-    @Transactional
-    public void createAndSendOtp(AppUser user) {
-        String emailOtp = generateSixDigitOtp();
-       
-        OtpVerification otpVerification = OtpVerification.builder()
-                .user(user)
-                .emailOtp(emailOtp)
-                .expiresAt(LocalDateTime.now().plusMinutes(expiryMinutes))
-                .used(false)
-                .build();
+	@Transactional
+	public void createAndSendOtp(AppUser user) {
+		String emailOtp = generateSixDigitOtp();
 
-        otpRepository.save(otpVerification);
-        emailService.sendOtp(user.getEmail(), emailOtp);
-    }
+		OtpVerification otpVerification = OtpVerification.builder().user(user).emailOtp(emailOtp)
+				.expiresAt(LocalDateTime.now().plusMinutes(expiryMinutes)).used(false).build();
 
-    @Transactional
-    public void verifyOtp(AppUser user, String emailOtp) {
-        OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
-                .orElseThrow(() -> new BadRequestException("No active OTP found. Please register again."));
+		otpRepository.save(otpVerification);
+		emailService.sendOtp(user.getEmail(), emailOtp);
+	}
 
-        if (latestOtp.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("OTP expired. Please register again to get a new OTP.");
-        }
+	@Transactional
+	public void verifyOtp(AppUser user, String emailOtp) {
+		OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
+				.orElseThrow(() -> new BadRequestException("No active OTP found. Please register again."));
 
-        if (!latestOtp.getEmailOtp().equals(emailOtp)) {
-            throw new BadRequestException("Invalid email OTP");
-        }
-        
-        latestOtp.setUsed(true);
-        otpRepository.save(latestOtp);
-    }
+		if (latestOtp.getExpiresAt().isBefore(LocalDateTime.now())) {
+			throw new BadRequestException("OTP expired. Please register again to get a new OTP.");
+		}
 
-    private String generateSixDigitOtp() {
-        int number = secureRandom.nextInt(900000) + 100000;
-        return String.valueOf(number);
-    }
+		if (!latestOtp.getEmailOtp().equals(emailOtp)) {
+			throw new BadRequestException("Invalid email OTP");
+		}
+
+		latestOtp.setUsed(true);
+		otpRepository.save(latestOtp);
+	}
+
+	private String generateSixDigitOtp() {
+		int number = secureRandom.nextInt(900000) + 100000;
+		return String.valueOf(number);
+	}
 }

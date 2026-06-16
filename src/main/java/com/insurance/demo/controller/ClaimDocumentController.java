@@ -36,5 +36,4 @@ public class ClaimDocumentController {
 		return claimDocumentService.uploadDocuments(claimId, files);
 
 	}
-
 }
