@@ -84,7 +84,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 		logger.info("Customer profile created successfully with id: {}", savedCustomer.getId());
 
-		return new ApiResponseDTO<>("Customer Created Successfully", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>("Customer profile Created Successfully", true, dto, LocalDateTime.now());
 	}
 
 	@Override
@@ -99,7 +99,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 		CustomerResponseDTO dto = convertToResponseDTO(customer);
 
-		return new ApiResponseDTO<>("Customer Found", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>("Customer details retrieved successfully.", true, dto, LocalDateTime.now());
 	}
 
 	@Override
@@ -111,7 +111,7 @@ public class CustomerServiceImpl implements CustomerService {
 		List<CustomerResponseDTO> customers = customerRepository.findAll().stream().map(this::convertToResponseDTO)
 				.toList();
 
-		return new ApiResponseDTO<>("All Customers Retrieved", true, customers, LocalDateTime.now());
+		return new ApiResponseDTO<>("Customer details retrieved successfully.", true, customers, LocalDateTime.now());
 	}
 
 	@Override
@@ -131,7 +131,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 		logger.info("Customer updated successfully with id: {}", customerId);
 
-		return new ApiResponseDTO<>("Customer Updated Successfully", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>("Customer profile Updated Successfully", true, dto, LocalDateTime.now());
 	}
 
 	@Override
@@ -148,16 +148,25 @@ public class CustomerServiceImpl implements CustomerService {
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
 
-		Page<Customer> customerPage = customerRepository.findByFilters(
-				(city != null && !city.trim().isEmpty()) ? city.trim() : null,
-				(state != null && !state.trim().isEmpty()) ? state.trim() : null, pageable);
+		Page<Customer> customerPage;
+		boolean hasCity = city != null && !city.trim().isEmpty();
+		boolean hasState = state != null && !state.trim().isEmpty();
+
+		if (hasCity && hasState) {
+			customerPage = customerRepository.findByCityContainingIgnoreCaseAndStateContainingIgnoreCase(city.trim(), state.trim(), pageable);
+		} else if (hasCity) {
+			customerPage = customerRepository.findByCityContainingIgnoreCase(city.trim(), pageable);
+		} else if (hasState) {
+			customerPage = customerRepository.findByStateContainingIgnoreCase(state.trim(), pageable);
+		} else {
+			customerPage = customerRepository.findAll(pageable);
+		}
 
 		List<CustomerResponseDTO> content = customerPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
 		return new PageResponseDTO<>(content, customerPage.getNumber(), customerPage.getSize(),
 				customerPage.getTotalElements(), customerPage.getTotalPages(), customerPage.isLast(), sortDirection);
 	}
-
 	private Customer findCustomerById(Long customerId) {
 
 		return customerRepository.findById(customerId)
@@ -246,7 +255,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 		CustomerResponseDTO dto = convertToResponseDTO(customer);
 
-		return new ApiResponseDTO<>("Customer Found", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>("CCustomer details retrieved successfully.", true, dto, LocalDateTime.now());
 	}
 
 }

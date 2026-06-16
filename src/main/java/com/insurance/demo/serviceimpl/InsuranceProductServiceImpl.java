@@ -41,12 +41,12 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	public ApiResponseDTO<ProductResponseDTO> createProduct(ProductRequestDTO dto) {
 
 		if (productRepository.existsByProductNameIgnoreCase(dto.getProductName())) {
-			throw new DuplicateResourceException("Duplicate product found with name - " + dto.getProductName());
+			throw new DuplicateResourceException("An insurance product with this name already exists: - " + dto.getProductName());
 		}
 
 		InsuranceProduct product = new InsuranceProduct();
 
-		product.setProductName(dto.getProductName());
+		product.setProductName(dto.getProductName().toLowerCase());
 		product.setProductType(dto.getProductType());
 		product.setDescription(dto.getDescription());
 		product.setIsActive(dto.getActiveStatus() != null ? dto.getActiveStatus() : true);
@@ -55,7 +55,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		ProductResponseDTO response = modelMapper.map(savedProduct, ProductResponseDTO.class);
 
-		return new ApiResponseDTO<>("Product Created Successfully", true, response, LocalDateTime.now());
+		return new ApiResponseDTO<>("Insurance product created successfully.", true, response, LocalDateTime.now());
 	}
 
 	@Override
@@ -66,7 +66,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 				.orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
 		if (!product.getIsActive()) {
-			throw new BadRequestException("Product is already inactive");
+			throw new BadRequestException("The selected insurance product is already marked as inactive.");
 		}
 
 		product.setIsActive(false);
@@ -75,7 +75,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		ProductResponseDTO response = modelMapper.map(updatedProduct, ProductResponseDTO.class);
 
-		return new ApiResponseDTO<>("Product deactivated successfully", true, response, LocalDateTime.now());
+		return new ApiResponseDTO<>("Insurance product deactivated successfully", true, response, LocalDateTime.now());
 	}
 
 	@Override
@@ -98,12 +98,22 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		}
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
-		Page<InsuranceProduct> productPage = productRepository.findByFilters(typeEnum, isActive, pageable);
+		Page<InsuranceProduct> productPage;
+		if (typeEnum != null && isActive != null) {
+			productPage = productRepository.findByProductTypeAndIsActive(typeEnum, isActive, pageable);
+		} else if (typeEnum != null) {
+			productPage = productRepository.findByProductType(typeEnum, pageable);
+		} else if (isActive != null) {
+			productPage = productRepository.findByIsActive(isActive, pageable);
+		} else {
+			productPage = productRepository.findAll(pageable);
+		}
 		List<ProductResponseDTO> content = productPage.getContent().stream()
 				.map(product -> modelMapper.map(product, ProductResponseDTO.class)).toList();
 		return new PageResponseDTO<>(content, productPage.getNumber(), productPage.getSize(),
 				productPage.getTotalElements(), productPage.getTotalPages(), productPage.isLast(), sortDirection);
 	}
+
 
 	private Direction getSortDirection(String sortDirection) {
 		if (sortDirection == null || sortDirection.equalsIgnoreCase("asc"))
@@ -183,7 +193,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 			throw new DuplicateResourceException("Product name already exists: " + requestDTO.getProductName());
 		}
 
-		existingProduct.setProductName(requestDTO.getProductName().trim());
+		existingProduct.setProductName(requestDTO.getProductName().trim().toLowerCase());
 		existingProduct.setProductType(requestDTO.getProductType());
 		existingProduct.setDescription(requestDTO.getDescription().trim());
 		if (requestDTO.getActiveStatus() != null) {

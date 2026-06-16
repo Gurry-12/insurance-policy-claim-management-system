@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -66,16 +67,16 @@ public class UserServiceImpl implements UserService {
 		log.info("Activating user by id: {}", userId);
 
 		if (userId.equals(currentUserId()))
-			throw new BadRequestException("Cannot activate your own account");
+			throw new AccessDeniedException("You cannot manually activate your own account.");
 
 		AppUser user = getById(userId);
-		
+
 		if (Boolean.FALSE.equals(user.isEmailVerified())) {
 			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
 			log.info("User is not verified by id: {}", userId);
 			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
-		} 
-		
+		}
+
 		if (Boolean.TRUE.equals(user.getIsActive())) {
 			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
 			log.info("user already active with id {} ", userId);
@@ -106,8 +107,8 @@ public class UserServiceImpl implements UserService {
 		log.info("Deactivating user by id: {}", userId);
 
 		if (userId.equals(currentUserId()))
-		    throw new BadRequestException("Cannot deactivate your own account");
-		
+			throw new AccessDeniedException("Cannot deactivate your own account");
+
 		AppUser user = getById(userId);
 
 		if (Boolean.FALSE.equals(user.isEmailVerified())) {
@@ -115,7 +116,7 @@ public class UserServiceImpl implements UserService {
 			log.info("User is not verified by id: {}", userId);
 			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
 		}
-		
+
 		if (Boolean.FALSE.equals(user.getIsActive())) {
 			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
 			log.info("Already deactivated user by id: {}", userId);
@@ -139,9 +140,10 @@ public class UserServiceImpl implements UserService {
 		if (userRepository.existsByEmail(agentRequestDTO.getEmail())) {
 			throw new DuplicateResourceException("Duplicate user found with email - " + agentRequestDTO.getEmail());
 		}
-		
+
 		if (userRepository.existsByMobileNumber(agentRequestDTO.getMobileNumber())) {
-			throw new DuplicateResourceException("Duplicate user found with mobile Number - " + agentRequestDTO.getMobileNumber());
+			throw new DuplicateResourceException(
+					"Duplicate user found with mobile Number - " + agentRequestDTO.getMobileNumber());
 		}
 
 		AppUser user = modelMapper.map(agentRequestDTO, AppUser.class);
@@ -151,22 +153,24 @@ public class UserServiceImpl implements UserService {
 		user.setIsActive(false);
 		user.setEmailVerified(false);
 		AppUser retrivedUser = userRepository.save(user);
-		
+
 		otpService.createAndSendOtp(retrivedUser);
 
 		UserResponseDTO dto = modelMapper.map(retrivedUser, UserResponseDTO.class);
-		return new ApiResponseDTO<>("Agent Created", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>("Account created. An OTP has been sent to the email to complete registration.",
+				true, dto, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, String role, Boolean isActive) {
-		log.info("Fetching Users with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, role: {}, isActive: {}",
+		log.info(
+				"Fetching Users with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, role: {}, isActive: {}",
 				pageNumber, pageSize, sortBy, sortDirection, role, isActive);
 		validatePagination(pageNumber, pageSize);
 		validateUserSortField(sortBy);
-		
+
 		Role roleEnum = null;
 		if (role != null && !role.trim().isEmpty()) {
 			try {
@@ -177,7 +181,17 @@ public class UserServiceImpl implements UserService {
 		}
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
-		Page<AppUser> userPage = userRepository.findByFilters(roleEnum, isActive, pageable);
+
+		Page<AppUser> userPage;
+		if (roleEnum != null && isActive != null) {
+			userPage = userRepository.findByRoleAndIsActive(roleEnum, isActive, pageable);
+		} else if (roleEnum != null) {
+			userPage = userRepository.findByRole(roleEnum, pageable);
+		} else if (isActive != null) {
+			userPage = userRepository.findByIsActive(isActive, pageable);
+		} else {
+			userPage = userRepository.findAll(pageable);
+		}
 		List<UserResponseDTO> content = userPage.getContent().stream()
 				.map(user -> modelMapper.map(user, UserResponseDTO.class)).toList();
 		return new PageResponseDTO<>(content, userPage.getNumber(), userPage.getSize(), userPage.getTotalElements(),
@@ -195,12 +209,12 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public ApiResponseDTO<UserResponseDTO> findUserById(Long id) {
-		
-		log.info("Fetching User with id - {} " , id);
+
+		log.info("Fetching User with id - {} ", id);
 		AppUser appUser = getById(id);
 
-		UserResponseDTO dto =  modelMapper.map(appUser, UserResponseDTO.class);
-		
+		UserResponseDTO dto = modelMapper.map(appUser, UserResponseDTO.class);
+
 		return new ApiResponseDTO<>("User found", true, dto, LocalDateTime.now());
 	}
 
