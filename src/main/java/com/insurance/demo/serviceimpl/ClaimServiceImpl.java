@@ -3,8 +3,10 @@ package com.insurance.demo.serviceimpl;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +34,7 @@ import com.insurance.demo.model.Claim;
 import com.insurance.demo.model.ClaimStatusHistory;
 import com.insurance.demo.model.Policy;
 import com.insurance.demo.repository.AppUserRepository;
+import com.insurance.demo.repository.ClaimDocumentRepository;
 import com.insurance.demo.repository.ClaimRepository;
 import com.insurance.demo.repository.ClaimStatusHistoryRepository;
 import com.insurance.demo.repository.PolicyRepository;
@@ -52,11 +55,29 @@ public class ClaimServiceImpl implements ClaimService {
 	private final ClaimStatusHistoryRepository historyRepository;
 	private final AppUserRepository userRepository;
 	private final ClaimDocumentService claimDocumentService;
+	private final ClaimDocumentRepository claimDocumentRepository;
+	private final ModelMapper modelMapper;
 
 	@Override
 	@Transactional
 	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(ClaimRequestDTO dto, List<MultipartFile> files)
 			throws IOException {// Customer only
+
+		if (files == null || files.isEmpty()) {
+			throw new ResourceNotFoundException("At least one supporting document must be provided.");
+		}
+
+		for (MultipartFile file : files) {
+
+			if (file == null || file.isEmpty()) {
+				throw new BadRequestException("Uploaded document cannot be empty.");
+			}
+
+			if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
+
+				throw new BadRequestException("Uploaded document must have a valid file name.");
+			}
+		}
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
@@ -91,11 +112,6 @@ public class ClaimServiceImpl implements ClaimService {
 		claim.setClaimStatus(ClaimStatus.SUBMITTED);
 		claim.setClaimNumber(ClaimNumberGenerator.generateClaimNumber());
 
-		if (files == null || files.isEmpty()) {
-
-			throw new BadRequestException("At least one supporting document is required for claim");
-		}
-
 		Claim savedClaim = claimRepository.save(claim);
 
 		List<ClaimDocumentResponseDTO> response = claimDocumentService.addDocumentsToClaim(savedClaim.getId(), files);
@@ -105,6 +121,9 @@ public class ClaimServiceImpl implements ClaimService {
 				email);
 
 		ClaimResponseDTO responseDto = convertToResponseDTO(savedClaim);
+
+		responseDto.setDocuments(response);
+
 		return new ApiResponseDTO<>("Claim submitted successfully with supporting documents.", true, responseDto,
 				LocalDateTime.now());
 	}
@@ -217,7 +236,17 @@ public class ClaimServiceImpl implements ClaimService {
 
 		List<Claim> claims = claimRepository.findByPolicyCustomerUserId(user.getId());
 
-		List<ClaimResponseDTO> responseList = claims.stream().map(this::convertToResponseDTO).toList();
+		// List<ClaimResponseDTO> responseList =
+		// claims.stream().map(this::convertToResponseDTO).toList();
+		List<ClaimResponseDTO> responseList = new ArrayList<>();
+
+		for (Claim claim : claims) {
+			List<ClaimDocumentResponseDTO> documents = claimDocumentRepository.findByClaimId(claim.getId()).stream()
+					.map(document -> modelMapper.map(document, ClaimDocumentResponseDTO.class)).toList();
+			ClaimResponseDTO responseDTO = convertToResponseDTO(claim);
+			responseDTO.setDocuments(documents);		
+			responseList.add(responseDTO);
+		}
 
 		return new ApiResponseDTO<>("Customer claims retrieved successfully.", true, responseList, LocalDateTime.now());
 	}

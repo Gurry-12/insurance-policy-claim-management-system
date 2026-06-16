@@ -40,7 +40,24 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 
 	@Override
 	@Transactional
-	public List<ClaimDocumentResponseDTO> addDocumentsToClaim(Long claimId, List<MultipartFile> files) throws IOException {
+	public List<ClaimDocumentResponseDTO> addDocumentsToClaim(Long claimId, List<MultipartFile> files)
+			throws IOException {
+
+		if (files == null || files.isEmpty()) {
+			throw new ResourceNotFoundException("At least one supporting document must be provided.");
+		}
+
+		for (MultipartFile file : files) {
+
+			if (file == null || file.isEmpty()) {
+				throw new BadRequestException("Uploaded document cannot be empty.");
+			}
+
+			if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
+
+				throw new BadRequestException("Uploaded document must have a valid file name.");
+			}
+		}
 
 		String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 
@@ -50,10 +67,6 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 		// Security Check - Only owner or agent/admin can add documents
 		if (!claim.getPolicy().getCustomer().getUser().getEmail().equals(currentUserEmail)) {
 			throw new BadRequestException("You are only permitted to upload supporting documents to your own claims.");
-		}
-
-		if (files == null || files.isEmpty()) {
-			throw new BadRequestException("At least one supporting document must be provided.");
 		}
 
 		List<ClaimDocument> documents = new ArrayList<>();
@@ -85,18 +98,14 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 
 	@Transactional
 	@Override
-	public ApiResponseDTO<List<ClaimDocumentResponseDTO>> uploadDocuments(Long claimId, List<MultipartFile> files) throws IOException {
+	public ApiResponseDTO<List<ClaimDocumentResponseDTO>> uploadDocuments(Long claimId, List<MultipartFile> files)
+			throws IOException {
 
 		List<ClaimDocumentResponseDTO> responseDTOs = addDocumentsToClaim(claimId, files);
-		
-		return new ApiResponseDTO<>(
-				"Supporting documents uploaded successfully.",
-				true, 
-				responseDTOs,
-				LocalDateTime.now()
-				);
-		
+
+		return new ApiResponseDTO<>("Supporting documents uploaded successfully.", true, responseDTOs,
+				LocalDateTime.now());
+
 	}
 
-	
 }
