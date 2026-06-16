@@ -70,6 +70,12 @@ public class UserServiceImpl implements UserService {
 
 		AppUser user = getById(userId);
 		
+		if (Boolean.FALSE.equals(user.isEmailVerified())) {
+			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+			log.info("User is not verified by id: {}", userId);
+			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
+		} 
+		
 		if (Boolean.TRUE.equals(user.getIsActive())) {
 			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
 			log.info("user already active with id {} ", userId);
@@ -104,6 +110,12 @@ public class UserServiceImpl implements UserService {
 		
 		AppUser user = getById(userId);
 
+		if (Boolean.FALSE.equals(user.isEmailVerified())) {
+			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+			log.info("User is not verified by id: {}", userId);
+			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
+		}
+		
 		if (Boolean.FALSE.equals(user.getIsActive())) {
 			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
 			log.info("Already deactivated user by id: {}", userId);
@@ -126,6 +138,10 @@ public class UserServiceImpl implements UserService {
 
 		if (userRepository.existsByEmail(agentRequestDTO.getEmail())) {
 			throw new DuplicateResourceException("Duplicate user found with email - " + agentRequestDTO.getEmail());
+		}
+		
+		if (userRepository.existsByMobileNumber(agentRequestDTO.getMobileNumber())) {
+			throw new DuplicateResourceException("Duplicate user found with mobile Number - " + agentRequestDTO.getMobileNumber());
 		}
 
 		AppUser user = modelMapper.map(agentRequestDTO, AppUser.class);
