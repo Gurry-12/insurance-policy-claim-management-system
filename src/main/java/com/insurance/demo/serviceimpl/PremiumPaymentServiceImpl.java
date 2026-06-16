@@ -32,6 +32,7 @@ import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.repository.PremiumPaymentRepository;
 import com.insurance.demo.service.PremiumPaymentService;
+import com.insurance.demo.util.TransactionReferenceGenerator;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -69,23 +70,38 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 	        throw new AccessDeniedException("You are not allowed to record payment for another customer's policy");
 	    }
 
-	    if (paymentRepository.existsByTransactionReference(dto.getTransactionReference())) {
-	        throw new DuplicateResourceException("Transaction reference already exists");
-	    }
-
 	    if (policy.getPolicyPlan().getPremiumAmount().compareTo(dto.getAmount()) != 0) {
 	        throw new BadRequestException("Payment amount must match premium amount");
+	    }
+	    
+	    if(PolicyStatus.CANCELLED.equals(policy.getPolicyStatus())) {
+	    	throw new BadRequestException("you are restricted to make payment for a cancelled policy");
+	    }
+	    
+	    if(PolicyStatus.EXPIRED.equals(policy.getPolicyStatus())) {
+	    	throw new BadRequestException("you are restricted to make payment for a expired policy");
+	    }
+
+	    String transactionReferance = TransactionReferenceGenerator.generateTransactionReference();
+	    
+	    if (paymentRepository.existsByTransactionReference(transactionReferance)) {
+	        throw new DuplicateResourceException("Transaction reference already exists");
 	    }
 
 	    PremiumPayment payment = new PremiumPayment();
 	    payment.setAmount(dto.getAmount());
 	    payment.setPaymentMode(dto.getPaymentMode());
-	    payment.setTransactionReference(dto.getTransactionReference());
+	    payment.setTransactionReference(transactionReferance);
 	    payment.setPolicy(policy);
 	    payment.setPaymentDate(LocalDateTime.now());
 
-	    // IMPORTANT: do NOT trust frontend blindly
+	    if(PaymentStatus.SUCCESS.equals(dto.getPaymentStatus())) {
 	    payment.setPaymentStatus(PaymentStatus.SUCCESS);
+	    }
+	    
+	    if(PaymentStatus.FAILED.equals(dto.getPaymentStatus())) {
+		    payment.setPaymentStatus(PaymentStatus.FAILED);
+		    }
 
 	    PremiumPayment savedPayment = paymentRepository.save(payment);
 

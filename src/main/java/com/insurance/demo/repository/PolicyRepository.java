@@ -21,7 +21,11 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
 
 	List<Policy> findByPolicyStatus(PolicyStatus policyStatus);
 	
-	boolean existsByCustomerIdAndPolicyPlanId(Long customerId, Long planId);
+	boolean existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(
+	        Long customerId,
+	        Long policyPlanId,
+	        List<PolicyStatus> statuses
+	);
 
 	@org.springframework.data.jpa.repository.Query("SELECT p FROM Policy p WHERE " +
 			"(:customerId IS NULL OR p.customer.id = :customerId) AND " +
