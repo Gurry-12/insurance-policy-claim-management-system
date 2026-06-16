@@ -22,8 +22,10 @@ import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.enums.PolicyStatus;
 import com.insurance.demo.exception.BadRequestException;
+import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.PlanNotActiveException;
 import com.insurance.demo.exception.PolicyNotFoundException;
+import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.Customer;
 import com.insurance.demo.model.Policy;
 import com.insurance.demo.model.PolicyPlan;
@@ -32,6 +34,7 @@ import com.insurance.demo.repository.PolicyPlanRepository;
 import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.service.PolicyService;
 import com.insurance.demo.util.PolicyNumberGenerator;
+import com.sun.jdi.request.DuplicateRequestException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,11 +56,15 @@ public class PolicyServiceImpl implements PolicyService {
 
 		String customerEmail = authentication.getName();
 		Customer customer = customerRepository.findByUserEmail(customerEmail)
-				.orElseThrow(() -> new RuntimeException("Customer not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
 
+		if(policyRepository.existsByCustomerIdAndPolicyPlanId(customer.getId(), plan.getId())) {
+			 throw new DuplicateResourceException("Policy plan already perchased by the customer");
+		}
+		
 		Policy policy = new Policy();
 
 		policy.setCustomer(customer);
@@ -89,6 +96,10 @@ public class PolicyServiceImpl implements PolicyService {
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
 
+		if(policyRepository.existsByCustomerIdAndPolicyPlanId(customer.getId(), plan.getId())) {
+			 throw new DuplicateResourceException("Policy plan already issued to the customer");
+		}
+		
 		Policy policy = new Policy();
 
 		policy.setCustomer(customer);
