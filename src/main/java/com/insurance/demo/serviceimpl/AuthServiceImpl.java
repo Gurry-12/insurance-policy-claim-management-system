@@ -59,6 +59,11 @@ public class AuthServiceImpl implements AuthService {
 			log.warn("Login blocked. Email not verified. UserId={}", appUser.getId());
 			throw new BadRequestException("Please verify email before logging in.");
 		}
+		
+		if (!appUser.isPhoneVerified()) {
+			log.warn("Login blocked. Phone not verified. UserId={}", appUser.getId());
+			throw new BadRequestException("Please verify phone before logging in.");
+		}
 
 		if (Boolean.FALSE.equals(appUser.getIsActive())) {
 			log.warn("Login blocked. Inactive account. UserId={}", appUser.getId());
@@ -98,6 +103,7 @@ public class AuthServiceImpl implements AuthService {
 		user.setRole(Role.ROLE_CUSTOMER);
 		user.setIsActive(false);
 		user.setEmailVerified(false);
+		user.setPhoneVerified(false);
 
 		AppUser savedUser = userRepository.save(user);
 		otpService.createAndSendOtp(savedUser);
@@ -118,10 +124,10 @@ public class AuthServiceImpl implements AuthService {
 			throw new BadRequestException("user is already verified");
 		}
 
-		otpService.verifyOtp(user, request.getEmailOtp());
+		otpService.verifyOtp(user, request.getEmailOtp(), request.getPhoneOtp());
 
 		user.setEmailVerified(true);
-//        user.setPhoneVerified(true);
+        user.setPhoneVerified(true);
 		user.setIsActive(true);
 
 		AppUser saved = userRepository.save(user);
