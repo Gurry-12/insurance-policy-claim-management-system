@@ -26,6 +26,9 @@ public class OtpVerification {
     private String emailOtp;
 
     @Column(nullable = false)
+    private String phoneOtp;
+    
+    @Column(nullable = false)
     private LocalDateTime expiresAt;
 
     private boolean used;
