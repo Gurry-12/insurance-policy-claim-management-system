@@ -19,7 +19,9 @@ import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PaymentResponseDTO;
 import com.insurance.demo.service.PremiumPaymentService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
+@Tag(name = "7. Premium Payment API", description = "Endpoints for processing and tracking policy premium payments")
 public class PremiumPaymentController {
 
 	private final PremiumPaymentService paymentService;
@@ -34,42 +37,47 @@ public class PremiumPaymentController {
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	@PreAuthorize("hasAnyRole('CUSTOMER', 'AGENT')")
+	@Operation(summary = "Record Premium Payment", description = "Records a successful premium payment for an active policy. Automatically activates PENDING policies.")
 	public ApiResponseDTO<PaymentResponseDTO> makePayment(@Valid @RequestBody PaymentRequestDTO dto) {
 		return paymentService.recordPayment(dto);
 	}
 
 	@GetMapping("/policy/{id}")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+@Operation(summary = "Get Payments for Policy", description = "Retrieves all payment records associated with a specific policy.")
 	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByPolicy(@PathVariable Long id) {
 		return paymentService.getPaymentsByPolicy(id);
 	}
 
 	@GetMapping("/{id}")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@Operation(summary = "Get Payment by ID", description = "Retrieves the details of a specific premium payment transaction.")
 	public ApiResponseDTO<PaymentResponseDTO> getPaymentById(@PathVariable(name = "id") Long paymentId) {
 		return paymentService.getPaymentById(paymentId);
 	}
 
 	@GetMapping("/page")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@Operation(summary = "Get All Payments", description = "Retrieves a paginated list of all system payments with optional filtering by policy ID and payment status.")
 	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(
-			@RequestParam(defaultValue = "0") int pageNumber,
-			@RequestParam(defaultValue = "10") int pageSize,
-			@RequestParam(defaultValue = "id") String sortBy,
-			@RequestParam(defaultValue = "asc") String sortDirection,
-			@RequestParam(required = false) Long policyId,
-			@RequestParam(required = false) String paymentStatus) {
-		return paymentService.getAllPaymentsWithPagination(pageNumber, pageSize, sortBy, sortDirection, policyId, paymentStatus);
+			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
+			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDirection,
+			@RequestParam(required = false) Long policyId, @RequestParam(required = false) String paymentStatus) {
+		return paymentService.getAllPaymentsWithPagination(pageNumber, pageSize, sortBy, sortDirection, policyId,
+				paymentStatus);
 	}
 
 	@GetMapping("/my-payments")
 	@PreAuthorize("hasRole('CUSTOMER')")
+	@Operation(summary = "Get My Payment History", description = "Retrieves the payment history of the logged-in customer.")
 	public ApiResponseDTO<List<PaymentResponseDTO>> getMyPayments() {
 		return paymentService.getMyPayments();
 	}
 
 	@GetMapping("/my-policies/{policyId}")
 	@PreAuthorize("hasRole('CUSTOMER')")
+
+@Operation(summary = "Get Payments for Policy", description = "Retrieves all payment records associated with a specific policy.")
 	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByMyPolicy(@PathVariable Long policyId) {
 		return paymentService.getPaymentsByMyPolicy(policyId);
 	}

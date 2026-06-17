@@ -5,9 +5,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,19 +18,18 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.insurance.demo.dto.request.ClaimDocumentRequestDTO;
 import com.insurance.demo.dto.request.ClaimRequestDTO;
 import com.insurance.demo.dto.request.ClaimReviewRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.ClaimHistoryResponseDTO;
 import com.insurance.demo.dto.response.ClaimResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
-import com.insurance.demo.model.ClaimDocument;
 import com.insurance.demo.service.ClaimDocumentService;
 import com.insurance.demo.service.ClaimService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -40,25 +37,23 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/claims")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
+@Tag(name = "8. Insurance Claim API", description = "Endpoints for filing claims, reviewing, and tracking claim status")
 public class ClaimController {
 
 	private final ClaimService claimService;
-	private final ClaimDocumentService claimDocumentService;
 
-	@PostMapping(
-			value = "/raise",
-			consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@PostMapping(value = "/raise", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("hasRole('CUSTOMER')")
 	@ResponseStatus(HttpStatus.CREATED)
-	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(
-			@Valid @RequestPart("claim") ClaimRequestDTO dto, @RequestPart("files")
-			List<MultipartFile> files) throws IOException {
+	@Operation(summary = "Submit a New Claim", description = "Allows a customer to file a claim against one of their active policies.")
+	public ApiResponseDTO<ClaimResponseDTO> raiseClaim(@Valid @RequestPart("claim") ClaimRequestDTO dto,
+			@RequestPart("files") List<MultipartFile> files) throws IOException {
 		return claimService.raiseClaim(dto, files);
 	}
 
 	@GetMapping("/my-claims")
 	@PreAuthorize("hasRole('CUSTOMER')")
-	@Operation(summary = "Customer views their own claims")
+	@Operation(summary = "Get My Claims", description = "Retrieves all claims filed by the currently logged-in customer.")
 	public ApiResponseDTO<List<ClaimResponseDTO>> getMyClaims() {
 		return claimService.getMyClaims();
 	}
@@ -67,7 +62,7 @@ public class ClaimController {
 
 	@GetMapping
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
-	@Operation(summary = "Agent/Admin - View all claims with pagination")
+	@Operation(summary = "Get All Claims", description = "Retrieves a paginated list of all claims with filtering by policy, status, and dates.")
 	public PageResponseDTO<ClaimResponseDTO> getAllClaims(@RequestParam(defaultValue = "0") int pageNumber,
 			@RequestParam(defaultValue = "10") int pageSize, @RequestParam(defaultValue = "createdDate") String sortBy,
 			@RequestParam(defaultValue = "desc") String sortDirection, @RequestParam(required = false) Long customerId,
@@ -78,14 +73,14 @@ public class ClaimController {
 
 	@GetMapping("/{claimId}")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
-	@Operation(summary = "Get claim details by ID (with ownership check in service)")
+	@Operation(summary = "Get Claim by ID", description = "Retrieves the full details of a specific insurance claim.")
 	public ApiResponseDTO<ClaimResponseDTO> getClaimById(@PathVariable Long claimId) {
 		return claimService.getClaimById(claimId);
 	}
 
 	@GetMapping("/{claimId}/history")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
-	@Operation(summary = "View claim status history")
+	@Operation(summary = "Get Claim Status History", description = "Retrieves the complete audit trail/history of status changes for a specific claim.")
 	public PageResponseDTO<ClaimHistoryResponseDTO> getClaimHistory(@PathVariable Long claimId,
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "desc") String sortDirection,
@@ -97,14 +92,15 @@ public class ClaimController {
 
 	@PatchMapping("/{claimId}/under-review")
 	@PreAuthorize("hasRole('AGENT')")
-	@Operation(summary = "Agent marks claim under review")
+	@Operation(summary = "Move Claim to Under Review", description = "Updates a SUBMITTED claim's status to UNDER_REVIEW so it can be evaluated by an Agent.")
 	public ApiResponseDTO<ClaimResponseDTO> underReviewClaim(@PathVariable Long claimId) {
 		return claimService.underReviewClaim(claimId);
 	}
 
 	@PatchMapping("/{claimId}/review")
 	@PreAuthorize("hasRole('AGENT')")
-	@Operation(summary = "Agent reviews and recommends claim decision")
+
+	@Operation(summary = "Recommend Claim Status (Agent)", description = "Allows an Agent to review a claim and recommend it for Approval or Rejection.")
 	public ApiResponseDTO<ClaimResponseDTO> reviewClaim(@PathVariable Long claimId,
 			@Valid @RequestBody ClaimReviewRequestDTO dto) {
 
@@ -115,12 +111,11 @@ public class ClaimController {
 
 	@PreAuthorize("hasRole('ADMIN')")
 	@PatchMapping("/{claimId}/final-decision")
-	@Operation(summary = "Admin makes final approval or rejection")
+	@Operation(summary = "Finalize Claim Decision (Admin)", description = "Allows an Admin to make the final decision (Approve/Reject) on an agent-recommended claim.")
 	public ApiResponseDTO<ClaimResponseDTO> finalDecision(@PathVariable Long claimId,
 			@Valid @RequestBody ClaimReviewRequestDTO dto) {
 
 		return claimService.finalDecision(claimId, dto);
 	}
-
 
 }

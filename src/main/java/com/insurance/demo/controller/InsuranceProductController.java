@@ -23,7 +23,9 @@ import com.insurance.demo.dto.response.ProductResponseDTO;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.service.InsuranceProductService;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +33,7 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "bearerAuth")
+@Tag(name = "4. Insurance Product API", description = "Endpoints for managing core insurance products")
 public class InsuranceProductController {
 
 	private final InsuranceProductService productService;
@@ -38,24 +41,28 @@ public class InsuranceProductController {
 	@PostMapping
 	@PreAuthorize("hasRole('ADMIN')")
 	@ResponseStatus(HttpStatus.CREATED)
+	@Operation(summary = "Create Insurance Product", description = "Creates a new insurance product category (e.g., Health, Auto). Restricted to Admin.")
 	public ApiResponseDTO<ProductResponseDTO> createProduct(@Valid @RequestBody ProductRequestDTO dto) {
 		return productService.createProduct(dto);
 	}
 
 	@PatchMapping("/{id}/deactivate")
 	@PreAuthorize("hasRole('ADMIN')")
+	@Operation(summary = "Deactivate Product", description = "Marks an insurance product as inactive.")
 	public ApiResponseDTO<ProductResponseDTO> deactivateProduct(@PathVariable Long id) {
 		return productService.deactivateProduct(id);
 	}
 
 	@GetMapping("/active")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@Operation(summary = "View Active Products", description = "Retrieves a list of all currently active insurance products available for customers.")
 	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ResourceNotFoundException {
 		return productService.viewActiveProducts();
 	}
 
 	@PutMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
+	@Operation(summary = "Update Insurance Product", description = "Updates the details of an existing insurance product.")
 	public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long id,
 			@Valid @RequestBody ProductRequestDTO requestDTO) {
 		ProductResponseDTO response = productService.updateProduct(id, requestDTO);
@@ -64,12 +71,14 @@ public class InsuranceProductController {
 	
 	@GetMapping("/{id}")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@Operation(summary = "Get Product by ID", description = "Retrieves the details of a specific insurance product by its ID.")
 	public ApiResponseDTO<ProductResponseDTO> getProductById(@PathVariable Long id) {
 		return productService.getProductById(id);
 	}
 	
 	@GetMapping("/page")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@Operation(summary = "Get All Products (Paginated)", description = "Retrieves a paginated list of all products with filtering options for type and status.")
 	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber,
 			@RequestParam(defaultValue = "10") int pageSize,
@@ -82,6 +91,7 @@ public class InsuranceProductController {
 	
 	@PatchMapping("/{id}/active")
 	@PreAuthorize("hasRole('ADMIN')")
+	@Operation(summary = "Activate Product", description = "Reactivates a previously deactivated insurance product.")
 	public ApiResponseDTO<ProductResponseDTO> activateProduct(@PathVariable Long id) {
 		return productService.activateProduct(id);
 	}
