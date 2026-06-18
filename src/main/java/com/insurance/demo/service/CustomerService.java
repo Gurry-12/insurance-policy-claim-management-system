@@ -9,7 +9,7 @@ import com.insurance.demo.dto.response.PageResponseDTO;
 
 public interface CustomerService {
 
-	ApiResponseDTO<CustomerResponseDTO> createCustomer(Long userId, CustomerRequestDTO requestDTO);
+	ApiResponseDTO<CustomerResponseDTO> createCustomer(CustomerRequestDTO requestDTO);
 
 	ApiResponseDTO<CustomerResponseDTO> getCustomerById(Long customerId);
 
