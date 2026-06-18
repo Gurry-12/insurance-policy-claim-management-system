@@ -43,35 +43,30 @@ public class CustomerServiceImpl implements CustomerService {
 	private final ModelMapper modelMapper;
 
 	@Override
-	public ApiResponseDTO<CustomerResponseDTO> createCustomer(Long userId, CustomerRequestDTO requestDTO) {
+	public ApiResponseDTO<CustomerResponseDTO> createCustomer(CustomerRequestDTO requestDTO) {
 
-		logger.info("Creating customer profile for userId: {}", userId);
+		logger.info("Creating customer profile");
 
 		if (requestDTO.getDateOfBirth().isAfter(LocalDate.now().minusYears(18))) {
-
 			throw new BadRequestException("Customer must be at least 18 years old");
 		}
 
-		AppUser user = appUserRepository.findById(userId)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-
-		if (user.getRole() != Role.ROLE_CUSTOMER) {
-			throw new BadRequestException("Only users with customer role can have a customer profile");
-		}
-
-		if (customerRepository.existsByUserId(userId)) {
-			throw new BadRequestException("Customer profile already exists for this user");
-		}
-
+		// Get logged-in user from JWT
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
 		String loggedInEmail = authentication.getName();
-		
-		AppUser loggedInUser = appUserRepository.findByEmail(loggedInEmail)
-				.orElseThrow(() -> new ResourceNotFoundException("user's profile not found"));
-		
-		if (!user.getId().equals(loggedInUser.getId())) {
-			throw new BadRequestException("You can not create another user as customer");
+
+		AppUser user = appUserRepository.findByEmail(loggedInEmail)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+		// Verify role
+		if (user.getRole() != Role.ROLE_CUSTOMER) {
+			throw new BadRequestException("Only customers can create customer profiles");
+		}
+
+		// Check if profile already exists
+		if (customerRepository.existsByUserId(user.getId())) {
+			throw new BadRequestException("Customer profile already exists");
 		}
 
 		Customer customer = modelMapper.map(requestDTO, Customer.class);
@@ -84,7 +79,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 		logger.info("Customer profile created successfully with id: {}", savedCustomer.getId());
 
-		return new ApiResponseDTO<>("Customer profile Created Successfully", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>("Customer profile created successfully", true, dto, LocalDateTime.now());
 	}
 
 	@Override
@@ -153,7 +148,8 @@ public class CustomerServiceImpl implements CustomerService {
 		boolean hasState = state != null && !state.trim().isEmpty();
 
 		if (hasCity && hasState) {
-			customerPage = customerRepository.findByCityContainingIgnoreCaseAndStateContainingIgnoreCase(city.trim(), state.trim(), pageable);
+			customerPage = customerRepository.findByCityContainingIgnoreCaseAndStateContainingIgnoreCase(city.trim(),
+					state.trim(), pageable);
 		} else if (hasCity) {
 			customerPage = customerRepository.findByCityContainingIgnoreCase(city.trim(), pageable);
 		} else if (hasState) {
@@ -167,6 +163,7 @@ public class CustomerServiceImpl implements CustomerService {
 		return new PageResponseDTO<>(content, customerPage.getNumber(), customerPage.getSize(),
 				customerPage.getTotalElements(), customerPage.getTotalPages(), customerPage.isLast(), sortDirection);
 	}
+
 	private Customer findCustomerById(Long customerId) {
 
 		return customerRepository.findById(customerId)

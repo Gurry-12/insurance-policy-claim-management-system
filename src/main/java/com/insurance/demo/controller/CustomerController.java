@@ -35,14 +35,13 @@ public class CustomerController {
 
 	private final CustomerService customerService;
 
-	@PostMapping("/{userId}")
+	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	@PreAuthorize("hasRole('CUSTOMER')")
-	@Operation(summary = "Create Customer Profile", description = "Creates a detailed customer profile for the logged-in user.")
-	public ApiResponseDTO<CustomerResponseDTO> createCustomer(@PathVariable Long userId,
-			@Valid @RequestBody CustomerRequestDTO requestDTO) {
+	@Operation(summary = "Create Customer Profile", description = "Creates a customer profile for the logged-in customer.")
+	public ApiResponseDTO<CustomerResponseDTO> createCustomer(@Valid @RequestBody CustomerRequestDTO requestDTO) {
 
-		return customerService.createCustomer(userId, requestDTO);
+		return customerService.createCustomer(requestDTO);
 	}
 
 	@GetMapping("/{customerId}")
@@ -75,14 +74,12 @@ public class CustomerController {
 	@Operation(summary = "Get All Customers", description = "Retrieves a paginated list of all customer profiles. Restricted to Admin/Agent.")
 	public PageResponseDTO<CustomerResponseDTO> getAllCustomersWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
-			@RequestParam(defaultValue = "id") String sortBy,
-			@RequestParam(defaultValue = "asc") String sortDirection,
-			@RequestParam(required = false) String city,
-			@RequestParam(required = false) String state) {
+			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDirection,
+			@RequestParam(required = false) String city, @RequestParam(required = false) String state) {
 
 		return customerService.getAllCustomersWithPagination(pageNumber, pageSize, sortBy, sortDirection, city, state);
 	}
-	
+
 	@GetMapping("/profile")
 	@PreAuthorize("hasRole('CUSTOMER')")
 	@Operation(summary = "Get My Profile", description = "Retrieves the customer profile of the currently logged-in user.")
