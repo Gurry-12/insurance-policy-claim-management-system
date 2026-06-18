@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.insurance.demo.dto.request.LoginRequestDTO;
+import com.insurance.demo.dto.request.ResendOtpRequestDTO;
 import com.insurance.demo.dto.request.UserRequestDTO;
 import com.insurance.demo.dto.request.VerifyOtpRequest;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.LoginResponseDTO;
+import com.insurance.demo.dto.response.ResendOtpResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.service.AuthService;
 
@@ -51,9 +53,15 @@ public class AuthController {
 	}
 
 	@PostMapping("/verify-otp")
-	@Operation(summary = "Verify OTP", description = "Verifies the OTP sent to the user's email to activate their account.")
+	@Operation(summary = "Verify OTP", description = "Verifies the OTP sent to the user's email and phone to activate their account.")
 	public ApiResponseDTO<UserResponseDTO> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
 		return authService.verifyOtp(request);
+	}
+	
+	@PostMapping("/resend-otp")
+	@Operation(summary = "Resend OTP", description = "Resend the OTP to user email and phone  to activate")
+	public ApiResponseDTO<ResendOtpResponseDTO> resendOtp(@Valid @RequestBody ResendOtpRequestDTO request){
+			return authService.resendOtp(request);
 	}
 
 }

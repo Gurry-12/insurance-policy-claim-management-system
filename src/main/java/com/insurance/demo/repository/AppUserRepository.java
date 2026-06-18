@@ -32,4 +32,5 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
 	Page<AppUser> findByIsActive(Boolean isActive, Pageable pageable);
 
+	Optional<AppUser> findByEmailAndMobileNumber(String email, String mobileNumber);
 }

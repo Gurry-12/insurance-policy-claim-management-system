@@ -12,10 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.insurance.demo.dto.request.LoginRequestDTO;
+import com.insurance.demo.dto.request.ResendOtpRequestDTO;
 import com.insurance.demo.dto.request.UserRequestDTO;
 import com.insurance.demo.dto.request.VerifyOtpRequest;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.LoginResponseDTO;
+import com.insurance.demo.dto.response.ResendOtpResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.BadRequestException;
@@ -59,7 +61,7 @@ public class AuthServiceImpl implements AuthService {
 			log.warn("Login blocked. Email not verified. UserId={}", appUser.getId());
 			throw new BadRequestException("Please verify email before logging in.");
 		}
-		
+
 		if (!appUser.isPhoneVerified()) {
 			log.warn("Login blocked. Phone not verified. UserId={}", appUser.getId());
 			throw new BadRequestException("Please verify phone before logging in.");
@@ -110,8 +112,8 @@ public class AuthServiceImpl implements AuthService {
 
 		UserResponseDTO responseDTO = modelMapper.map(savedUser, UserResponseDTO.class);
 		log.info("Customer registration successful. UserId={}, Email={}", user.getId(), user.getEmail());
-		return new ApiResponseDTO<>("Customer registered successfully. OTP sent to email and phone.", true,
-				responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>("Customer registered successfully. OTP sent to email and phone.", true, responseDTO,
+				LocalDateTime.now());
 
 	}
 
@@ -127,13 +129,35 @@ public class AuthServiceImpl implements AuthService {
 		otpService.verifyOtp(user, request.getEmailOtp(), request.getPhoneOtp());
 
 		user.setEmailVerified(true);
-        user.setPhoneVerified(true);
+		user.setPhoneVerified(true);
 		user.setIsActive(true);
 
 		AppUser saved = userRepository.save(user);
 
-		return new ApiResponseDTO<>("User account activated successfully.", true, modelMapper.map(saved, UserResponseDTO.class),
-				LocalDateTime.now());
+		return new ApiResponseDTO<>("User account activated successfully.", true,
+				modelMapper.map(saved, UserResponseDTO.class), LocalDateTime.now());
+	}
+
+	@Override
+	public ApiResponseDTO<ResendOtpResponseDTO> resendOtp(ResendOtpRequestDTO request) {
+
+		AppUser user = userRepository.findByEmailAndMobileNumber(request.getEmail(), request.getPhone())
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
+
+		if (Boolean.TRUE.equals(user.getIsActive())) {
+			throw new BadRequestException("user is already verified");
+		}
+
+		if (Boolean.FALSE.equals(otpService.invalidateLastOtp(user))) {
+			throw new BadRequestException("Otp is Still active please verify your email and phone");
+		}
+
+		otpService.createAndSendOtp(user);
+
+		ResendOtpResponseDTO dto = new ResendOtpResponseDTO(request.getEmail(), request.getPhone());
+
+		return new ApiResponseDTO<>("Otp are sent again on your email and password.", true, dto, LocalDateTime.now());
+
 	}
 
 }
