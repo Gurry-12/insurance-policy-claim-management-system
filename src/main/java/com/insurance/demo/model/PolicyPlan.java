@@ -48,32 +48,31 @@ public class PolicyPlan {
 
 	@NotBlank(message = "name can't be blank")
 	@Column(name = "plan_name", nullable = false)
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
-	@Size(min = 2, max = 100 , message = "name should be beteeen 2 - 100 characters")
+	@Size(min = 2, max = 100, message = "name should be beteeen 2 - 100 characters")
 	private String planName;
 
 	@Positive(message = "amount should be positive")
-	@Column(name= "coverage_amount", nullable = false)
+	@Column(name = "coverage_amount", nullable = false)
 	@NotNull(message = "amount can't be null")
 	private Double coverageAmount;
 
 	@Positive(message = "amount should be positive")
-	@Column(name= "premium_amount", nullable = false)
+	@Column(name = "premium_amount", nullable = false)
 	@NotNull(message = "premium amount can't be null")
 	private Double premiumAmount;
 
 	@Enumerated(EnumType.STRING)
 	@NotNull(message = "premium type can't be null")
-	@Column(name = "premium_type" , nullable = false)
+	@Column(name = "premium_type", nullable = false)
 	private PremiumType premiumType;
 
 	@Positive(message = "duration should be positive")
-	@Column(name= "duration", nullable = false)
+	@Column(name = "duration", nullable = false)
 	@NotNull(message = "duration can't be null")
 	private Integer duration;
 
 	@NotBlank(message = "T & C can't be blank")
-	@Column(name= "terms_conditions", nullable = false, length = 3000)
+	@Column(name = "terms_conditions", nullable = false, length = 3000)
 	private String termsAndConditions;
 
 	@NotNull(message = "status can't be null")

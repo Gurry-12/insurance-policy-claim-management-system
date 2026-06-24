@@ -28,6 +28,7 @@ public class UserResponseDTO {
 	private Boolean isActive;
 	
 	private boolean emailVerified;
+	
     private boolean phoneVerified;
 
 	private LocalDateTime createdDate;

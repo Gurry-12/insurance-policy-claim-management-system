@@ -23,6 +23,8 @@ public class DataInitializer {
 				admin.setPassword(passwordEncoder.encode("Admin@123"));
 				admin.setMobileNumber("9876543210");
 				admin.setIsActive(true);
+				admin.setEmailVerified(true);
+				admin.setPhoneVerified(true);
 				admin.setRole(Role.ROLE_ADMIN);
 
 				userRepository.save(admin);

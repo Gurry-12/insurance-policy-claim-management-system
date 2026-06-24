@@ -28,9 +28,9 @@ public class EmailService {
 			SimpleMailMessage message = new SimpleMailMessage();
 			message.setFrom(fromEmail.trim());
 			message.setTo(toEmail);
-			message.setSubject("Student Registration Email OTP");
-			message.setText("Dear Student,\n\n" + "Your email verification OTP is: " + otp + "\n\n"
-					+ "This OTP is valid for 5 minutes.\n\n" + "Regards,\n" + "Student Verification Team");
+			message.setSubject("User Registration Email OTP");
+			message.setText("Dear User,\n\n" + "Your email verification OTP is: " + otp + "\n\n"
+					+ "This OTP is valid for 5 minutes.\n\n" + "Regards,\n" + "Insurance Verification Team");
 
 			mailSender.send(message);
 

@@ -2,6 +2,7 @@ package com.insurance.demo.dto.response;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -39,4 +40,6 @@ public class ClaimResponseDTO {
 	private LocalDateTime createdDate;
 
 	private LocalDateTime updatedDate;
+	
+	private List<ClaimDocumentResponseDTO> documents;
 }

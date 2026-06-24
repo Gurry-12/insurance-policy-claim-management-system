@@ -26,12 +26,11 @@ public interface PolicyPlanRepository extends JpaRepository<PolicyPlan, Long> {
 
 	Page<PolicyPlan> findByInsuranceProductIdAndIsActiveTrue(Long productId, Pageable pageable);
 
-	@org.springframework.data.jpa.repository.Query("SELECT p FROM PolicyPlan p WHERE " +
-			"(:productId IS NULL OR p.insuranceProduct.id = :productId) AND " +
-			"(:isActive IS NULL OR p.isActive = :isActive)")
-	Page<PolicyPlan> findByFilters(
-			@org.springframework.data.repository.query.Param("productId") Long productId,
-			@org.springframework.data.repository.query.Param("isActive") Boolean isActive,
-			Pageable pageable);
+	Page<PolicyPlan> findByInsuranceProductIdAndIsActive(Long productId, Boolean isActive, Pageable pageable);
+
+	Page<PolicyPlan> findByInsuranceProductId(Long productId, Pageable pageable);
+
+	Page<PolicyPlan> findByIsActive(Boolean isActive, Pageable pageable);
+
 }
 

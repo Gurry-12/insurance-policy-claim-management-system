@@ -27,7 +27,7 @@ public class OtpVerification {
 
     @Column(nullable = false)
     private String phoneOtp;
-
+    
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 

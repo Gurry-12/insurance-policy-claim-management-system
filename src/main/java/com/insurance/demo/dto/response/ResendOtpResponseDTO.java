@@ -7,14 +7,12 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
-public class ClaimDocumentResponseDTO {
+@NoArgsConstructor
+public class ResendOtpResponseDTO {
+
+	private String email;
+	private String phone;
 	
-	    private String documentName;
-
-	    private String documentType;
-
-	    private String documentReference;  
-
+	
 }

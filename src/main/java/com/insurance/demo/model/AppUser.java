@@ -83,5 +83,5 @@ public class AppUser {
 	private Customer customer;
 
 	private boolean emailVerified;
-    private boolean phoneVerified;
+	private boolean phoneVerified;
 }

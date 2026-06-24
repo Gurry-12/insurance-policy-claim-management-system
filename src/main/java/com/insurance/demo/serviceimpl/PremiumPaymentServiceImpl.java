@@ -32,6 +32,7 @@ import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.repository.PremiumPaymentRepository;
 import com.insurance.demo.service.PremiumPaymentService;
+import com.insurance.demo.util.TransactionReferenceGenerator;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -69,28 +70,50 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 	        throw new AccessDeniedException("You are not allowed to record payment for another customer's policy");
 	    }
 
-	    if (paymentRepository.existsByTransactionReference(dto.getTransactionReference())) {
-	        throw new DuplicateResourceException("Transaction reference already exists");
-	    }
-
 	    if (policy.getPolicyPlan().getPremiumAmount().compareTo(dto.getAmount()) != 0) {
 	        throw new BadRequestException("Payment amount must match premium amount");
+	    }
+	    
+	    if(PolicyStatus.CANCELLED.equals(policy.getPolicyStatus())) {
+	    	throw new BadRequestException("you are restricted to make payment for a cancelled policy");
+	    }
+	    
+	    if(PolicyStatus.EXPIRED.equals(policy.getPolicyStatus())) {
+	    	throw new BadRequestException("you are restricted to make payment for a expired policy");
+	    }
+
+	    String transactionReferance = TransactionReferenceGenerator.generateTransactionReference();
+	    
+	    if (paymentRepository.existsByTransactionReference(transactionReferance)) {
+	        throw new DuplicateResourceException("Transaction reference already exists");
+	    }
+	    
+	    if(policy.getPolicyPlan().getCoverageAmount() <= (policy.getTotalPremiumPaid() + dto.getAmount())) {
+	    	throw new BadRequestException("Required premium already paid. Policy is active.");
 	    }
 
 	    PremiumPayment payment = new PremiumPayment();
 	    payment.setAmount(dto.getAmount());
 	    payment.setPaymentMode(dto.getPaymentMode());
-	    payment.setTransactionReference(dto.getTransactionReference());
+	    payment.setTransactionReference(transactionReferance);
 	    payment.setPolicy(policy);
 	    payment.setPaymentDate(LocalDateTime.now());
 
-	    // IMPORTANT: do NOT trust frontend blindly
+	    if(PaymentStatus.SUCCESS.equals(dto.getPaymentStatus())) {
 	    payment.setPaymentStatus(PaymentStatus.SUCCESS);
+	    }
+	    
+	    if(PaymentStatus.FAILED.equals(dto.getPaymentStatus())) {
+		    payment.setPaymentStatus(PaymentStatus.FAILED);
+		    }
 
 	    PremiumPayment savedPayment = paymentRepository.save(payment);
 
-	    policy.setTotalPremiumPaid(policy.getTotalPremiumPaid() + dto.getAmount());
-	    policy.setPolicyStatus(PolicyStatus.ACTIVE);
+	    if(PaymentStatus.SUCCESS.equals(dto.getPaymentStatus())) {
+	    	policy.setTotalPremiumPaid(policy.getTotalPremiumPaid() + dto.getAmount());
+		    policy.setPolicyStatus(PolicyStatus.ACTIVE);
+		    }
+	    
 	    policyRepository.save(policy);
 
 	    PaymentResponseDTO responseDTO = modelMapper.map(savedPayment, PaymentResponseDTO.class);
@@ -162,7 +185,16 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		}
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
-		Page<PremiumPayment> paymentPage = paymentRepository.findByFilters(policyId, statusEnum, pageable);
+		Page<PremiumPayment> paymentPage;
+		if (policyId != null && statusEnum != null) {
+			paymentPage = paymentRepository.findByPolicyIdAndPaymentStatus(policyId, statusEnum, pageable);
+		} else if (policyId != null) {
+			paymentPage = paymentRepository.findByPolicyId(policyId, pageable);
+		} else if (statusEnum != null) {
+			paymentPage = paymentRepository.findByPaymentStatus(statusEnum, pageable);
+		} else {
+			paymentPage = paymentRepository.findAll(pageable);
+		}
 
 		List<PaymentResponseDTO> content = paymentPage.getContent().stream()
 				.map(payment -> {
@@ -173,6 +205,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		return new PageResponseDTO<>(content, paymentPage.getNumber(), paymentPage.getSize(),
 				paymentPage.getTotalElements(), paymentPage.getTotalPages(), paymentPage.isLast(), sortDirection);
 	}
+
 
 	private Direction getSortDirection(String sortDirection) {
 		if (sortDirection == null || sortDirection.equalsIgnoreCase("asc"))

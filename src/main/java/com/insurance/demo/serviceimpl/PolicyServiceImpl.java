@@ -22,8 +22,10 @@ import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.enums.PolicyStatus;
 import com.insurance.demo.exception.BadRequestException;
+import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.PlanNotActiveException;
 import com.insurance.demo.exception.PolicyNotFoundException;
+import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.Customer;
 import com.insurance.demo.model.Policy;
 import com.insurance.demo.model.PolicyPlan;
@@ -32,6 +34,7 @@ import com.insurance.demo.repository.PolicyPlanRepository;
 import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.service.PolicyService;
 import com.insurance.demo.util.PolicyNumberGenerator;
+import com.sun.jdi.request.DuplicateRequestException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,10 +56,15 @@ public class PolicyServiceImpl implements PolicyService {
 
 		String customerEmail = authentication.getName();
 		Customer customer = customerRepository.findByUserEmail(customerEmail)
-				.orElseThrow(() -> new RuntimeException("Customer not found"));
+				.orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
+
+		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
+				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
+			throw new DuplicateResourceException("This policy is already active or pending payment.");
+		}
 
 		Policy policy = new Policy();
 
@@ -77,7 +85,7 @@ public class PolicyServiceImpl implements PolicyService {
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(savedPolicy);
 
-		return new ApiResponseDTO<>("Policy purchased successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>("Policy purchased successfully and is pending payment.", true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
@@ -89,6 +97,11 @@ public class PolicyServiceImpl implements PolicyService {
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
 
+		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
+				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
+			throw new DuplicateResourceException("This policy is already active or pending payment.");
+		}
+
 		Policy policy = new Policy();
 
 		policy.setCustomer(customer);
@@ -108,15 +121,14 @@ public class PolicyServiceImpl implements PolicyService {
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(savedPolicy);
 
-		return new ApiResponseDTO<>("Policy issued successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>("Policy issued successfully to the customer.", true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public ApiResponseDTO<PolicyResponseDTO> getPolicyById(Long policyId) {
 		log.info("Fetching policy by id: {}", policyId);
-		Policy policy = policyRepository.findById(policyId)
-				.orElseThrow(() -> new PolicyNotFoundException(policyId));
+		Policy policy = policyRepository.findById(policyId).orElseThrow(() -> new PolicyNotFoundException(policyId));
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
@@ -131,7 +143,8 @@ public class PolicyServiceImpl implements PolicyService {
 	}
 
 	@Override
-	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int page, int size, String sortBy, String direction, Long customerId, String status) {
+	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int page, int size, String sortBy, String direction,
+			Long customerId, String status) {
 
 		Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
 
@@ -146,13 +159,23 @@ public class PolicyServiceImpl implements PolicyService {
 			}
 		}
 
-		Page<Policy> policyPage = policyRepository.findByFilters(customerId, statusEnum, pageable);
+		Page<Policy> policyPage;
+		if (customerId != null && statusEnum != null) {
+			policyPage = policyRepository.findByCustomerIdAndPolicyStatus(customerId, statusEnum, pageable);
+		} else if (customerId != null) {
+			policyPage = policyRepository.findByCustomerId(customerId, pageable);
+		} else if (statusEnum != null) {
+			policyPage = policyRepository.findByPolicyStatus(statusEnum, pageable);
+		} else {
+			policyPage = policyRepository.findAll(pageable);
+		}
 
 		List<PolicyResponseDTO> content = policyPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
 		return new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
 				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), direction);
 	}
+
 
 	@Override
 	public PageResponseDTO<PolicyResponseDTO> getCustomerPolicies(String email, int page, int size, String sortBy,
@@ -189,8 +212,6 @@ public class PolicyServiceImpl implements PolicyService {
 				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), direction);
 	}
 
-	
-	
 	@Override
 	public ApiResponseDTO<PolicyResponseDTO> cancelPolicy(Long policyId) {
 
@@ -205,7 +226,6 @@ public class PolicyServiceImpl implements PolicyService {
 		return new ApiResponseDTO<>("Policy cancelled successfully", true, responseDTO, LocalDateTime.now());
 	}
 
-	
 	private PolicyResponseDTO convertToResponseDTO(Policy policy) {
 
 		PolicyResponseDTO dto = modelMapper.map(policy, PolicyResponseDTO.class);
@@ -230,20 +250,4 @@ public class PolicyServiceImpl implements PolicyService {
 		return dto;
 	}
 
-	@org.springframework.scheduling.annotation.Scheduled(cron = "0 0 0 * * ?") // Daily at midnight
-	@Transactional
-	public void expirePolicies() {
-		log.info("Running daily scheduled task to expire policies");
-		List<Policy> activePolicies = policyRepository.findByPolicyStatus(PolicyStatus.ACTIVE);
-		LocalDate today = LocalDate.now();
-		int expiredCount = 0;
-		for (Policy policy : activePolicies) {
-			if (policy.getEndDate().isBefore(today)) {
-				policy.setPolicyStatus(PolicyStatus.EXPIRED);
-				policyRepository.save(policy);
-				expiredCount++;
-			}
-		}
-		log.info("Expired policy check completed. Marked {} policies as EXPIRED", expiredCount);
-	}
 }
