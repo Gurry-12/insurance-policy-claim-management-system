@@ -102,6 +102,10 @@ public class ClaimServiceImpl implements ClaimService {
 		if (dto.getIncidentDate().isAfter(LocalDate.now())) {
 			throw new BadRequestException("Incident date cannot be in the future");
 		}
+		
+		if(dto.getIncidentDate().isBefore(policy.getStartDate()) || dto.getIncidentDate().isAfter(policy.getEndDate())) {
+			throw new BadRequestException("Incident date should be between the policy period");
+		}
 
 		// Create Claim
 		Claim claim = new Claim();
