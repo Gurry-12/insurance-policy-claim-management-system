@@ -120,10 +120,32 @@ public class PolicyServiceImpl implements PolicyService {
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
 
-		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
-				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
-			throw new DuplicateResourceException("This policy is already active or pending payment.");
+//		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
+//				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
+//			throw new DuplicateResourceException("This policy is already active or pending payment.");
+//		}
+		
+		ProductType productType = plan.getInsuranceProduct().getProductType();
+
+		if (productType == ProductType.HEALTH) {
+
+			boolean exists = policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(),
+					plan.getId(), List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT));
+
+			if (exists) {
+				throw new DuplicateResourceException("This health policy is already active or pending payment.");
+			}
+
+		} else {
+
+			boolean pendingExists = policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(
+					customer.getId(), plan.getId(), List.of(PolicyStatus.PENDING_PAYMENT));
+
+			if (pendingExists) {
+				throw new DuplicateResourceException("This policy is already pending payment.");
+			}
 		}
+
 
 		Policy policy = new Policy();
 
