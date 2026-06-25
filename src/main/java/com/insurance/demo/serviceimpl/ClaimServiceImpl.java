@@ -220,7 +220,11 @@ public class ClaimServiceImpl implements ClaimService {
 			throw new AccessDeniedException("You do not have permission to view this claim.");
 		}
 
+		List<ClaimDocumentResponseDTO> documents = claimDocumentRepository.findByClaimId(claim.getId()).stream()
+				.map(document -> modelMapper.map(document, ClaimDocumentResponseDTO.class)).toList();
+
 		ClaimResponseDTO response = convertToResponseDTO(claim);
+		response.setDocuments(documents);
 		return new ApiResponseDTO<>("Claim details retrieved successfully.", true, response, LocalDateTime.now());
 	}
 
@@ -244,7 +248,7 @@ public class ClaimServiceImpl implements ClaimService {
 			List<ClaimDocumentResponseDTO> documents = claimDocumentRepository.findByClaimId(claim.getId()).stream()
 					.map(document -> modelMapper.map(document, ClaimDocumentResponseDTO.class)).toList();
 			ClaimResponseDTO responseDTO = convertToResponseDTO(claim);
-			responseDTO.setDocuments(documents);		
+			responseDTO.setDocuments(documents);
 			responseList.add(responseDTO);
 		}
 

@@ -21,6 +21,7 @@ import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.enums.PolicyStatus;
+import com.insurance.demo.enums.ProductType;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.PlanNotActiveException;
@@ -61,9 +62,30 @@ public class PolicyServiceImpl implements PolicyService {
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
 
-		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
-				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
-			throw new DuplicateResourceException("This policy is already active or pending payment.");
+//		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
+//				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
+//			throw new DuplicateResourceException("This policy is already active or pending payment.");
+//		}
+
+		ProductType productType = plan.getInsuranceProduct().getProductType();
+
+		if (productType == ProductType.HEALTH) {
+
+			boolean exists = policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(),
+					plan.getId(), List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT));
+
+			if (exists) {
+				throw new DuplicateResourceException("This health policy is already active or pending payment.");
+			}
+
+		} else {
+
+			boolean pendingExists = policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(
+					customer.getId(), plan.getId(), List.of(PolicyStatus.PENDING_PAYMENT));
+
+			if (pendingExists) {
+				throw new DuplicateResourceException("This policy is already pending payment.");
+			}
 		}
 
 		Policy policy = new Policy();
@@ -85,7 +107,8 @@ public class PolicyServiceImpl implements PolicyService {
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(savedPolicy);
 
-		return new ApiResponseDTO<>("Policy purchased successfully and is pending payment.", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>("Policy purchased successfully and is pending payment.", true, responseDTO,
+				LocalDateTime.now());
 	}
 
 	@Override
@@ -121,7 +144,8 @@ public class PolicyServiceImpl implements PolicyService {
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(savedPolicy);
 
-		return new ApiResponseDTO<>("Policy issued successfully to the customer.", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>("Policy issued successfully to the customer.", true, responseDTO,
+				LocalDateTime.now());
 	}
 
 	@Override
@@ -143,12 +167,12 @@ public class PolicyServiceImpl implements PolicyService {
 	}
 
 	@Override
-	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int page, int size, String sortBy, String direction,
-			Long customerId, String status) {
+	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int pageNumber, int pageSize, String sortBy,
+			String sortDirection, Long customerId, String status) {
 
-		Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+		Sort sort = sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
 
-		Pageable pageable = PageRequest.of(page, size, sort);
+		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
 
 		PolicyStatus statusEnum = null;
 		if (status != null && !status.trim().isEmpty()) {
@@ -173,9 +197,8 @@ public class PolicyServiceImpl implements PolicyService {
 		List<PolicyResponseDTO> content = policyPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
 		return new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
-				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), direction);
+				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), sortDirection);
 	}
-
 
 	@Override
 	public PageResponseDTO<PolicyResponseDTO> getCustomerPolicies(String email, int page, int size, String sortBy,
