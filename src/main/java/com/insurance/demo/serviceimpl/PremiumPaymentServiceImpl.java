@@ -2,6 +2,7 @@ package com.insurance.demo.serviceimpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PaymentResponseDTO;
 import com.insurance.demo.enums.PaymentStatus;
 import com.insurance.demo.enums.PolicyStatus;
+import com.insurance.demo.enums.PremiumType;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
@@ -52,74 +54,107 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 	@Transactional
 	public ApiResponseDTO<PaymentResponseDTO> recordPayment(PaymentRequestDTO dto) {
 
-	    log.info("Recording payment for policy id: {}", dto.getPolicyId());
+		log.info("Recording payment for policy id: {}", dto.getPolicyId());
 
-	    Policy policy = policyRepository.findById(dto.getPolicyId())
-	            .orElseThrow(() ->
-	                    new ResourceNotFoundException("Policy not found with id: " + dto.getPolicyId()));
+		Policy policy = policyRepository.findById(dto.getPolicyId())
+				.orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + dto.getPolicyId()));
 
-	    String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
-	    boolean isCustomer = SecurityContextHolder.getContext()
-	            .getAuthentication()
-	            .getAuthorities()
-	            .stream()
-	            .anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+		boolean isCustomer = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+				.anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 
-	    if (isCustomer && !policy.getCustomer().getUser().getEmail().equals(email)) {
-	        throw new AccessDeniedException("You are not allowed to record payment for another customer's policy");
-	    }
+		if (isCustomer && !policy.getCustomer().getUser().getEmail().equals(email)) {
+			throw new AccessDeniedException("You are not allowed to record payment for another customer's policy");
+		}
 
-	    if (policy.getPolicyPlan().getPremiumAmount().compareTo(dto.getAmount()) != 0) {
-	        throw new BadRequestException("Payment amount must match premium amount");
-	    }
-	    
-	    if(PolicyStatus.CANCELLED.equals(policy.getPolicyStatus())) {
-	    	throw new BadRequestException("you are restricted to make payment for a cancelled policy");
-	    }
-	    
-	    if(PolicyStatus.EXPIRED.equals(policy.getPolicyStatus())) {
-	    	throw new BadRequestException("you are restricted to make payment for a expired policy");
-	    }
+		if (policy.getPolicyPlan().getPremiumAmount().compareTo(dto.getAmount()) != 0) {
+			throw new BadRequestException("Payment amount must match premium amount");
+		}
 
-	    String transactionReferance = TransactionReferenceGenerator.generateTransactionReference();
-	    
-	    if (paymentRepository.existsByTransactionReference(transactionReferance)) {
-	        throw new DuplicateResourceException("Transaction reference already exists");
-	    }
-	    
-	    if(policy.getPolicyPlan().getCoverageAmount() <= (policy.getTotalPremiumPaid() + dto.getAmount())) {
-	    	throw new BadRequestException("Required premium already paid. Policy is active.");
-	    }
+		if (PolicyStatus.CANCELLED.equals(policy.getPolicyStatus())) {
+			throw new BadRequestException("you are restricted to make payment for a cancelled policy");
+		}
 
-	    PremiumPayment payment = new PremiumPayment();
-	    payment.setAmount(dto.getAmount());
-	    payment.setPaymentMode(dto.getPaymentMode());
-	    payment.setTransactionReference(transactionReferance);
-	    payment.setPolicy(policy);
-	    payment.setPaymentDate(LocalDateTime.now());
+		if (PolicyStatus.EXPIRED.equals(policy.getPolicyStatus())) {
+			throw new BadRequestException("you are restricted to make payment for a expired policy");
+		}
 
-	    if(PaymentStatus.SUCCESS.equals(dto.getPaymentStatus())) {
-	    payment.setPaymentStatus(PaymentStatus.SUCCESS);
-	    }
-	    
-	    if(PaymentStatus.FAILED.equals(dto.getPaymentStatus())) {
-		    payment.setPaymentStatus(PaymentStatus.FAILED);
-		    }
+		
+		// one time payment
+		if (policy.getPolicyPlan().getPremiumType().equals(PremiumType.ONE_TIME)) {
+			// verify any existing payment for this policy -
+			if (paymentRepository.existsByPolicyIdAndPaymentStatus(policy.getId(), PaymentStatus.SUCCESS)) {
 
-	    PremiumPayment savedPayment = paymentRepository.save(payment);
+				throw new BadRequestException("Premium has already been paid for this ONE_TIME plan.");
+			}
 
-	    if(PaymentStatus.SUCCESS.equals(dto.getPaymentStatus())) {
-	    	policy.setTotalPremiumPaid(policy.getTotalPremiumPaid() + dto.getAmount());
-		    policy.setPolicyStatus(PolicyStatus.ACTIVE);
-		    }
-	    
-	    policyRepository.save(policy);
+		}
 
-	    PaymentResponseDTO responseDTO = modelMapper.map(savedPayment, PaymentResponseDTO.class);
-	    responseDTO.setPolicyNumber(policy.getPolicyNumber());
+		// annual payment
+		if (policy.getPolicyPlan().getPremiumType().equals(PremiumType.ANNUAL)) {
 
-	    return new ApiResponseDTO<>("Payment recorded successfully", true, responseDTO, LocalDateTime.now());
+			Optional<PremiumPayment> payment = paymentRepository
+					.findTopByPolicyIdAndPaymentStatusOrderByPaymentDateDesc(policy.getId(), PaymentStatus.SUCCESS);
+
+			if (payment.isPresent()) {
+
+				PremiumPayment latestPayment = payment.get();
+
+				LocalDateTime nextEligibleDate = latestPayment.getPaymentDate().plusYears(1);
+
+				if (LocalDateTime.now().isBefore(nextEligibleDate)) {
+					throw new BadRequestException(
+							"Next annual premium can be paid only after " + nextEligibleDate.toLocalDate());
+				}
+			}
+
+			long successfulPayments = paymentRepository.countByPolicyIdAndPaymentStatus(policy.getId(),
+					PaymentStatus.SUCCESS);
+
+			if (successfulPayments >= policy.getPolicyPlan().getDuration()) {
+				throw new BadRequestException("All annual premiums for this policy have already been paid.");
+			}
+		}
+
+		String transactionReferance = TransactionReferenceGenerator.generateTransactionReference();
+
+		if (paymentRepository.existsByTransactionReference(transactionReferance)) {
+			throw new DuplicateResourceException("Transaction reference already exists");
+		}
+
+		if (policy.getPolicyPlan().getCoverageAmount() <= (policy.getTotalPremiumPaid() + dto.getAmount())) {
+			throw new BadRequestException("Required premium already paid. Policy is active.");
+		}
+
+		PremiumPayment payment = new PremiumPayment();
+		payment.setAmount(dto.getAmount());
+		payment.setPaymentMode(dto.getPaymentMode());
+		payment.setTransactionReference(transactionReferance);
+		payment.setPolicy(policy);
+		payment.setPaymentDate(LocalDateTime.now());
+
+		if (PaymentStatus.SUCCESS.equals(dto.getPaymentStatus())) {
+			payment.setPaymentStatus(PaymentStatus.SUCCESS);
+		}
+
+		if (PaymentStatus.FAILED.equals(dto.getPaymentStatus())) {
+			payment.setPaymentStatus(PaymentStatus.FAILED);
+		}
+
+		PremiumPayment savedPayment = paymentRepository.save(payment);
+
+		if (PaymentStatus.SUCCESS.equals(dto.getPaymentStatus())) {
+			policy.setTotalPremiumPaid(policy.getTotalPremiumPaid() + dto.getAmount());
+			policy.setPolicyStatus(PolicyStatus.ACTIVE);
+		}
+
+		policyRepository.save(policy);
+
+		PaymentResponseDTO responseDTO = modelMapper.map(savedPayment, PaymentResponseDTO.class);
+		responseDTO.setPolicyNumber(policy.getPolicyNumber());
+
+		return new ApiResponseDTO<>("Payment recorded successfully", true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
