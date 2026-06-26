@@ -11,8 +11,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.insurance.demo.dto.request.ForgotPasswordRequestDTO;
 import com.insurance.demo.dto.request.LoginRequestDTO;
 import com.insurance.demo.dto.request.ResendOtpRequestDTO;
+import com.insurance.demo.dto.request.ResetPasswordRequestDTO;
 import com.insurance.demo.dto.request.UserRequestDTO;
 import com.insurance.demo.dto.request.VerifyOtpRequest;
 import com.insurance.demo.dto.response.ApiResponseDTO;
@@ -77,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
 
 		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-		String token = jwtService.generateToken(userDetails);
+		String token = jwtService.generateToken(userDetails, appUser.getFullName());
 
 		UserResponseDTO dto = userService.findByEmail(userDetails.getUsername());
 
@@ -158,6 +160,39 @@ public class AuthServiceImpl implements AuthService {
 
 		return new ApiResponseDTO<>("Otp are sent again on your email and password.", true, dto, LocalDateTime.now());
 
+	}
+	
+	@Override
+	public ApiResponseDTO<String> forgotPassword(ForgotPasswordRequestDTO request) {
+		AppUser user = userRepository.findByEmail(request.getEmail().toLowerCase())
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
+
+		if (Boolean.FALSE.equals(otpService.invalidateLastOtp(user))) {
+			throw new BadRequestException("Otp is Still active please verify your email and phone");
+		}
+		
+		otpService.createAndSendOtp(user);
+		return new ApiResponseDTO<>("OTP sent to your registered email and phone number.", true, null, LocalDateTime.now());
+	}
+
+	@Override
+	@Transactional
+	public ApiResponseDTO<String> resetPassword(ResetPasswordRequestDTO request) {
+		AppUser user = userRepository.findByEmail(request.getEmail().toLowerCase())
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
+
+		otpService.verifyOtp(user, request.getEmailOtp(), request.getPhoneOtp());
+
+		if (Boolean.FALSE.equals(user.getIsActive())) {
+			user.setEmailVerified(true);
+			user.setPhoneVerified(true);
+			user.setIsActive(true);
+		}
+
+		user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+		userRepository.save(user);
+
+		return new ApiResponseDTO<>("Password has been reset successfully.", true, null, LocalDateTime.now());
 	}
 
 }

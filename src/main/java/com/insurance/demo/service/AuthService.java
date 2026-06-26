@@ -1,7 +1,9 @@
 package com.insurance.demo.service;
 
+import com.insurance.demo.dto.request.ForgotPasswordRequestDTO;
 import com.insurance.demo.dto.request.LoginRequestDTO;
 import com.insurance.demo.dto.request.ResendOtpRequestDTO;
+import com.insurance.demo.dto.request.ResetPasswordRequestDTO;
 import com.insurance.demo.dto.request.UserRequestDTO;
 import com.insurance.demo.dto.request.VerifyOtpRequest;
 import com.insurance.demo.dto.response.ApiResponseDTO;
@@ -19,4 +21,7 @@ public interface AuthService {
 	
 	ApiResponseDTO<ResendOtpResponseDTO> resendOtp(ResendOtpRequestDTO request);
 
+	ApiResponseDTO<String> forgotPassword(ForgotPasswordRequestDTO request);
+
+	ApiResponseDTO<String> resetPassword(ResetPasswordRequestDTO request);
 }

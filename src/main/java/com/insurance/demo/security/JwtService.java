@@ -24,15 +24,15 @@ public class JwtService {
 	@Value("${app.jwt.expiration-ms}")
 	private long jwtExpirationMs;
 
-	public String generateToken(UserDetails userDetails) {
+	public String generateToken(UserDetails userDetails, String fullName) {
 
 		List<String> roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
 
 		Date issuedAt = new Date();
 		Date expiryDate = new Date(issuedAt.getTime() + jwtExpirationMs);
 
-		return Jwts.builder().subject(userDetails.getUsername()).claim("roles", roles).issuedAt(issuedAt)
-				.expiration(expiryDate).signWith(getSigningKey()).compact();
+		return Jwts.builder().subject(userDetails.getUsername()).claim("roles", roles).claim("fullName", fullName)
+				.issuedAt(issuedAt).expiration(expiryDate).signWith(getSigningKey()).compact();
 	}
 
 	public String extractUsername(String token) {
