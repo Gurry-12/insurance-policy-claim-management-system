@@ -82,6 +82,9 @@ public class AppUser {
 	@OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private Customer customer;
 
-	private boolean emailVerified;
-	private boolean phoneVerified;
+	@OneToOne(mappedBy = "agent", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+	private AgentSpeciality agentSpeciality;
+
+	private Boolean emailVerified = false;
+	private Boolean phoneVerified = false;
 }

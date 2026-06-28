@@ -1,5 +1,6 @@
 package com.insurance.demo.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,8 +49,8 @@ public class Claim {
 
     @Positive(message = "Claim amount must be greater than zero")
     @NotNull(message = "Claim amount is required")
-    @Column(nullable = false)
-    private Double claimAmount;
+    @Column(nullable = false, precision = 15, scale = 2)
+    private BigDecimal claimAmount;
 
     @NotBlank(message = "Claim reason is required")
     @Column(nullable = false)
@@ -82,6 +83,10 @@ public class Claim {
     @JoinColumn(name = "policy_id", nullable = false)
     @NotNull(message = "Policy is required")
     private Policy policy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_agent_id")
+    private AppUser assignedAgent;
 
     @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ClaimDocument> claimDocuments = new ArrayList<>();

@@ -43,7 +43,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		log.info("Creating policy plan: {}", dto.getPlanName());
 
-		if (dto.getCoverageAmount() <= dto.getPremiumAmount()) {
+		if (dto.getCoverageAmount().compareTo(dto.getPremiumAmount()) <= 0) {
 			throw new BadRequestException("The policy coverage amount must strictly exceed the required premium amount.");
 		}
 

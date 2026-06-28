@@ -44,13 +44,13 @@ public class PremiumPaymentController {
 
 	@GetMapping("/policy/{id}")
 	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
-@Operation(summary = "Get Payments for Policy", description = "Retrieves all payment records associated with a specific policy.")
+	@Operation(summary = "Get Payments for Policy", description = "Retrieves all payment records associated with a specific policy.")
 	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByPolicy(@PathVariable Long id) {
 		return paymentService.getPaymentsByPolicy(id);
 	}
 
 	@GetMapping("/{id}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
 	@Operation(summary = "Get Payment by ID", description = "Retrieves the details of a specific premium payment transaction.")
 	public ApiResponseDTO<PaymentResponseDTO> getPaymentById(@PathVariable(name = "id") Long paymentId) {
 		return paymentService.getPaymentById(paymentId);
@@ -76,8 +76,7 @@ public class PremiumPaymentController {
 
 	@GetMapping("/my-policies/{policyId}")
 	@PreAuthorize("hasRole('CUSTOMER')")
-
-@Operation(summary = "Get Payments for Policy", description = "Retrieves all payment records associated with a specific policy.")
+	@Operation(summary = "Get Payments for Policy", description = "Retrieves all payment records associated with a specific policy.")
 	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByMyPolicy(@PathVariable Long policyId) {
 		return paymentService.getPaymentsByMyPolicy(policyId);
 	}

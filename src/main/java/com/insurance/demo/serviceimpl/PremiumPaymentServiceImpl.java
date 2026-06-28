@@ -1,5 +1,6 @@
 package com.insurance.demo.serviceimpl;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -102,10 +103,11 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 				PremiumPayment latestPayment = payment.get();
 
 				LocalDateTime nextEligibleDate = latestPayment.getPaymentDate().plusYears(1);
+				LocalDateTime paymentWindowStart = nextEligibleDate.minusDays(15);
 
-				if (LocalDateTime.now().isBefore(nextEligibleDate)) {
+				if (LocalDateTime.now().isBefore(paymentWindowStart)) {
 					throw new BadRequestException(
-							"Next annual premium can be paid only after " + nextEligibleDate.toLocalDate());
+							"Next annual premium can be paid only after " + paymentWindowStart.toLocalDate() + " (includes 15-day early payment window)");
 				}
 			}
 
@@ -123,8 +125,11 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 			throw new DuplicateResourceException("Transaction reference already exists");
 		}
 
-		if (policy.getPolicyPlan().getCoverageAmount() <= (policy.getTotalPremiumPaid() + dto.getAmount())) {
-			throw new BadRequestException("Required premium already paid. Policy is active.");
+		// Fix: compare against total required premium (premiumAmount * duration), not coverage amount
+		BigDecimal totalRequiredPremium = policy.getPolicyPlan().getPremiumAmount()
+				.multiply(BigDecimal.valueOf(policy.getPolicyPlan().getDuration()));
+		if (policy.getTotalPremiumPaid().add(dto.getAmount()).compareTo(totalRequiredPremium) > 0) {
+			throw new BadRequestException("Total payments would exceed the required premium for this policy.");
 		}
 
 		PremiumPayment payment = new PremiumPayment();
@@ -145,7 +150,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		PremiumPayment savedPayment = paymentRepository.save(payment);
 
 		if (PaymentStatus.SUCCESS.equals(dto.getPaymentStatus())) {
-			policy.setTotalPremiumPaid(policy.getTotalPremiumPaid() + dto.getAmount());
+			policy.setTotalPremiumPaid(policy.getTotalPremiumPaid().add(dto.getAmount()));
 			policy.setPolicyStatus(PolicyStatus.ACTIVE);
 		}
 

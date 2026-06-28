@@ -34,10 +34,10 @@ public interface PremiumPaymentRepository extends JpaRepository<PremiumPayment, 
 
 	long countByPolicyIdAndPaymentStatus(
 	        Long policyId,
-	        PaymentStatus paymentStatus);
+	        PaymentStatus status);
 
 	boolean existsByPolicyIdAndPaymentStatus(
 	        Long policyId,
-	        PaymentStatus paymentStatus);
+	        PaymentStatus status);
 
 }

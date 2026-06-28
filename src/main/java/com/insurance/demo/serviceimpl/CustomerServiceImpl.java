@@ -45,7 +45,7 @@ public class CustomerServiceImpl implements CustomerService {
 	@Override
 	public ApiResponseDTO<CustomerResponseDTO> createCustomer(CustomerRequestDTO requestDTO) {
 
-		logger.info("Creating customer profile");
+		logger.info("Creating customer profile for userId: {}", user.getId());
 
 		if (requestDTO.getDateOfBirth().isAfter(LocalDate.now().minusYears(18))) {
 			throw new BadRequestException("Customer must be at least 18 years old");

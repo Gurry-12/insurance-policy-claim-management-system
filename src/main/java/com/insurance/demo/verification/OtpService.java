@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.insurance.demo.exception.BadRequestException;
@@ -20,6 +21,7 @@ public class OtpService {
 
 	private final OtpVerificationRepository otpRepository;
 	private final EmailService emailService;
+	private final PasswordEncoder passwordEncoder;
 	private final SmsService smsService;
 	private final SecureRandom secureRandom = new SecureRandom();
 
@@ -51,11 +53,11 @@ public class OtpService {
 			throw new BadRequestException("OTP expired. Please register again to get a new OTP.");
 		}
 
-		if (!latestOtp.getEmailOtp().equals(emailOtp)) {
+		if (!passwordEncoder.matches(emailOtp, latestOtp.getEmailOtp())) {
 			throw new BadRequestException("Invalid email OTP");
 		}
 
-		if (!latestOtp.getPhoneOtp().equals(phoneOtp)) {
+		if (!passwordEncoder.matches(phoneOtp, latestOtp.getPhoneOtp())) {
 			throw new BadRequestException("Invalid phone OTP");
 		}
 

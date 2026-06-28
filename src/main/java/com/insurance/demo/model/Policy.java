@@ -1,5 +1,6 @@
 package com.insurance.demo.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -69,9 +70,9 @@ public class Policy {
 	@NotNull(message = "Policy status is required")
 	private PolicyStatus policyStatus;
 
-	@Column(name = "total_premium_paid", nullable = false)
+	@Column(name = "total_premium_paid", nullable = false, precision = 15, scale = 2)
 	@PositiveOrZero(message = "Total premium paid must be zero or positive")
-	private Double totalPremiumPaid = 0.0;
+	private BigDecimal totalPremiumPaid = BigDecimal.ZERO;
 
 	@CreationTimestamp
 	@Column(name = "created_date", updatable = false)
