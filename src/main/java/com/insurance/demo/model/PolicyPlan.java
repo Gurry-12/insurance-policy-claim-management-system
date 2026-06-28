@@ -1,5 +1,6 @@
 package com.insurance.demo.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,6 +20,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -52,14 +54,14 @@ public class PolicyPlan {
 	private String planName;
 
 	@Positive(message = "amount should be positive")
-	@Column(name = "coverage_amount", nullable = false)
+	@Column(name = "coverage_amount", nullable = false, precision = 15, scale = 2)
 	@NotNull(message = "amount can't be null")
-	private Double coverageAmount;
+	private BigDecimal coverageAmount;
 
 	@Positive(message = "amount should be positive")
-	@Column(name = "premium_amount", nullable = false)
+	@Column(name = "premium_amount", nullable = false, precision = 15, scale = 2)
 	@NotNull(message = "premium amount can't be null")
-	private Double premiumAmount;
+	private BigDecimal premiumAmount;
 
 	@Enumerated(EnumType.STRING)
 	@NotNull(message = "premium type can't be null")
@@ -67,6 +69,7 @@ public class PolicyPlan {
 	private PremiumType premiumType;
 
 	@Positive(message = "duration should be positive")
+	@Max(value = 40, message = "duration can't be more than 40")
 	@Column(name = "duration", nullable = false)
 	@NotNull(message = "duration can't be null")
 	private Integer duration;

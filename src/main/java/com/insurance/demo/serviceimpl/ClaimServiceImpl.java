@@ -1,6 +1,7 @@
 package com.insurance.demo.serviceimpl;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import com.insurance.demo.dto.response.ClaimResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.enums.ClaimStatus;
 import com.insurance.demo.enums.PolicyStatus;
+import com.insurance.demo.enums.ProductType;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
@@ -91,12 +93,15 @@ public class ClaimServiceImpl implements ClaimService {
 			throw new BadRequestException("Claims can only be filed against your own active policies.");
 		}
 
-		if (!PolicyStatus.ACTIVE.equals(policy.getPolicyStatus())) {
-			throw new BadRequestException("Claim can only be raised against Active policies");
+		if (!List.of(PolicyStatus.ACTIVE, PolicyStatus.EXPIRED, PolicyStatus.CANCELLED).contains(policy.getPolicyStatus())) {
+			throw new BadRequestException("Claim can only be raised against Active, Expired, or Cancelled policies");
 		}
 
-		if (dto.getClaimAmount() > policy.getPolicyPlan().getCoverageAmount()) {
-			throw new BadRequestException("The requested claim amount exceeds the maximum coverage of your policy.");
+		BigDecimal activeClaimsSum = claimRepository.sumActiveClaimsByPolicyId(policy.getId(), ClaimStatus.REJECTED);
+		BigDecimal remainingCoverage = policy.getPolicyPlan().getCoverageAmount().subtract(activeClaimsSum);
+
+		if (dto.getClaimAmount().compareTo(remainingCoverage) > 0) {
+			throw new BadRequestException("The requested claim amount exceeds your remaining policy coverage of " + remainingCoverage);
 		}
 
 		if (dto.getIncidentDate().isAfter(LocalDate.now())) {
@@ -145,6 +150,12 @@ public class ClaimServiceImpl implements ClaimService {
 		Claim claim = claimRepository.findById(claimId)
 				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
 
+		AppUser currentUser = userRepository.findByEmail(auth.getName()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+		if (claim.getAssignedAgent() == null || !claim.getAssignedAgent().getId().equals(currentUser.getId())) {
+			throw new AccessDeniedException("You are not authorized to review this claim. It is assigned to another agent.");
+		}
+
 		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
 			throw new BadRequestException("This claim has already been approved or rejected and cannot be modified.");
 		}
@@ -160,6 +171,9 @@ public class ClaimServiceImpl implements ClaimService {
 		claim.setAgentRemarks(dto.getRemarks());
 
 		Claim updated = claimRepository.save(claim);
+
+		AppUser currentUser = userRepository.findByEmail(auth.getName()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+		claim.setAssignedAgent(currentUser);
 
 		recordClaimHistory(updated, previous, claim.getClaimStatus(), dto.getRemarks(),
 				SecurityContextHolder.getContext().getAuthentication().getName());
@@ -283,7 +297,21 @@ public class ClaimServiceImpl implements ClaimService {
 		}
 
 		Page<Claim> claimPage;
-		if (customerId != null && claimStatus != null) {
+		AppUser currentUser = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+		boolean isAgent = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENT"));
+		ProductType agentSpeciality = null;
+
+		if (isAgent && currentUser.getAgentSpeciality() != null) {
+			agentSpeciality = currentUser.getAgentSpeciality().getProductSpeciality();
+		}
+
+		if (isAgent && agentSpeciality != null) {
+			if (claimStatus != null) {
+				claimPage = claimRepository.findByPolicyPolicyPlanInsuranceProductProductTypeAndClaimStatus(agentSpeciality, claimStatus, pageable);
+			} else {
+				claimPage = claimRepository.findByPolicyPolicyPlanInsuranceProductProductType(agentSpeciality, pageable);
+			}
+		} else if (customerId != null && claimStatus != null) {
 			claimPage = claimRepository.findByPolicyCustomerIdAndClaimStatus(customerId, claimStatus, pageable);
 		} else if (customerId != null) {
 			claimPage = claimRepository.findByPolicyCustomerId(customerId, pageable);
@@ -386,6 +414,9 @@ public class ClaimServiceImpl implements ClaimService {
 		if (claim.getPolicy() != null) {
 			response.setPolicyId(claim.getPolicy().getId());
 			response.setPolicyNumber(claim.getPolicy().getPolicyNumber());
+			if (claim.getAssignedAgent() != null) {
+				response.setAssignedAgentName(claim.getAssignedAgent().getFullName());
+			}
 			if (claim.getPolicy().getCustomer() != null && claim.getPolicy().getCustomer().getUser() != null) {
 				response.setCustomerName(claim.getPolicy().getCustomer().getUser().getFullName());
 			}

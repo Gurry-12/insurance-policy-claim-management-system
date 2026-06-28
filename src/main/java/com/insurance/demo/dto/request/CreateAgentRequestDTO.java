@@ -2,8 +2,10 @@ package com.insurance.demo.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import com.insurance.demo.enums.ProductType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,4 +33,7 @@ public class CreateAgentRequestDTO {
 	@NotBlank(message = "Mobile number is required")
 	@Pattern(regexp = "^\\+[1-9]\\d{7,14}$", message = "Use international format, example: +919876543210")
 	private String mobileNumber;
+
+	@NotNull(message = "Product speciality is required")
+	private ProductType productSpeciality;
 }

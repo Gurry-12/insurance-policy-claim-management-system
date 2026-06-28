@@ -59,12 +59,12 @@ public class AuthServiceImpl implements AuthService {
 			throw new BadRequestException("Invalid email or password");
 		});
 
-		if (!appUser.isEmailVerified()) {
+		if (!appUser.getEmailVerified()) {
 			log.warn("Login blocked. Email not verified. UserId={}", appUser.getId());
 			throw new BadRequestException("Please verify email before logging in.");
 		}
 
-		if (!appUser.isPhoneVerified()) {
+		if (!appUser.getPhoneVerified()) {
 			log.warn("Login blocked. Phone not verified. UserId={}", appUser.getId());
 			throw new BadRequestException("Please verify phone before logging in.");
 		}
@@ -130,9 +130,9 @@ public class AuthServiceImpl implements AuthService {
 
 		otpService.verifyOtp(user, request.getEmailOtp(), request.getPhoneOtp());
 
-		user.setEmailVerified(true);
-		user.setPhoneVerified(true);
-		user.setIsActive(true);
+		user.setEmailVerified(Boolean.TRUE);
+		user.setPhoneVerified(Boolean.TRUE);
+		user.setIsActive(Boolean.TRUE);
 
 		AppUser saved = userRepository.save(user);
 
@@ -184,9 +184,9 @@ public class AuthServiceImpl implements AuthService {
 		otpService.verifyOtp(user, request.getEmailOtp(), request.getPhoneOtp());
 
 		if (Boolean.FALSE.equals(user.getIsActive())) {
-			user.setEmailVerified(true);
-			user.setPhoneVerified(true);
-			user.setIsActive(true);
+			user.setEmailVerified(Boolean.TRUE);
+			user.setPhoneVerified(Boolean.TRUE);
+			user.setIsActive(Boolean.TRUE);
 		}
 
 		user.setPassword(passwordEncoder.encode(request.getNewPassword()));

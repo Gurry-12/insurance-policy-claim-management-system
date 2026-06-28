@@ -1,5 +1,6 @@
 package com.insurance.demo.serviceimpl;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +34,8 @@ import com.insurance.demo.model.PolicyPlan;
 import com.insurance.demo.repository.CustomerRepository;
 import com.insurance.demo.repository.PolicyPlanRepository;
 import com.insurance.demo.repository.PolicyRepository;
+import com.insurance.demo.repository.ClaimRepository;
+import com.insurance.demo.enums.ClaimStatus;
 import com.insurance.demo.service.PolicyService;
 import com.insurance.demo.util.PolicyNumberGenerator;
 import com.sun.jdi.request.DuplicateRequestException;
@@ -46,6 +49,7 @@ import lombok.extern.slf4j.Slf4j;
 public class PolicyServiceImpl implements PolicyService {
 
 	private final PolicyRepository policyRepository;
+	private final ClaimRepository claimRepository;
 	private final PolicyPlanRepository policyPlanRepository;
 	private final CustomerRepository customerRepository;
 	private final ModelMapper modelMapper;
@@ -101,7 +105,7 @@ public class PolicyServiceImpl implements PolicyService {
 
 		policy.setPolicyStatus(PolicyStatus.PENDING_PAYMENT);
 
-		policy.setTotalPremiumPaid(0.0);
+		policy.setTotalPremiumPaid(BigDecimal.ZERO);
 
 		Policy savedPolicy = policyRepository.save(policy);
 
@@ -262,6 +266,14 @@ public class PolicyServiceImpl implements PolicyService {
 
 		Policy policy = policyRepository.findById(policyId).orElseThrow(() -> new PolicyNotFoundException(policyId));
 
+		// Block cancellation if any claim is still open
+		List<ClaimStatus> openStatuses = List.of(ClaimStatus.SUBMITTED, ClaimStatus.UNDER_REVIEW, ClaimStatus.RECOMMENDED_FOR_APPROVAL);
+		boolean hasOpenClaims = policy.getClaims().stream()
+				.anyMatch(c -> openStatuses.contains(c.getClaimStatus()));
+		if (hasOpenClaims) {
+			throw new BadRequestException("Policy cannot be cancelled while a claim is still pending or under review.");
+		}
+
 		policy.setPolicyStatus(PolicyStatus.CANCELLED);
 
 		Policy updatedPolicy = policyRepository.save(policy);
@@ -278,6 +290,10 @@ public class PolicyServiceImpl implements PolicyService {
 		dto.setPolicyId(policy.getId());
 
 		dto.setCustomerId(policy.getCustomer().getId());
+
+			BigDecimal activeClaimsSum = claimRepository.sumActiveClaimsByPolicyId(policy.getId(), ClaimStatus.REJECTED);
+			BigDecimal remaining = policy.getPolicyPlan().getCoverageAmount().subtract(activeClaimsSum);
+			dto.setRemainingClaimAmount(remaining);
 
 		dto.setCustomerName(policy.getCustomer().getUser().getFullName());
 

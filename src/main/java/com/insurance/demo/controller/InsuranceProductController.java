@@ -89,7 +89,7 @@ public class InsuranceProductController {
 		return productService.getAllProductsWithPagination(pageNumber, pageSize, sortBy, sortDirection, productType, isActive);
 	}
 	
-	@PatchMapping("/{id}/active")
+	@PatchMapping("/{id}/activate")
 	@PreAuthorize("hasRole('ADMIN')")
 	@Operation(summary = "Activate Product", description = "Reactivates a previously deactivated insurance product.")
 	public ApiResponseDTO<ProductResponseDTO> activateProduct(@PathVariable Long id) {

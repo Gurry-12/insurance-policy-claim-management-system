@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import com.insurance.demo.enums.ProductType;
 import com.insurance.demo.enums.Role;
 import com.insurance.demo.model.AppUser;
 
@@ -33,4 +34,6 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 	Page<AppUser> findByIsActive(Boolean isActive, Pageable pageable);
 
 	Optional<AppUser> findByEmailAndMobileNumber(String email, String mobileNumber);
+
+	Page<AppUser> findByProductSpeciality(ProductType productSpeciality, Pageable pageable);
 }

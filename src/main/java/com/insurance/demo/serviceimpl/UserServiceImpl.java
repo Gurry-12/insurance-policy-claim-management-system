@@ -20,6 +20,7 @@ import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
+import com.insurance.demo.model.AgentSpeciality;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
@@ -49,7 +50,7 @@ public class UserServiceImpl implements UserService {
 		List<AppUser> users = userRepository.findAll();
 
 		List<UserResponseDTO> userResponseDTOs = users.stream()
-				.map(user -> modelMapper.map(user, UserResponseDTO.class)).toList();
+				.map(user -> mapToUserResponseDTO(user)).toList();
 
 		ApiResponseDTO<List<UserResponseDTO>> apiResponseDTO = new ApiResponseDTO<>();
 
@@ -72,13 +73,13 @@ public class UserServiceImpl implements UserService {
 		AppUser user = getById(userId);
 
 		if (Boolean.FALSE.equals(user.isEmailVerified())) {
-			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("User is not verified by id: {}", userId);
 			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
 		}
 
 		if (Boolean.TRUE.equals(user.getIsActive())) {
-			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("user already active with id {} ", userId);
 			return new ApiResponseDTO<>("User Already Active", false, responseDto, LocalDateTime.now());
 		}
@@ -87,7 +88,7 @@ public class UserServiceImpl implements UserService {
 
 		AppUser retrivedUser = userRepository.save(user);
 
-		UserResponseDTO responseDto = modelMapper.map(retrivedUser, UserResponseDTO.class);
+		UserResponseDTO responseDto = mapToUserResponseDTO(retrivedUser);
 		return new ApiResponseDTO<>("User Activated successfully", true, responseDto, LocalDateTime.now());
 	}
 
@@ -112,13 +113,13 @@ public class UserServiceImpl implements UserService {
 		AppUser user = getById(userId);
 
 		if (Boolean.FALSE.equals(user.isEmailVerified())) {
-			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("User is not verified by id: {}", userId);
 			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
 		}
 
 		if (Boolean.FALSE.equals(user.getIsActive())) {
-			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("Already deactivated user by id: {}", userId);
 			return new ApiResponseDTO<>("User Already Deactivated", false, responseDto, LocalDateTime.now());
 		}
@@ -127,7 +128,7 @@ public class UserServiceImpl implements UserService {
 
 		AppUser retrivedUser = userRepository.save(user);
 
-		UserResponseDTO responseDto = modelMapper.map(retrivedUser, UserResponseDTO.class);
+		UserResponseDTO responseDto = mapToUserResponseDTO(retrivedUser);
 		return new ApiResponseDTO<>("User Deactivated successfully", true, responseDto, LocalDateTime.now());
 	}
 
@@ -150,13 +151,17 @@ public class UserServiceImpl implements UserService {
 		user.setEmail(agentRequestDTO.getEmail().toLowerCase());
 		user.setPassword(passwordEncoder.encode(agentRequestDTO.getPassword()));
 		user.setRole(Role.ROLE_AGENT);
+		AgentSpeciality agentSpeciality = new AgentSpeciality();
+		agentSpeciality.setProductSpeciality(agentRequestDTO.getProductSpeciality());
+		agentSpeciality.setAgent(user);
+		user.setAgentSpeciality(agentSpeciality);
 		user.setIsActive(false);
 		user.setEmailVerified(false);
 		AppUser retrivedUser = userRepository.save(user);
 
 		otpService.createAndSendOtp(retrivedUser);
 
-		UserResponseDTO dto = modelMapper.map(retrivedUser, UserResponseDTO.class);
+		UserResponseDTO dto = mapToUserResponseDTO(retrivedUser);
 		return new ApiResponseDTO<>("Account created. An OTP has been sent to the email to complete registration.",
 				true, dto, LocalDateTime.now());
 	}
@@ -193,7 +198,7 @@ public class UserServiceImpl implements UserService {
 			userPage = userRepository.findAll(pageable);
 		}
 		List<UserResponseDTO> content = userPage.getContent().stream()
-				.map(user -> modelMapper.map(user, UserResponseDTO.class)).toList();
+				.map(user -> mapToUserResponseDTO(user)).toList();
 		return new PageResponseDTO<>(content, userPage.getNumber(), userPage.getSize(), userPage.getTotalElements(),
 				userPage.getTotalPages(), userPage.isLast(), sortDirection);
 	}
@@ -204,7 +209,7 @@ public class UserServiceImpl implements UserService {
 		AppUser user = userRepository.findByEmail(username)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with email : " + username));
 
-		return modelMapper.map(user, UserResponseDTO.class);
+		return mapToUserResponseDTO(user);
 	}
 
 	@Override
@@ -213,7 +218,7 @@ public class UserServiceImpl implements UserService {
 		log.info("Fetching User with id - {} ", id);
 		AppUser appUser = getById(id);
 
-		UserResponseDTO dto = modelMapper.map(appUser, UserResponseDTO.class);
+		UserResponseDTO dto = mapToUserResponseDTO(appUser);
 
 		return new ApiResponseDTO<>("User found", true, dto, LocalDateTime.now());
 	}
@@ -246,4 +251,12 @@ public class UserServiceImpl implements UserService {
 		throw new BadRequestException("Sort direction must be asc or desc.");
 	}
 
+
+	private UserResponseDTO mapToUserResponseDTO(AppUser user) {
+		UserResponseDTO dto = modelMapper.map(user, UserResponseDTO.class);
+		if (user.getAgentSpeciality() != null) {
+			dto.setProductSpeciality(user.getAgentSpeciality().getProductSpeciality());
+		}
+		return dto;
+	}
 }
