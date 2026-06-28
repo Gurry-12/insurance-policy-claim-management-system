@@ -41,7 +41,10 @@ public class OtpService {
 
 	@Transactional
 	public void verifyOtp(AppUser user, String emailOtp, String phoneOtp) {
-		OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
+		//OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
+		
+		OtpVerification latestOtp = otpRepository.findTopByUserOrderByCreatedAtDesc(user)
+
 				.orElseThrow(() -> new BadRequestException("No active OTP found. Please register again."));
 
 		if (latestOtp.getExpiresAt().isBefore(LocalDateTime.now())) {
@@ -67,7 +70,11 @@ public class OtpService {
 
 	public boolean invalidateLastOtp(AppUser user) {
 
-		OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
+		System.out.println(user.getId());
+		//OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
+		
+		OtpVerification latestOtp = otpRepository.findTopByUserOrderByCreatedAtDesc(user)
+
 				.orElseThrow(() -> new BadRequestException("No active OTP found. Please register again."));
 
 		if (latestOtp.getExpiresAt().isAfter(LocalDateTime.now())) {

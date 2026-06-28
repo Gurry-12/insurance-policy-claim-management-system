@@ -17,7 +17,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PaymentRequestDTO {
 
-	@NotNull(message = "Policy Id is required")
+	//@NotNull(message = "Policy Id is required")
 	private Long policyId;
 
 	@Positive(message = "Amount must be greater than zero")
@@ -26,6 +26,6 @@ public class PaymentRequestDTO {
 	@NotNull(message = "Payment mode is required")
 	private PaymentMode paymentMode;
 
-	@NotNull(message = "Payment status is required")
+//	@NotNull(message = "Payment status is required")
 	private PaymentStatus paymentStatus;
 }

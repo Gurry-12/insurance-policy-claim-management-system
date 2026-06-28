@@ -10,5 +10,9 @@ import com.insurance.demo.model.AppUser;
 import com.insurance.demo.model.OtpVerification;
 
 public interface OtpVerificationRepository extends JpaRepository<OtpVerification, Long> {
-    Optional<OtpVerification> findTopByUserAndUsedFalseOrderByCreatedAtDesc(AppUser user);
+	
+	Optional<OtpVerification> findTopByUserOrderByCreatedAtDesc(AppUser user);
+
+   // Optional<OtpVerification> findTopByUserAndUsedFalseOrderByCreatedAtDesc(AppUser user);
 }
+
