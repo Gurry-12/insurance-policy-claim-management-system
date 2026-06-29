@@ -93,8 +93,8 @@ public class ClaimServiceImpl implements ClaimService {
 			throw new BadRequestException("Claims can only be filed against your own active policies.");
 		}
 
-		if (!List.of(PolicyStatus.ACTIVE, PolicyStatus.EXPIRED, PolicyStatus.CANCELLED).contains(policy.getPolicyStatus())) {
-			throw new BadRequestException("Claim can only be raised against Active, Expired, or Cancelled policies");
+		if (!List.of(PolicyStatus.ACTIVE).contains(policy.getPolicyStatus())) {
+			throw new BadRequestException("Claim can only be raised against Active policies");
 		}
 
 		BigDecimal activeClaimsSum = claimRepository.sumActiveClaimsByPolicyId(policy.getId(), ClaimStatus.REJECTED);
@@ -144,16 +144,17 @@ public class ClaimServiceImpl implements ClaimService {
 		if (dto.getRecommendedStatus() != ClaimStatus.RECOMMENDED_FOR_APPROVAL
 				&& dto.getRecommendedStatus() != ClaimStatus.RECOMMENDED_FOR_REJECTION) {
 
-			throw new BadRequestException("Agents can only recommend approval or rejection of a claim.");
+			throw new BadRequestException("Internal Staff can only recommend approval or rejection of a claim.");
 		}
 
 		Claim claim = claimRepository.findById(claimId)
 				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
 
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		AppUser currentUser = userRepository.findByEmail(auth.getName()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-		if (claim.getAssignedAgent() == null || !claim.getAssignedAgent().getId().equals(currentUser.getId())) {
-			throw new AccessDeniedException("You are not authorized to review this claim. It is assigned to another agent.");
+		if (claim.getAssignedStaff() == null || !claim.getAssignedStaff().getId().equals(currentUser.getId())) {
+			throw new AccessDeniedException("You are not authorized to review this claim. It is assigned to another staff member.");
 		}
 
 		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
@@ -166,14 +167,13 @@ public class ClaimServiceImpl implements ClaimService {
 
 		ClaimStatus previous = claim.getClaimStatus();
 
-		// Agent recommends
+		// Staff recommends
 		claim.setClaimStatus(dto.getRecommendedStatus());
-		claim.setAgentRemarks(dto.getRemarks());
+		claim.setStaffRemarks(dto.getRemarks());
 
 		Claim updated = claimRepository.save(claim);
 
-		AppUser currentUser = userRepository.findByEmail(auth.getName()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-		claim.setAssignedAgent(currentUser);
+		claim.setAssignedStaff(currentUser);
 
 		recordClaimHistory(updated, previous, claim.getClaimStatus(), dto.getRemarks(),
 				SecurityContextHolder.getContext().getAuthentication().getName());
@@ -203,7 +203,7 @@ public class ClaimServiceImpl implements ClaimService {
 				&& claim.getClaimStatus() != ClaimStatus.RECOMMENDED_FOR_REJECTION) {
 
 			throw new BadRequestException(
-					"The claim must be reviewed and recommended by an agent before a final decision.");
+					"The claim must be reviewed and recommended by an Internal Staff before a final decision.");
 		}
 
 		ClaimStatus previous = claim.getClaimStatus();
@@ -297,19 +297,24 @@ public class ClaimServiceImpl implements ClaimService {
 		}
 
 		Page<Claim> claimPage;
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		String email = auth.getName();
 		AppUser currentUser = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-		boolean isAgent = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENT"));
-		ProductType agentSpeciality = null;
+		boolean isInternalStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+		ProductType staffSpeciality = null;
 
-		if (isAgent && currentUser.getAgentSpeciality() != null) {
-			agentSpeciality = currentUser.getAgentSpeciality().getProductSpeciality();
+		if (isInternalStaff && currentUser.getStaffSpeciality() != null) {
+			staffSpeciality = currentUser.getStaffSpeciality().getProductSpeciality();
 		}
 
-		if (isAgent && agentSpeciality != null) {
-			if (claimStatus != null) {
-				claimPage = claimRepository.findByPolicyPolicyPlanInsuranceProductProductTypeAndClaimStatus(agentSpeciality, claimStatus, pageable);
+		if (isInternalStaff) {
+			if (staffSpeciality == null) {
+				// Staff without a speciality should see no claims
+				claimPage = Page.empty(pageable);
+			} else if (claimStatus != null) {
+				claimPage = claimRepository.findByPolicyPolicyPlanInsuranceProductProductTypeAndClaimStatus(staffSpeciality, claimStatus, pageable);
 			} else {
-				claimPage = claimRepository.findByPolicyPolicyPlanInsuranceProductProductType(agentSpeciality, pageable);
+				claimPage = claimRepository.findByPolicyPolicyPlanInsuranceProductProductType(staffSpeciality, pageable);
 			}
 		} else if (customerId != null && claimStatus != null) {
 			claimPage = claimRepository.findByPolicyCustomerIdAndClaimStatus(customerId, claimStatus, pageable);
@@ -392,13 +397,13 @@ public class ClaimServiceImpl implements ClaimService {
 
 		ClaimStatus previous = claim.getClaimStatus();
 
-		// Agent recommends
+		// Staff recommends
 		claim.setClaimStatus(ClaimStatus.UNDER_REVIEW);
-		claim.setAgentRemarks("Claim under review");
+		claim.setStaffRemarks("Claim under review");
 
 		Claim updated = claimRepository.save(claim);
 
-		recordClaimHistory(updated, previous, claim.getClaimStatus(), updated.getAgentRemarks(),
+		recordClaimHistory(updated, previous, claim.getClaimStatus(), updated.getStaffRemarks(),
 				SecurityContextHolder.getContext().getAuthentication().getName());
 
 		ClaimResponseDTO response = convertToResponseDTO(updated);
@@ -414,8 +419,8 @@ public class ClaimServiceImpl implements ClaimService {
 		if (claim.getPolicy() != null) {
 			response.setPolicyId(claim.getPolicy().getId());
 			response.setPolicyNumber(claim.getPolicy().getPolicyNumber());
-			if (claim.getAssignedAgent() != null) {
-				response.setAssignedAgentName(claim.getAssignedAgent().getFullName());
+			if (claim.getAssignedStaff() != null) {
+				response.setAssignedStaffName(claim.getAssignedStaff().getFullName());
 			}
 			if (claim.getPolicy().getCustomer() != null && claim.getPolicy().getCustomer().getUser() != null) {
 				response.setCustomerName(claim.getPolicy().getCustomer().getUser().getFullName());
@@ -429,7 +434,7 @@ public class ClaimServiceImpl implements ClaimService {
 		if (claim.getClaimStatus() != null) {
 			response.setClaimStatus(claim.getClaimStatus().name());
 		}
-		response.setAgentRemarks(claim.getAgentRemarks());
+		response.setStaffRemarks(claim.getStaffRemarks());
 		response.setAdminRemarks(claim.getAdminRemarks());
 		response.setCreatedDate(claim.getCreatedDate());
 		response.setUpdatedDate(claim.getUpdatedDate());

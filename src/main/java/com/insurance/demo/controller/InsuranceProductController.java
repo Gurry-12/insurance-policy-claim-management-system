@@ -54,7 +54,7 @@ public class InsuranceProductController {
 	}
 
 	@GetMapping("/active")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
 	@Operation(summary = "View Active Products", description = "Retrieves a list of all currently active insurance products available for customers.")
 	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ResourceNotFoundException {
 		return productService.viewActiveProducts();
@@ -70,14 +70,14 @@ public class InsuranceProductController {
 	}
 	
 	@GetMapping("/{id}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
 	@Operation(summary = "Get Product by ID", description = "Retrieves the details of a specific insurance product by its ID.")
 	public ApiResponseDTO<ProductResponseDTO> getProductById(@PathVariable Long id) {
 		return productService.getProductById(id);
 	}
 	
 	@GetMapping("/page")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get All Products (Paginated)", description = "Retrieves a paginated list of all products with filtering options for type and status.")
 	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber,

@@ -1,5 +1,7 @@
 package com.insurance.demo.serviceimpl;
 
+import org.springframework.validation.annotation.Validated;
+
 import java.time.LocalDateTime;
 
 import org.modelmapper.ModelMapper;
@@ -38,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@Validated
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 

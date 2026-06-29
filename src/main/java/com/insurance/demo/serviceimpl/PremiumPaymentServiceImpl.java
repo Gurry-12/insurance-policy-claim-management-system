@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,7 +37,7 @@ import com.insurance.demo.repository.PremiumPaymentRepository;
 import com.insurance.demo.service.PremiumPaymentService;
 import com.insurance.demo.util.TransactionReferenceGenerator;
 
-import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

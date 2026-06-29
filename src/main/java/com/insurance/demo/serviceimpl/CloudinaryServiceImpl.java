@@ -20,7 +20,9 @@ public class CloudinaryServiceImpl implements CloudinaryService {
 	@Override
 	public Map<String, Object> uploadFile(MultipartFile file) throws IOException {
 
-		return cloudinary.uploader().upload(file.getBytes(), Map.of("folder", "insurance_claims"));
+		@SuppressWarnings("unchecked")
+		Map<String, Object> result = (Map<String, Object>) cloudinary.uploader().upload(file.getBytes(), Map.of("folder", "insurance_claims"));
+		return result;
 	}
 
 	@Override

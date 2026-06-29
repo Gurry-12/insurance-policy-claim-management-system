@@ -33,7 +33,7 @@ public class ClaimResponseDTO {
 
 	private String claimStatus;
 
-	private String agentRemarks;
+	private String staffRemarks;
 
 	private String adminRemarks;
 
@@ -46,5 +46,5 @@ public class ClaimResponseDTO {
 	private List<ClaimDocumentResponseDTO> documents;
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
-	private String assignedAgentName;
+	private String assignedStaffName;
 }

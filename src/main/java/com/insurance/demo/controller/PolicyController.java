@@ -45,9 +45,9 @@ public class PolicyController {
 	}
 
 	@PostMapping("/issue")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@ResponseStatus(HttpStatus.CREATED)
-	@Operation(summary = "Issue Policy", description = "Manually issues a policy to a customer. Restricted to Admin/Agent.")
+	@Operation(summary = "Issue Policy", description = "Manually issues a policy to a customer. Restricted to Admin/Internal Staff.")
 	public ApiResponseDTO<PolicyResponseDTO> issuePolicy(@Valid @RequestBody PolicyIssueRequestDTO requestDTO) {
 
 		return policyService.issuePolicy(requestDTO);
@@ -64,7 +64,7 @@ public class PolicyController {
 	}
 
 	@GetMapping("/customer/{customerId}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get Policy by customer ID", description = "Retrieves the details of a specific customer's purchased policy.")
 	public PageResponseDTO<PolicyResponseDTO> getPoliciesByCustomer(@PathVariable Long customerId,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
@@ -74,7 +74,7 @@ public class PolicyController {
 	}
 
 	@GetMapping
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get All Policies", description = "Retrieves a paginated list of all policies. Supports filtering by customer ID, plan ID, and status.")
 	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue = "id") String sort,
@@ -86,14 +86,14 @@ public class PolicyController {
 	}
 
 	@GetMapping("/{policyId}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
 	@Operation(summary = "Get Policy by ID", description = "Retrieves the details of a specific purchased policy.")
 	public ApiResponseDTO<PolicyResponseDTO> getPolicyById(@PathVariable Long policyId) {
 		return policyService.getPolicyById(policyId);
 	}
 
 	@PatchMapping("/{policyId}/cancel")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Cancel Policy", description = "Cancels an active or pending insurance policy.")
 	public ApiResponseDTO<PolicyResponseDTO> cancelPolicy(@PathVariable Long policyId) {
 

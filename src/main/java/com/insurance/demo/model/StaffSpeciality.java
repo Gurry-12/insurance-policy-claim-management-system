@@ -18,12 +18,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "agent_specialities")
+@Table(name = "staff_specialities")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class AgentSpeciality {
+public class StaffSpeciality {
 
 	@Id
 	@Column(name = "id")
@@ -32,7 +32,7 @@ public class AgentSpeciality {
 
 	@OneToOne
 	@JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-	private AppUser agent;
+	private AppUser staff;
 
 	@Column(name = "product_speciality", nullable = false)
 	@Enumerated(EnumType.STRING)

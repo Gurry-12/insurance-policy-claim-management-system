@@ -15,12 +15,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.insurance.demo.dto.request.CreateAgentRequestDTO;
+import com.insurance.demo.dto.request.CreateStaffRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
-import com.insurance.demo.model.AgentSpeciality;
+import com.insurance.demo.model.StaffSpeciality;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
@@ -72,7 +72,7 @@ public class UserServiceImpl implements UserService {
 
 		AppUser user = getById(userId);
 
-		if (Boolean.FALSE.equals(user.isEmailVerified())) {
+		if (Boolean.FALSE.equals(user.getEmailVerified())) {
 			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("User is not verified by id: {}", userId);
 			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
@@ -112,7 +112,7 @@ public class UserServiceImpl implements UserService {
 
 		AppUser user = getById(userId);
 
-		if (Boolean.FALSE.equals(user.isEmailVerified())) {
+		if (Boolean.FALSE.equals(user.getEmailVerified())) {
 			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("User is not verified by id: {}", userId);
 			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
@@ -134,27 +134,27 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	@Transactional
-	public ApiResponseDTO<UserResponseDTO> createAgentUser(CreateAgentRequestDTO agentRequestDTO) {
+	public ApiResponseDTO<UserResponseDTO> createInternalStaffUser(CreateStaffRequestDTO staffRequestDTO) {
 
-		log.info("creating agent by email: {}", agentRequestDTO.getEmail());
+		log.info("creating staff by email: {}", staffRequestDTO.getEmail());
 
-		if (userRepository.existsByEmail(agentRequestDTO.getEmail())) {
-			throw new DuplicateResourceException("Duplicate user found with email - " + agentRequestDTO.getEmail());
+		if (userRepository.existsByEmail(staffRequestDTO.getEmail())) {
+			throw new DuplicateResourceException("Duplicate user found with email - " + staffRequestDTO.getEmail());
 		}
 
-		if (userRepository.existsByMobileNumber(agentRequestDTO.getMobileNumber())) {
+		if (userRepository.existsByMobileNumber(staffRequestDTO.getMobileNumber())) {
 			throw new DuplicateResourceException(
-					"Duplicate user found with mobile Number - " + agentRequestDTO.getMobileNumber());
+					"Duplicate user found with mobile Number - " + staffRequestDTO.getMobileNumber());
 		}
 
-		AppUser user = modelMapper.map(agentRequestDTO, AppUser.class);
-		user.setEmail(agentRequestDTO.getEmail().toLowerCase());
-		user.setPassword(passwordEncoder.encode(agentRequestDTO.getPassword()));
-		user.setRole(Role.ROLE_AGENT);
-		AgentSpeciality agentSpeciality = new AgentSpeciality();
-		agentSpeciality.setProductSpeciality(agentRequestDTO.getProductSpeciality());
-		agentSpeciality.setAgent(user);
-		user.setAgentSpeciality(agentSpeciality);
+		AppUser user = modelMapper.map(staffRequestDTO, AppUser.class);
+		user.setEmail(staffRequestDTO.getEmail().toLowerCase());
+		user.setPassword(passwordEncoder.encode(staffRequestDTO.getPassword()));
+		user.setRole(Role.ROLE_INTERNAL_STAFF);
+		StaffSpeciality staffSpeciality = new StaffSpeciality();
+		staffSpeciality.setProductSpeciality(staffRequestDTO.getProductSpeciality());
+		staffSpeciality.setStaff(user);
+		user.setStaffSpeciality(staffSpeciality);
 		user.setIsActive(false);
 		user.setEmailVerified(false);
 		AppUser retrivedUser = userRepository.save(user);
@@ -251,11 +251,10 @@ public class UserServiceImpl implements UserService {
 		throw new BadRequestException("Sort direction must be asc or desc.");
 	}
 
-
 	private UserResponseDTO mapToUserResponseDTO(AppUser user) {
 		UserResponseDTO dto = modelMapper.map(user, UserResponseDTO.class);
-		if (user.getAgentSpeciality() != null) {
-			dto.setProductSpeciality(user.getAgentSpeciality().getProductSpeciality());
+		if (user.getStaffSpeciality() != null) {
+			dto.setProductSpeciality(user.getStaffSpeciality().getProductSpeciality());
 		}
 		return dto;
 	}

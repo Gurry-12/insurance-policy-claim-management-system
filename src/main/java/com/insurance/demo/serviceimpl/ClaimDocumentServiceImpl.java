@@ -76,7 +76,7 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 		Claim claim = claimRepository.findById(claimId)
 				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
 
-		// Security Check - Only owner or agent/admin can add documents
+		// Security Check - Only owner or staff/admin can add documents
 		if (!claim.getPolicy().getCustomer().getUser().getEmail().equals(currentUserEmail)) {
 			throw new BadRequestException("You are only permitted to upload supporting documents to your own claims.");
 		}
