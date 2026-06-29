@@ -86,7 +86,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		log.info("Updating policy plan with id: {}", planId);
 
-		if (dto.getCoverageAmount() <= dto.getPremiumAmount()) {
+		if (dto.getCoverageAmount().compareTo(dto.getPremiumAmount()) <= 0) {
 			throw new BadRequestException("Cannot create a policy plan under an inactive insurance product.");
 		}
 

@@ -65,8 +65,8 @@ public class Claim {
     @NotNull(message = "Claim status is required")
     private ClaimStatus claimStatus;
 
-    @Column(name = "agent_remarks")
-    private String agentRemarks;
+    @Column(name = "staff_remarks")
+    private String staffRemarks;
 
     @Column(name = "admin_remarks")
     private String adminRemarks;
@@ -85,8 +85,8 @@ public class Claim {
     private Policy policy;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assigned_agent_id")
-    private AppUser assignedAgent;
+    @JoinColumn(name = "assigned_staff_id")
+    private AppUser assignedStaff;
 
     @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ClaimDocument> claimDocuments = new ArrayList<>();

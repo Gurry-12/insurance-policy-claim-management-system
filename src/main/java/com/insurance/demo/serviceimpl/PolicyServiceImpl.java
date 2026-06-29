@@ -164,7 +164,7 @@ public class PolicyServiceImpl implements PolicyService {
 
 		policy.setPolicyStatus(PolicyStatus.PENDING_PAYMENT);
 
-		policy.setTotalPremiumPaid(0.0);
+		policy.setTotalPremiumPaid(BigDecimal.ZERO);
 
 		Policy savedPolicy = policyRepository.save(policy);
 

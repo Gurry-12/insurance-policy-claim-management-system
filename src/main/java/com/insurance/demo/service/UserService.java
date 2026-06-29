@@ -2,7 +2,7 @@ package com.insurance.demo.service;
 
 import java.util.List;
 
-import com.insurance.demo.dto.request.CreateAgentRequestDTO;
+import com.insurance.demo.dto.request.CreateStaffRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
@@ -16,7 +16,7 @@ public interface UserService {
 
 	ApiResponseDTO<UserResponseDTO> deactivateUser(Long userId);
 
-	ApiResponseDTO<UserResponseDTO> createAgentUser(CreateAgentRequestDTO agentRequestDTO);
+	ApiResponseDTO<UserResponseDTO> createInternalStaffUser(CreateStaffRequestDTO staffRequestDTO);
 
 	PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, String role, Boolean isActive);

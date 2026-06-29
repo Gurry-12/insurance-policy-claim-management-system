@@ -45,12 +45,6 @@ public class CustomerServiceImpl implements CustomerService {
 	@Override
 	public ApiResponseDTO<CustomerResponseDTO> createCustomer(CustomerRequestDTO requestDTO) {
 
-		logger.info("Creating customer profile for userId: {}", user.getId());
-
-		if (requestDTO.getDateOfBirth().isAfter(LocalDate.now().minusYears(18))) {
-			throw new BadRequestException("Customer must be at least 18 years old");
-		}
-
 		// Get logged-in user from JWT
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -58,6 +52,8 @@ public class CustomerServiceImpl implements CustomerService {
 
 		AppUser user = appUserRepository.findByEmail(loggedInEmail)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+		logger.info("Creating customer profile for userId: {}", user.getId());
 
 		// Verify role
 		if (user.getRole() != Role.ROLE_CUSTOMER) {
