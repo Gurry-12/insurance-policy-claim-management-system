@@ -33,10 +33,16 @@ public class OtpVerification {
 
     private boolean used;
 
+    @Column(nullable = false, columnDefinition = "int default 1")
+    private int sendCount = 1;
+
+    private LocalDateTime lastSentAt;
+
     private LocalDateTime createdAt;
 
     @PrePersist
     public void onCreate() {
         createdAt = LocalDateTime.now();
+        lastSentAt = LocalDateTime.now();
     }
 }
