@@ -22,7 +22,7 @@ public class ClaimRequestDTO {
 	private Long policyId;
 
 	@NotNull(message = "Claim amount is required")
-	@Positive(message = "Claim amount must be greater than zero")
+	@Positive(message = "Claim amount must be strictly greater than 0")
 	private BigDecimal claimAmount;
 
 	@NotBlank(message = "Claim reason is required")

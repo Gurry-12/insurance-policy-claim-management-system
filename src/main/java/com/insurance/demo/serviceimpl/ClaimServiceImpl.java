@@ -94,6 +94,10 @@ public class ClaimServiceImpl implements ClaimService {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
 
+		if (dto.getClaimAmount() == null || dto.getClaimAmount().compareTo(BigDecimal.ZERO) <= 0) {
+			throw new BadRequestException("Claim amount must be strictly greater than 0");
+		}
+
 		// Find Policy
 		Policy policy = policyRepository.findById(dto.getPolicyId())
 				.orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + dto.getPolicyId()));
