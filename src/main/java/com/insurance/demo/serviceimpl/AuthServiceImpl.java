@@ -158,11 +158,7 @@ public class AuthServiceImpl implements AuthService {
 			throw new BadRequestException("user is already verified");
 		}
 
-		if (Boolean.FALSE.equals(otpService.invalidateLastOtp(user))) {
-			throw new BadRequestException("A valid OTP is still active. Please check your email and phone before requesting a new one.");
-		}
-
-		otpService.createAndSendOtp(user);
+		otpService.sendOrResendOtp(user);
 
 		ResendOtpResponseDTO dto = new ResendOtpResponseDTO(request.getEmail(), request.getPhone());
 
@@ -175,11 +171,7 @@ public class AuthServiceImpl implements AuthService {
 		AppUser user = userRepository.findByEmail(request.getEmail().toLowerCase())
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
 
-		if (Boolean.FALSE.equals(otpService.invalidateLastOtp(user))) {
-			throw new BadRequestException("A valid OTP is still active. Please check your email and phone before requesting a new one.");
-		}
-		
-		otpService.createAndSendOtp(user);
+		otpService.sendOrResendOtp(user);
 		return new ApiResponseDTO<>("OTP sent to your registered email and phone number.", true, null, LocalDateTime.now());
 	}
 
