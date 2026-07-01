@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.modelmapper.ModelMapper;
 
@@ -35,6 +36,7 @@ import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.repository.PremiumPaymentRepository;
 import com.insurance.demo.service.PremiumPaymentService;
+import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.util.TransactionReferenceGenerator;
 
 
@@ -212,8 +214,8 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 
 		log.info("Fetching Payments with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, policyId: {}, status: {}",
 				pageNumber, pageSize, sortBy, sortDirection, policyId, paymentStatus);
-		validatePagination(pageNumber, pageSize);
-		validatePaymentSortField(sortBy);
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "amount", "paymentDate", "paymentMode", "paymentStatus"));
 
 		com.insurance.demo.enums.PaymentStatus statusEnum = null;
 		if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
@@ -253,21 +255,6 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		if (sortDirection.equalsIgnoreCase("desc"))
 			return Sort.Direction.DESC;
 		throw new BadRequestException("Sort direction must be asc or desc.");
-	}
-
-	private void validatePaymentSortField(String sortBy) {
-		if (!List.of("id", "amount", "paymentDate", "paymentMode", "paymentStatus").contains(sortBy)) {
-			throw new BadRequestException("Invalid sort field for payment: " + sortBy);
-		}
-	}
-
-	private void validatePagination(int pageNumber, int pageSize) {
-		if (pageNumber < 0)
-			throw new BadRequestException("Page number cannot be negative.");
-		if (pageSize <= 0)
-			throw new BadRequestException("Page size must be greater than 0.");
-		if (pageSize > 100)
-			throw new BadRequestException("Page size cannot be greater than 100.");
 	}
 
 	@Override

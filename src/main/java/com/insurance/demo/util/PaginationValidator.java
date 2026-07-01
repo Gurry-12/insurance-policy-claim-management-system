@@ -1,7 +1,8 @@
 package com.insurance.demo.util;
 
+import java.util.Collection;
+
 import com.insurance.demo.exception.BadRequestException;
-import java.util.Set;
 
 /**
  * Shared pagination validation utility.
@@ -26,7 +27,7 @@ public class PaginationValidator {
         }
     }
 
-    public static void validateSortField(String sortBy, Set<String> allowedFields) {
+    public static void validateSortField(String sortBy, Collection<String> allowedFields) {
         if (!allowedFields.contains(sortBy)) {
             throw new BadRequestException("Invalid sort field: '" + sortBy + "'. Allowed fields: " + allowedFields);
         }

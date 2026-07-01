@@ -2,6 +2,7 @@ package com.insurance.demo.serviceimpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.service.UserService;
+import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.verification.OtpService;
 
 import lombok.RequiredArgsConstructor;
@@ -173,8 +175,8 @@ public class UserServiceImpl implements UserService {
 		log.info(
 				"Fetching Users with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, role: {}, isActive: {}",
 				pageNumber, pageSize, sortBy, sortDirection, role, isActive);
-		validatePagination(pageNumber, pageSize);
-		validateUserSortField(sortBy);
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "fullName", "email", "mobileNumber", "role", "isActive"));
 
 		Role roleEnum = null;
 		if (role != null && !role.trim().isEmpty()) {
@@ -226,21 +228,6 @@ public class UserServiceImpl implements UserService {
 	private AppUser getById(Long id) {
 		return userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-	}
-
-	private void validatePagination(int pageNumber, int pageSize) {
-		if (pageNumber < 0)
-			throw new BadRequestException("Page number cannot be negative.");
-		if (pageSize <= 0)
-			throw new BadRequestException("Page size must be greater than 0.");
-		if (pageSize > 100)
-			throw new BadRequestException("Page size cannot be greater than 100.");
-	}
-
-	private void validateUserSortField(String sortBy) {
-		if (!List.of("id", "fullName", "email", "mobileNumber", "role", "isActive").contains(sortBy)) {
-			throw new BadRequestException("Invalid sort field for users: " + sortBy);
-		}
 	}
 
 	private Sort.Direction getSortDirection(String sortDirection) {

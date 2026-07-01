@@ -59,6 +59,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/plans/active").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
 						.requestMatchers(HttpMethod.GET, "/api/plans/*/active").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
 						.requestMatchers(HttpMethod.GET, "/api/plans/page").hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/plans/*").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
 						.requestMatchers(HttpMethod.GET, "/api/plans/**").hasAnyRole("ADMIN", "INTERNAL_STAFF")
 
 						// POLICIES
@@ -76,13 +77,10 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/claims/*").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
 						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/review").hasRole("INTERNAL_STAFF")
 						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/under-review").hasRole("INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/assign").hasRole("INTERNAL_STAFF")
 						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/final-decision").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.POST, "/api/claims/*/documents")
-						.hasAnyRole("CUSTOMER", "INTERNAL_STAFF", "ADMIN")
-
 						// DOCUMENTS
 						.requestMatchers(HttpMethod.POST, "/api/document/upload/**").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.DELETE, "/api/document/**").hasRole("CUSTOMER")
 
 						// CUSTOMERS
 						.requestMatchers(HttpMethod.POST, "/api/customers/**").hasRole("CUSTOMER")
@@ -97,8 +95,11 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/api/products/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.GET, "/api/products/active")
-						.hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER").requestMatchers(HttpMethod.GET, "/api/products/**")
+						.hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/products/page")
 						.hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/products/*")
+						.hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
 
 						// PAYMENTS
 						.requestMatchers(HttpMethod.POST, "/api/payments").hasAnyRole("CUSTOMER", "INTERNAL_STAFF")

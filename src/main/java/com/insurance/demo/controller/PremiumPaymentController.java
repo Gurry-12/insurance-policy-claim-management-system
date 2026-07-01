@@ -50,7 +50,7 @@ public class PremiumPaymentController {
 	}
 
 	@GetMapping("/{id}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
 	@Operation(summary = "Get Payment by ID", description = "Retrieves the details of a specific premium payment transaction.")
 	public ApiResponseDTO<PaymentResponseDTO> getPaymentById(@PathVariable(name = "id") Long paymentId) {
 		return paymentService.getPaymentById(paymentId);

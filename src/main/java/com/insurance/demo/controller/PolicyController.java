@@ -19,6 +19,7 @@ import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.service.PolicyService;
+import com.insurance.demo.service.ClaimService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -34,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class PolicyController {
 
 	private final PolicyService policyService;
+	private final ClaimService claimService;
 
 	@PostMapping("/purchase")
 	@ResponseStatus(HttpStatus.CREATED)
@@ -90,6 +92,13 @@ public class PolicyController {
 	@Operation(summary = "Get Policy by ID", description = "Retrieves the details of a specific purchased policy.")
 	public ApiResponseDTO<PolicyResponseDTO> getPolicyById(@PathVariable Long policyId) {
 		return policyService.getPolicyById(policyId);
+	}
+
+	@GetMapping("/{policyId}/claims")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
+	@Operation(summary = "Get claims by Policy ID", description = "Retrieves all claims associated with a specific policy.")
+	public org.springframework.http.ResponseEntity<?> getClaimsByPolicy(@PathVariable Long policyId) {
+		return org.springframework.http.ResponseEntity.ok(claimService.getClaimsByPolicyId(policyId));
 	}
 
 	@PatchMapping("/{policyId}/cancel")

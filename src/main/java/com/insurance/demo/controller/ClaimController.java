@@ -97,6 +97,13 @@ public class ClaimController {
 		return claimService.underReviewClaim(claimId);
 	}
 
+	@PatchMapping("/{claimId}/assign")
+	@PreAuthorize("hasRole('INTERNAL_STAFF')")
+	@Operation(summary = "Assign Claim to Self", description = "Allows an Internal Staff to assign an UNDER_REVIEW claim to themselves.")
+	public ApiResponseDTO<ClaimResponseDTO> assignStaff(@PathVariable Long claimId) {
+		return claimService.assignStaff(claimId);
+	}
+
 	@PatchMapping("/{claimId}/review")
 	@PreAuthorize("hasRole('INTERNAL_STAFF')")
 
