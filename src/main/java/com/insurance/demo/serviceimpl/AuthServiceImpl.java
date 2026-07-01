@@ -1,7 +1,5 @@
 package com.insurance.demo.serviceimpl;
 
-import org.springframework.validation.annotation.Validated;
-
 import java.time.LocalDateTime;
 
 import org.modelmapper.ModelMapper;
@@ -34,13 +32,11 @@ import com.insurance.demo.service.AuthService;
 import com.insurance.demo.service.UserService;
 import com.insurance.demo.verification.OtpService;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-@Validated
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
@@ -123,7 +119,7 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	public ApiResponseDTO<UserResponseDTO> verifyOtp(@Valid VerifyOtpRequest request) {
+	public ApiResponseDTO<UserResponseDTO> verifyOtp( VerifyOtpRequest request) {
 		AppUser user = userRepository.findByEmail(request.getEmail())
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
 
