@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -43,6 +44,7 @@ import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.service.ClaimDocumentService;
 import com.insurance.demo.service.ClaimService;
 import com.insurance.demo.util.ClaimNumberGenerator;
+import com.insurance.demo.util.PaginationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,8 +78,16 @@ public class ClaimServiceImpl implements ClaimService {
 			}
 
 			if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
-
 				throw new BadRequestException("Uploaded document must have a valid file name.");
+			}
+
+			String contentType = file.getContentType();
+			if (contentType == null || !(contentType.equals("application/pdf") || contentType.startsWith("image/"))) {
+				throw new BadRequestException("Only PDF and image files are allowed.");
+			}
+
+			if (file.getSize() > 5 * 1024 * 1024) { // 5MB limit
+				throw new BadRequestException("File size exceeds the 5MB limit.");
 			}
 		}
 
@@ -167,13 +177,12 @@ public class ClaimServiceImpl implements ClaimService {
 
 		ClaimStatus previous = claim.getClaimStatus();
 
-		// Staff recommends
+		claim.setAssignedStaff(currentUser);
+
 		claim.setClaimStatus(dto.getRecommendedStatus());
 		claim.setStaffRemarks(dto.getRemarks());
 
 		Claim updated = claimRepository.save(claim);
-
-		claim.setAssignedStaff(currentUser);
 
 		recordClaimHistory(updated, previous, claim.getClaimStatus(), dto.getRemarks(),
 				SecurityContextHolder.getContext().getAuthentication().getName());
@@ -245,6 +254,20 @@ public class ClaimServiceImpl implements ClaimService {
 		response.setDocuments(documents);
 		return new ApiResponseDTO<>("Claim details retrieved successfully.", true, response, LocalDateTime.now());
 	}
+	@Override
+	@Transactional(readOnly = true)
+	public ApiResponseDTO<List<ClaimResponseDTO>> getClaimsByPolicyId(Long policyId) {
+		List<Claim> claims = claimRepository.findByPolicyId(policyId);
+		List<ClaimResponseDTO> responseList = new java.util.ArrayList<>();
+		for (Claim claim : claims) {
+			List<com.insurance.demo.dto.response.ClaimDocumentResponseDTO> documents = claimDocumentRepository.findByClaimId(claim.getId()).stream()
+					.map(document -> modelMapper.map(document, com.insurance.demo.dto.response.ClaimDocumentResponseDTO.class)).toList();
+			ClaimResponseDTO response = convertToResponseDTO(claim);
+			response.setDocuments(documents);
+			responseList.add(response);
+		}
+		return new ApiResponseDTO<>("Claims retrieved successfully.", true, responseList, LocalDateTime.now());
+	}
 
 	@Override
 	@Transactional(readOnly = true)
@@ -281,8 +304,8 @@ public class ClaimServiceImpl implements ClaimService {
 		log.info("Fetching claims with pagination: page={}, size={}, sortBy={}, customerId={}, status={}", pageNumber,
 				pageSize, sortBy, customerId, status);
 
-		validatePagination(pageNumber, pageSize);
-		validateSortField(sortBy);
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "claimNumber", "claimAmount", "createdDate", "claimStatus"));
 
 		Sort.Direction direction = "desc".equalsIgnoreCase(sortDirection) ? Sort.Direction.DESC : Sort.Direction.ASC;
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
@@ -351,8 +374,8 @@ public class ClaimServiceImpl implements ClaimService {
 			throw new AccessDeniedException("You are not allowed to access another customer's claim history");
 		}
 
-		validatePagination(pageNumber, pageSize);
-		validateHistorySortField(sortBy);
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "updatedDate", "newStatus", "updatedBy"));
 
 		Sort.Direction direction = "desc".equalsIgnoreCase(sortDirection) ? Sort.Direction.DESC : Sort.Direction.ASC;
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
@@ -410,6 +433,35 @@ public class ClaimServiceImpl implements ClaimService {
 		return new ApiResponseDTO<>("Claim status updated to under review.", true, response, LocalDateTime.now());
 	}
 
+	@Override
+	@Transactional
+	public ApiResponseDTO<ClaimResponseDTO> assignStaff(Long claimId) {
+
+		Claim claim = claimRepository.findById(claimId)
+				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
+
+		if (claim.getClaimStatus() != ClaimStatus.UNDER_REVIEW) {
+			throw new BadRequestException("Claim must be UNDER_REVIEW to be assigned.");
+		}
+
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		AppUser currentUser = userRepository.findByEmail(auth.getName())
+				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+		if (claim.getAssignedStaff() != null && !claim.getAssignedStaff().getId().equals(currentUser.getId())) {
+			throw new BadRequestException("Claim is already assigned to another staff member.");
+		}
+
+		claim.setAssignedStaff(currentUser);
+		Claim updated = claimRepository.save(claim);
+
+		recordClaimHistory(updated, claim.getClaimStatus(), claim.getClaimStatus(), "Staff member assigned",
+				auth.getName());
+
+		ClaimResponseDTO response = convertToResponseDTO(updated);
+		return new ApiResponseDTO<>("Claim successfully assigned.", true, response, LocalDateTime.now());
+	}
+
 	// Helper Methods
 
 	private ClaimResponseDTO convertToResponseDTO(Claim claim) {
@@ -419,12 +471,13 @@ public class ClaimServiceImpl implements ClaimService {
 		if (claim.getPolicy() != null) {
 			response.setPolicyId(claim.getPolicy().getId());
 			response.setPolicyNumber(claim.getPolicy().getPolicyNumber());
-			if (claim.getAssignedStaff() != null) {
-				response.setAssignedStaffName(claim.getAssignedStaff().getFullName());
-			}
 			if (claim.getPolicy().getCustomer() != null && claim.getPolicy().getCustomer().getUser() != null) {
 				response.setCustomerName(claim.getPolicy().getCustomer().getUser().getFullName());
 			}
+		}
+		if (claim.getAssignedStaff() != null) {
+			response.setAssignedStaffId(claim.getAssignedStaff().getId());
+			response.setAssignedStaffName(claim.getAssignedStaff().getFullName());
 		}
 		response.setClaimAmount(claim.getClaimAmount());
 		response.setClaimReason(claim.getClaimReason());
@@ -466,26 +519,4 @@ public class ClaimServiceImpl implements ClaimService {
 		historyRepository.save(history);
 	}
 
-	private void validatePagination(int pageNumber, int pageSize) {
-		if (pageNumber < 0)
-			throw new BadRequestException("Page number cannot be negative");
-		if (pageSize <= 0)
-			throw new BadRequestException("Page size must be greater than 0");
-		if (pageSize > 100)
-			throw new BadRequestException("Page size cannot exceed 100");
-	}
-
-	private void validateSortField(String sortBy) {
-		List<String> allowed = List.of("id", "claimNumber", "claimAmount", "createdDate", "claimStatus");
-		if (!allowed.contains(sortBy)) {
-			throw new BadRequestException("Invalid sort field: " + sortBy);
-		}
-	}
-
-	private void validateHistorySortField(String sortBy) {
-		List<String> allowed = List.of("id", "updatedDate", "newStatus", "updatedBy");
-		if (!allowed.contains(sortBy)) {
-			throw new BadRequestException("Invalid sort field for history: " + sortBy);
-		}
-	}
 }

@@ -24,6 +24,8 @@ public interface ClaimService {
 
 	ApiResponseDTO<ClaimResponseDTO> getClaimById(Long claimId);
 
+	ApiResponseDTO<List<ClaimResponseDTO>> getClaimsByPolicyId(Long policyId);
+
 	ApiResponseDTO<List<ClaimResponseDTO>> getMyClaims(); // Customer
 
 	PageResponseDTO<ClaimResponseDTO> getAllClaimsWithPagination(int pageNumber, int pageSize, String sortBy,
@@ -34,4 +36,5 @@ public interface ClaimService {
 
 	ApiResponseDTO<ClaimResponseDTO> underReviewClaim(Long claimId);
 
+	ApiResponseDTO<ClaimResponseDTO> assignStaff(Long claimId);
 }

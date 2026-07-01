@@ -102,7 +102,7 @@ public class PolicyPlanController {
     }
 
     @GetMapping("/{planId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
     @Operation(summary = "Get Plan by ID", description = "Retrieves the details of a specific policy plan by its ID.")
     public ApiResponseDTO<PlanResponseDTO> getPlanById(@PathVariable Long planId) {
         return policyPlanService.getPlanById(planId); 

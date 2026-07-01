@@ -43,34 +43,25 @@ public class Customer {
 	@JoinColumn(name = "user_id", nullable = false, unique = true)
 	private AppUser user;
 
-	@Column(name = "date_of_birth", nullable = false)
-	@Past(message = "Date of birth must be in the past")
-	@NotNull(message = "Date of birth can not be null")
+	@Column(name = "date_of_birth")
 	private LocalDate dateOfBirth;
 
-	@Column(name = "address", nullable = false)
-	@NotBlank(message = "Address is required")
+	@Column(name = "address")
 	private String address;
 
-	@Column(name = "city", nullable = false)
-	@NotBlank(message = "City is required")
+	@Column(name = "city")
 	private String city;
 
-	@Column(name = "state", nullable = false)
-	@NotBlank(message = "State can not be blank")
+	@Column(name = "state")
 	private String state;
 
-	@Column(name = "pin_code", nullable = false)
-	@NotBlank(message = "Pin code is required")
-	@Size(min = 6, message = "pin code should be min 6 chars")
+	@Column(name = "pin_code")
 	private String pinCode;
 
-	@Column(name = "nominee_name", nullable = false)
-	@NotBlank(message = "Nominee name can not be blank")
+	@Column(name = "nominee_name")
 	private String nomineeName;
 
-	@Column(name = "nominee_relation", nullable = false)
-	@NotBlank(message = "Nominee relation can not be blank")
+	@Column(name = "nominee_relation")
 	private String nomineeRelation;
 
 	@Column(name = "created_date", updatable = false)

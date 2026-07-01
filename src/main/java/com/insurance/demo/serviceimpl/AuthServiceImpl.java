@@ -26,7 +26,9 @@ import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
+import com.insurance.demo.model.Customer;
 import com.insurance.demo.repository.AppUserRepository;
+import com.insurance.demo.repository.CustomerRepository;
 import com.insurance.demo.security.JwtService;
 import com.insurance.demo.service.AuthService;
 import com.insurance.demo.service.UserService;
@@ -42,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
 
 	private final AuthenticationManager authenticationManager;
 	private final AppUserRepository userRepository;
+	private final CustomerRepository customerRepository;
 	private final ModelMapper modelMapper;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtService jwtService;
@@ -109,6 +112,12 @@ public class AuthServiceImpl implements AuthService {
 		user.setPhoneVerified(false);
 
 		AppUser savedUser = userRepository.save(user);
+
+		// Automatically create an empty Customer profile
+		Customer emptyCustomer = new Customer();
+		emptyCustomer.setUser(savedUser);
+		customerRepository.save(emptyCustomer);
+
 		otpService.createAndSendOtp(savedUser);
 
 		UserResponseDTO responseDTO = modelMapper.map(savedUser, UserResponseDTO.class);
@@ -150,14 +159,14 @@ public class AuthServiceImpl implements AuthService {
 		}
 
 		if (Boolean.FALSE.equals(otpService.invalidateLastOtp(user))) {
-			throw new BadRequestException("Otp is Still active please verify your email and phone");
+			throw new BadRequestException("A valid OTP is still active. Please check your email and phone before requesting a new one.");
 		}
 
 		otpService.createAndSendOtp(user);
 
 		ResendOtpResponseDTO dto = new ResendOtpResponseDTO(request.getEmail(), request.getPhone());
 
-		return new ApiResponseDTO<>("Otp are sent again on your email and password.", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>("OTP has been resent to your email and phone.", true, dto, LocalDateTime.now());
 
 	}
 	
@@ -167,7 +176,7 @@ public class AuthServiceImpl implements AuthService {
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
 
 		if (Boolean.FALSE.equals(otpService.invalidateLastOtp(user))) {
-			throw new BadRequestException("Otp is Still active please verify your email and phone");
+			throw new BadRequestException("A valid OTP is still active. Please check your email and phone before requesting a new one.");
 		}
 		
 		otpService.createAndSendOtp(user);

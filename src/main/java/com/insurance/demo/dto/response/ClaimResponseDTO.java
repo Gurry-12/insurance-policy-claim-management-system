@@ -46,5 +46,8 @@ public class ClaimResponseDTO {
 	private List<ClaimDocumentResponseDTO> documents;
 
 	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private Long assignedStaffId;
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
 	private String assignedStaffName;
 }

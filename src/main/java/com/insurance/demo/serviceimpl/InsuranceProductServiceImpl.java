@@ -3,6 +3,7 @@ package com.insurance.demo.serviceimpl;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -24,6 +25,7 @@ import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.InsuranceProduct;
 import com.insurance.demo.repository.InsuranceProductRepository;
 import com.insurance.demo.service.InsuranceProductService;
+import com.insurance.demo.util.PaginationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -85,8 +87,8 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		log.info("Fetching products with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, type: {}, active: {}",
 				pageNumber, pageSize, sortBy, sortDirection, productType, isActive);
-		validatePagination(pageNumber, pageSize);
-		validateUserSortField(sortBy);
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "productName", "productType"));
 
 		com.insurance.demo.enums.ProductType typeEnum = null;
 		if (productType != null && !productType.trim().isEmpty()) {
@@ -121,21 +123,6 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		if (sortDirection.equalsIgnoreCase("desc"))
 			return Sort.Direction.DESC;
 		throw new BadRequestException("Sort direction must be asc or desc.");
-	}
-
-	private void validateUserSortField(String sortBy) {
-		if (!List.of("id", "productName", "productType").contains(sortBy)) {
-			throw new BadRequestException("Invalid sort field for product: " + sortBy);
-		}
-	}
-
-	private void validatePagination(int pageNumber, int pageSize) {
-		if (pageNumber < 0)
-			throw new BadRequestException("Page number cannot be negative.");
-		if (pageSize <= 0)
-			throw new BadRequestException("Page size must be greater than 0.");
-		if (pageSize > 100)
-			throw new BadRequestException("Page size cannot be greater than 100.");
 	}
 
 	

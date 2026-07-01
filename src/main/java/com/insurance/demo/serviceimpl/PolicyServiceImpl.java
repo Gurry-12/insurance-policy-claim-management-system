@@ -55,6 +55,7 @@ public class PolicyServiceImpl implements PolicyService {
 	private final ModelMapper modelMapper;
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public ApiResponseDTO<PolicyResponseDTO> purchasePolicy(PolicyPurchaseRequestDTO requestDTO) {
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -63,13 +64,12 @@ public class PolicyServiceImpl implements PolicyService {
 		Customer customer = customerRepository.findByUserEmail(customerEmail)
 				.orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
+		if (!isCustomerProfileComplete(customer)) {
+			throw new BadRequestException("Please complete your customer profile before purchasing a policy.");
+		}
+
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
-
-//		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
-//				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
-//			throw new DuplicateResourceException("This policy is already active or pending payment.");
-//		}
 
 		ProductType productType = plan.getInsuranceProduct().getProductType();
 
@@ -116,18 +116,18 @@ public class PolicyServiceImpl implements PolicyService {
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public ApiResponseDTO<PolicyResponseDTO> issuePolicy(PolicyIssueRequestDTO requestDTO) {
 
 		Customer customer = customerRepository.findById(requestDTO.getCustomerId())
 				.orElseThrow(() -> new RuntimeException("Customer not found"));
 
+		if (!isCustomerProfileComplete(customer)) {
+			throw new BadRequestException("Please complete your customer profile before purchasing a policy.");
+		}
+
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
 				.orElseThrow(PlanNotActiveException::new);
-
-//		if (policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(), plan.getId(),
-//				List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT))) {
-//			throw new DuplicateResourceException("This policy is already active or pending payment.");
-//		}
 		
 		ProductType productType = plan.getInsuranceProduct().getProductType();
 
@@ -262,12 +262,13 @@ public class PolicyServiceImpl implements PolicyService {
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public ApiResponseDTO<PolicyResponseDTO> cancelPolicy(Long policyId) {
 
 		Policy policy = policyRepository.findById(policyId).orElseThrow(() -> new PolicyNotFoundException(policyId));
 
 		// Block cancellation if any claim is still open
-		List<ClaimStatus> openStatuses = List.of(ClaimStatus.SUBMITTED, ClaimStatus.UNDER_REVIEW, ClaimStatus.RECOMMENDED_FOR_APPROVAL);
+		List<ClaimStatus> openStatuses = List.of(ClaimStatus.SUBMITTED, ClaimStatus.UNDER_REVIEW, ClaimStatus.RECOMMENDED_FOR_APPROVAL, ClaimStatus.RECOMMENDED_FOR_REJECTION);
 		boolean hasOpenClaims = policy.getClaims().stream()
 				.anyMatch(c -> openStatuses.contains(c.getClaimStatus()));
 		if (hasOpenClaims) {
@@ -309,6 +310,18 @@ public class PolicyServiceImpl implements PolicyService {
 		dto.setPremiumType(policy.getPolicyPlan().getPremiumType().name());
 
 		return dto;
+	}
+
+	private boolean isCustomerProfileComplete(Customer customer) {
+		if (customer == null) return false;
+		if (customer.getDateOfBirth() == null) return false;
+		if (customer.getAddress() == null || customer.getAddress().trim().isEmpty()) return false;
+		if (customer.getCity() == null || customer.getCity().trim().isEmpty()) return false;
+		if (customer.getState() == null || customer.getState().trim().isEmpty()) return false;
+		if (customer.getPinCode() == null || customer.getPinCode().trim().isEmpty()) return false;
+		if (customer.getNomineeName() == null || customer.getNomineeName().trim().isEmpty()) return false;
+		if (customer.getNomineeRelation() == null || customer.getNomineeRelation().trim().isEmpty()) return false;
+		return true;
 	}
 
 }
