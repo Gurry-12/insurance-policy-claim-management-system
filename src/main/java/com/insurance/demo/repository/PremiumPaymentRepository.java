@@ -1,6 +1,7 @@
 package com.insurance.demo.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,5 +27,17 @@ public interface PremiumPaymentRepository extends JpaRepository<PremiumPayment, 
 	Page<PremiumPayment> findByPolicyId(Long policyId, Pageable pageable);
 
 	Page<PremiumPayment> findByPaymentStatus(PaymentStatus paymentStatus, Pageable pageable);
+	
+	Optional<PremiumPayment> findTopByPolicyIdAndPaymentStatusOrderByPaymentDateDesc(
+	        Long policyId,
+	        PaymentStatus paymentStatus);
+
+	long countByPolicyIdAndPaymentStatus(
+	        Long policyId,
+	        PaymentStatus status);
+
+	boolean existsByPolicyIdAndPaymentStatus(
+	        Long policyId,
+	        PaymentStatus status);
 
 }

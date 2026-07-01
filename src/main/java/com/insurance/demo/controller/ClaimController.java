@@ -58,10 +58,10 @@ public class ClaimController {
 		return claimService.getMyClaims();
 	}
 
-	// AGENT & ADMIN ENDPOINTS
+	// INTERNAL STAFF & ADMIN ENDPOINTS
 
 	@GetMapping
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get All Claims", description = "Retrieves a paginated list of all claims with filtering by policy, status, and dates.")
 	public PageResponseDTO<ClaimResponseDTO> getAllClaims(@RequestParam(defaultValue = "0") int pageNumber,
 			@RequestParam(defaultValue = "10") int pageSize, @RequestParam(defaultValue = "createdDate") String sortBy,
@@ -72,14 +72,14 @@ public class ClaimController {
 	}
 
 	@GetMapping("/{claimId}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
 	@Operation(summary = "Get Claim by ID", description = "Retrieves the full details of a specific insurance claim.")
 	public ApiResponseDTO<ClaimResponseDTO> getClaimById(@PathVariable Long claimId) {
 		return claimService.getClaimById(claimId);
 	}
 
 	@GetMapping("/{claimId}/history")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
 	@Operation(summary = "Get Claim Status History", description = "Retrieves the complete audit trail/history of status changes for a specific claim.")
 	public PageResponseDTO<ClaimHistoryResponseDTO> getClaimHistory(@PathVariable Long claimId,
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
@@ -88,19 +88,26 @@ public class ClaimController {
 		return claimService.getClaimHistory(claimId, pageNumber, pageSize, sortBy, sortDirection, updatedBy, status);
 	}
 
-	// AGENT ENDPOINTS
+	// INTERNAL STAFF ENDPOINTS
 
 	@PatchMapping("/{claimId}/under-review")
-	@PreAuthorize("hasRole('AGENT')")
-	@Operation(summary = "Move Claim to Under Review", description = "Updates a SUBMITTED claim's status to UNDER_REVIEW so it can be evaluated by an Agent.")
+	@PreAuthorize("hasRole('INTERNAL_STAFF')")
+	@Operation(summary = "Move Claim to Under Review", description = "Updates a SUBMITTED claim's status to UNDER_REVIEW so it can be evaluated by an Internal Staff.")
 	public ApiResponseDTO<ClaimResponseDTO> underReviewClaim(@PathVariable Long claimId) {
 		return claimService.underReviewClaim(claimId);
 	}
 
-	@PatchMapping("/{claimId}/review")
-	@PreAuthorize("hasRole('AGENT')")
+	@PatchMapping("/{claimId}/assign")
+	@PreAuthorize("hasRole('INTERNAL_STAFF')")
+	@Operation(summary = "Assign Claim to Self", description = "Allows an Internal Staff to assign an UNDER_REVIEW claim to themselves.")
+	public ApiResponseDTO<ClaimResponseDTO> assignStaff(@PathVariable Long claimId) {
+		return claimService.assignStaff(claimId);
+	}
 
-	@Operation(summary = "Recommend Claim Status (Agent)", description = "Allows an Agent to review a claim and recommend it for Approval or Rejection.")
+	@PatchMapping("/{claimId}/review")
+	@PreAuthorize("hasRole('INTERNAL_STAFF')")
+
+	@Operation(summary = "Recommend Claim Status (Internal Staff)", description = "Allows Internal Staff to review a claim and recommend it for Approval or Rejection.")
 	public ApiResponseDTO<ClaimResponseDTO> reviewClaim(@PathVariable Long claimId,
 			@Valid @RequestBody ClaimReviewRequestDTO dto) {
 
@@ -111,7 +118,7 @@ public class ClaimController {
 
 	@PreAuthorize("hasRole('ADMIN')")
 	@PatchMapping("/{claimId}/final-decision")
-	@Operation(summary = "Finalize Claim Decision (Admin)", description = "Allows an Admin to make the final decision (Approve/Reject) on an agent-recommended claim.")
+	@Operation(summary = "Finalize Claim Decision (Admin)", description = "Allows an Admin to make the final decision (Approve/Reject) on a staff-recommended claim.")
 	public ApiResponseDTO<ClaimResponseDTO> finalDecision(@PathVariable Long claimId,
 			@Valid @RequestBody ClaimReviewRequestDTO dto) {
 

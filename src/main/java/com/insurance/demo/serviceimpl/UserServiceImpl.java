@@ -2,6 +2,7 @@ package com.insurance.demo.serviceimpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -15,17 +16,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.insurance.demo.dto.request.CreateAgentRequestDTO;
+import com.insurance.demo.dto.request.CreateStaffRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
+import com.insurance.demo.model.StaffSpeciality;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.service.UserService;
+import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.verification.OtpService;
 
 import lombok.RequiredArgsConstructor;
@@ -49,7 +52,7 @@ public class UserServiceImpl implements UserService {
 		List<AppUser> users = userRepository.findAll();
 
 		List<UserResponseDTO> userResponseDTOs = users.stream()
-				.map(user -> modelMapper.map(user, UserResponseDTO.class)).toList();
+				.map(user -> mapToUserResponseDTO(user)).toList();
 
 		ApiResponseDTO<List<UserResponseDTO>> apiResponseDTO = new ApiResponseDTO<>();
 
@@ -71,14 +74,14 @@ public class UserServiceImpl implements UserService {
 
 		AppUser user = getById(userId);
 
-		if (Boolean.FALSE.equals(user.isEmailVerified())) {
-			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+		if (Boolean.FALSE.equals(user.getEmailVerified())) {
+			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("User is not verified by id: {}", userId);
 			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
 		}
 
 		if (Boolean.TRUE.equals(user.getIsActive())) {
-			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("user already active with id {} ", userId);
 			return new ApiResponseDTO<>("User Already Active", false, responseDto, LocalDateTime.now());
 		}
@@ -87,7 +90,7 @@ public class UserServiceImpl implements UserService {
 
 		AppUser retrivedUser = userRepository.save(user);
 
-		UserResponseDTO responseDto = modelMapper.map(retrivedUser, UserResponseDTO.class);
+		UserResponseDTO responseDto = mapToUserResponseDTO(retrivedUser);
 		return new ApiResponseDTO<>("User Activated successfully", true, responseDto, LocalDateTime.now());
 	}
 
@@ -111,14 +114,14 @@ public class UserServiceImpl implements UserService {
 
 		AppUser user = getById(userId);
 
-		if (Boolean.FALSE.equals(user.isEmailVerified())) {
-			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+		if (Boolean.FALSE.equals(user.getEmailVerified())) {
+			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("User is not verified by id: {}", userId);
 			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
 		}
 
 		if (Boolean.FALSE.equals(user.getIsActive())) {
-			UserResponseDTO responseDto = modelMapper.map(user, UserResponseDTO.class);
+			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("Already deactivated user by id: {}", userId);
 			return new ApiResponseDTO<>("User Already Deactivated", false, responseDto, LocalDateTime.now());
 		}
@@ -127,36 +130,40 @@ public class UserServiceImpl implements UserService {
 
 		AppUser retrivedUser = userRepository.save(user);
 
-		UserResponseDTO responseDto = modelMapper.map(retrivedUser, UserResponseDTO.class);
+		UserResponseDTO responseDto = mapToUserResponseDTO(retrivedUser);
 		return new ApiResponseDTO<>("User Deactivated successfully", true, responseDto, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional
-	public ApiResponseDTO<UserResponseDTO> createAgentUser(CreateAgentRequestDTO agentRequestDTO) {
+	public ApiResponseDTO<UserResponseDTO> createInternalStaffUser(CreateStaffRequestDTO staffRequestDTO) {
 
-		log.info("creating agent by email: {}", agentRequestDTO.getEmail());
+		log.info("creating staff by email: {}", staffRequestDTO.getEmail());
 
-		if (userRepository.existsByEmail(agentRequestDTO.getEmail())) {
-			throw new DuplicateResourceException("Duplicate user found with email - " + agentRequestDTO.getEmail());
+		if (userRepository.existsByEmail(staffRequestDTO.getEmail())) {
+			throw new DuplicateResourceException("Duplicate user found with email - " + staffRequestDTO.getEmail());
 		}
 
-		if (userRepository.existsByMobileNumber(agentRequestDTO.getMobileNumber())) {
+		if (userRepository.existsByMobileNumber(staffRequestDTO.getMobileNumber())) {
 			throw new DuplicateResourceException(
-					"Duplicate user found with mobile Number - " + agentRequestDTO.getMobileNumber());
+					"Duplicate user found with mobile Number - " + staffRequestDTO.getMobileNumber());
 		}
 
-		AppUser user = modelMapper.map(agentRequestDTO, AppUser.class);
-		user.setEmail(agentRequestDTO.getEmail().toLowerCase());
-		user.setPassword(passwordEncoder.encode(agentRequestDTO.getPassword()));
-		user.setRole(Role.ROLE_AGENT);
+		AppUser user = modelMapper.map(staffRequestDTO, AppUser.class);
+		user.setEmail(staffRequestDTO.getEmail().toLowerCase());
+		user.setPassword(passwordEncoder.encode(staffRequestDTO.getPassword()));
+		user.setRole(Role.ROLE_INTERNAL_STAFF);
+		StaffSpeciality staffSpeciality = new StaffSpeciality();
+		staffSpeciality.setProductSpeciality(staffRequestDTO.getProductSpeciality());
+		staffSpeciality.setStaff(user);
+		user.setStaffSpeciality(staffSpeciality);
 		user.setIsActive(false);
 		user.setEmailVerified(false);
 		AppUser retrivedUser = userRepository.save(user);
 
 		otpService.createAndSendOtp(retrivedUser);
 
-		UserResponseDTO dto = modelMapper.map(retrivedUser, UserResponseDTO.class);
+		UserResponseDTO dto = mapToUserResponseDTO(retrivedUser);
 		return new ApiResponseDTO<>("Account created. An OTP has been sent to the email to complete registration.",
 				true, dto, LocalDateTime.now());
 	}
@@ -168,8 +175,8 @@ public class UserServiceImpl implements UserService {
 		log.info(
 				"Fetching Users with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, role: {}, isActive: {}",
 				pageNumber, pageSize, sortBy, sortDirection, role, isActive);
-		validatePagination(pageNumber, pageSize);
-		validateUserSortField(sortBy);
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "fullName", "email", "mobileNumber", "role", "isActive"));
 
 		Role roleEnum = null;
 		if (role != null && !role.trim().isEmpty()) {
@@ -193,7 +200,7 @@ public class UserServiceImpl implements UserService {
 			userPage = userRepository.findAll(pageable);
 		}
 		List<UserResponseDTO> content = userPage.getContent().stream()
-				.map(user -> modelMapper.map(user, UserResponseDTO.class)).toList();
+				.map(user -> mapToUserResponseDTO(user)).toList();
 		return new PageResponseDTO<>(content, userPage.getNumber(), userPage.getSize(), userPage.getTotalElements(),
 				userPage.getTotalPages(), userPage.isLast(), sortDirection);
 	}
@@ -204,7 +211,7 @@ public class UserServiceImpl implements UserService {
 		AppUser user = userRepository.findByEmail(username)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with email : " + username));
 
-		return modelMapper.map(user, UserResponseDTO.class);
+		return mapToUserResponseDTO(user);
 	}
 
 	@Override
@@ -213,7 +220,7 @@ public class UserServiceImpl implements UserService {
 		log.info("Fetching User with id - {} ", id);
 		AppUser appUser = getById(id);
 
-		UserResponseDTO dto = modelMapper.map(appUser, UserResponseDTO.class);
+		UserResponseDTO dto = mapToUserResponseDTO(appUser);
 
 		return new ApiResponseDTO<>("User found", true, dto, LocalDateTime.now());
 	}
@@ -221,21 +228,6 @@ public class UserServiceImpl implements UserService {
 	private AppUser getById(Long id) {
 		return userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-	}
-
-	private void validatePagination(int pageNumber, int pageSize) {
-		if (pageNumber < 0)
-			throw new BadRequestException("Page number cannot be negative.");
-		if (pageSize <= 0)
-			throw new BadRequestException("Page size must be greater than 0.");
-		if (pageSize > 100)
-			throw new BadRequestException("Page size cannot be greater than 100.");
-	}
-
-	private void validateUserSortField(String sortBy) {
-		if (!List.of("id", "fullName", "email", "mobileNumber", "role", "isActive").contains(sortBy)) {
-			throw new BadRequestException("Invalid sort field for course: " + sortBy);
-		}
 	}
 
 	private Sort.Direction getSortDirection(String sortDirection) {
@@ -246,4 +238,11 @@ public class UserServiceImpl implements UserService {
 		throw new BadRequestException("Sort direction must be asc or desc.");
 	}
 
+	private UserResponseDTO mapToUserResponseDTO(AppUser user) {
+		UserResponseDTO dto = modelMapper.map(user, UserResponseDTO.class);
+		if (user.getStaffSpeciality() != null) {
+			dto.setProductSpeciality(user.getStaffSpeciality().getProductSpeciality());
+		}
+		return dto;
+	}
 }

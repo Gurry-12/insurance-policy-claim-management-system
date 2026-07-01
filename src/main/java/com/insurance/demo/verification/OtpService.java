@@ -32,7 +32,7 @@ public class OtpService {
 		String phoneOtp = generateSixDigitOtp();
 
 		OtpVerification otpVerification = OtpVerification.builder().user(user).emailOtp(emailOtp).phoneOtp(phoneOtp)
-				.expiresAt(LocalDateTime.now().plusMinutes(expiryMinutes)).used(false).build();
+				.expiresAt(LocalDateTime.now().plusMinutes(expiryMinutes)).used(false).sendCount(1).build();
 
 		otpRepository.save(otpVerification);
 		emailService.sendOtp(user.getEmail(), emailOtp);
@@ -40,8 +40,41 @@ public class OtpService {
 	}
 
 	@Transactional
+	public void sendOrResendOtp(AppUser user) {
+		int totalSends = otpRepository.getTotalOtpSendsSince(user, LocalDateTime.now().minusHours(24));
+		if (totalSends >= 4) {
+			throw new BadRequestException("You have reached the maximum limit of 4 OTP requests in the last 24 hours.");
+		}
+
+		otpRepository.findTopByUserOrderByCreatedAtDesc(user).ifPresentOrElse(latestOtp -> {
+			if (latestOtp.getLastSentAt() != null && latestOtp.getLastSentAt().plusSeconds(60).isAfter(LocalDateTime.now())) {
+				throw new BadRequestException("Please wait at least 60 seconds before requesting another OTP.");
+			}
+
+			if (!latestOtp.isUsed() && latestOtp.getExpiresAt().isAfter(LocalDateTime.now())) {
+				// Resend existing active OTP
+				latestOtp.setSendCount(latestOtp.getSendCount() + 1);
+				latestOtp.setLastSentAt(LocalDateTime.now());
+				otpRepository.save(latestOtp);
+
+				emailService.sendOtp(user.getEmail(), latestOtp.getEmailOtp());
+				smsService.sendOtp(user.getMobileNumber(), latestOtp.getPhoneOtp());
+			} else {
+				// Create new if expired or used
+				createAndSendOtp(user);
+			}
+		}, () -> {
+			// No previous OTP exists, create new
+			createAndSendOtp(user);
+		});
+	}
+
+	@Transactional
 	public void verifyOtp(AppUser user, String emailOtp, String phoneOtp) {
-		OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
+		//OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
+		
+		OtpVerification latestOtp = otpRepository.findTopByUserOrderByCreatedAtDesc(user)
+
 				.orElseThrow(() -> new BadRequestException("No active OTP found. Please register again."));
 
 		if (latestOtp.getExpiresAt().isBefore(LocalDateTime.now())) {
@@ -49,12 +82,12 @@ public class OtpService {
 		}
 
 		if (!latestOtp.getEmailOtp().equals(emailOtp)) {
-			throw new BadRequestException("Invalid email OTP");
-		}
+            throw new BadRequestException("Invalid email OTP");
+        }
 
-		if (!latestOtp.getPhoneOtp().equals(phoneOtp)) {
-			throw new BadRequestException("Invalid phone OTP");
-		}
+        if (!latestOtp.getPhoneOtp().equals(phoneOtp)) {
+            throw new BadRequestException("Invalid phone OTP");
+        }
 
 		latestOtp.setUsed(true);
 		otpRepository.save(latestOtp);
@@ -65,16 +98,4 @@ public class OtpService {
 		return String.valueOf(number);
 	}
 
-	public boolean invalidateLastOtp(AppUser user) {
-
-		OtpVerification latestOtp = otpRepository.findTopByUserAndUsedFalseOrderByCreatedAtDesc(user)
-				.orElseThrow(() -> new BadRequestException("No active OTP found. Please register again."));
-
-		if (latestOtp.getExpiresAt().isAfter(LocalDateTime.now())) {
-			return false;
-
-		}
-
-		return true;
-	}
 }

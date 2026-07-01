@@ -33,7 +33,7 @@ public class ClaimDocumentController {
 	@PreAuthorize("hasRole('CUSTOMER')")
 	@PostMapping(value = "/upload/{claimId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "Upload Claim Documents", description = "Uploads multiple supporting document files (e.g., images, PDFs) for a specific claim.")
-	public ApiResponseDTO<List<ClaimDocumentResponseDTO>> uploadDocument(@PathVariable Long claimId,
+	public ApiResponseDTO<List<ClaimDocumentResponseDTO>> uploadDocument(@PathVariable("claimId") Long claimId,
 			@RequestParam("files") List<MultipartFile> files) throws IOException {
 
 		return claimDocumentService.uploadDocuments(claimId, files);

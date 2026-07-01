@@ -18,11 +18,13 @@ public interface ClaimService {
 
 	ApiResponseDTO<ClaimResponseDTO> raiseClaim(ClaimRequestDTO dto, List<MultipartFile> files) throws IOException; // Customer only
 
-	ApiResponseDTO<ClaimResponseDTO> reviewClaim(Long claimId, ClaimReviewRequestDTO dto); // Agent
+	ApiResponseDTO<ClaimResponseDTO> reviewClaim(Long claimId, ClaimReviewRequestDTO dto); // Internal Staff
 
 	ApiResponseDTO<ClaimResponseDTO> finalDecision(Long claimId, ClaimReviewRequestDTO dto); // Admin
 
 	ApiResponseDTO<ClaimResponseDTO> getClaimById(Long claimId);
+
+	ApiResponseDTO<List<ClaimResponseDTO>> getClaimsByPolicyId(Long policyId);
 
 	ApiResponseDTO<List<ClaimResponseDTO>> getMyClaims(); // Customer
 
@@ -34,4 +36,5 @@ public interface ClaimService {
 
 	ApiResponseDTO<ClaimResponseDTO> underReviewClaim(Long claimId);
 
+	ApiResponseDTO<ClaimResponseDTO> assignStaff(Long claimId);
 }

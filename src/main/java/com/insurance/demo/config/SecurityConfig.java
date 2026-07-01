@@ -30,88 +30,89 @@ public class SecurityConfig {
 			JwtAuthenticationFilter jwtAuthenticationFilter,
 			@Qualifier("handlerExceptionResolver") HandlerExceptionResolver handlerExceptionResolver) throws Exception {
 
-		http.csrf(AbstractHttpConfigurer::disable).authenticationProvider(authenticationProvider)
+		http.cors(cors -> {
+		}).csrf(AbstractHttpConfigurer::disable)
+
+				.authenticationProvider(authenticationProvider)
+
 				.exceptionHandling(exceptionHandling -> exceptionHandling
 						.authenticationEntryPoint((request, response, authException) -> handlerExceptionResolver
 								.resolveException(request, response, null, authException))
 						.accessDeniedHandler((request, response, accessDeniedException) -> handlerExceptionResolver
 								.resolveException(request, response, null, accessDeniedException)))
+
 				.authorizeHttpRequests(auth -> auth
 
-						// PUBLIC AUTH
+						// IMPORTANT FOR CORS
+						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+						// PUBLIC
 						.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
 						.requestMatchers("/api/auth/**").permitAll()
 
-						// POLICY PLANS
+						// PLANS
 						.requestMatchers(HttpMethod.POST, "/api/plans/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PUT, "/api/plans/*").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/api/plans/*/deactivate").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/api/plans/*/activate").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.GET, "/api/plans/active", "/api/plans/*/active")
-						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER").requestMatchers(HttpMethod.GET, "/api/plans/page")
-						.hasAnyRole("ADMIN", "AGENT").requestMatchers(HttpMethod.GET, "/api/plans/**")
-						.hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.GET, "/api/plans/active").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/plans/*/active").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/plans/page").hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/plans/*").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/plans/**").hasAnyRole("ADMIN", "INTERNAL_STAFF")
 
 						// POLICIES
 						.requestMatchers(HttpMethod.POST, "/api/policies/purchase").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.POST, "/api/policies/issue").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.POST, "/api/policies/issue").hasAnyRole("ADMIN", "INTERNAL_STAFF")
 						.requestMatchers(HttpMethod.GET, "/api/policies/my-policies").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/policies/{policyId}")
-						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/policies/customer/*").hasAnyRole("ADMIN", "AGENT")
-						.requestMatchers(HttpMethod.GET, "/api/policies/**").hasAnyRole("ADMIN", "AGENT")
-						.requestMatchers(HttpMethod.PATCH, "/api/policies/*/cancel").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.GET, "/api/policies/customer/*").hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/policies/*").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/policies").hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.PATCH, "/api/policies/*/cancel").hasAnyRole("ADMIN", "INTERNAL_STAFF")
 
 						// CLAIMS
 						.requestMatchers(HttpMethod.POST, "/api/claims/raise").hasRole("CUSTOMER")
 						.requestMatchers(HttpMethod.GET, "/api/claims/my-claims").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/claims/{claimId}")
-						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/claims/{claimId}/history")
-						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
-						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/review").hasRole("AGENT")
-						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/under-review").hasRole("AGENT")
+						.requestMatchers(HttpMethod.GET, "/api/claims/*").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
+						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/review").hasRole("INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/under-review").hasRole("INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/assign").hasRole("INTERNAL_STAFF")
 						.requestMatchers(HttpMethod.PATCH, "/api/claims/*/final-decision").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.GET, "/api/claims").hasAnyRole("ADMIN", "AGENT")
-						.requestMatchers(HttpMethod.POST, "/api/claims/*/documents")
-						.hasAnyRole("CUSTOMER", "AGENT", "ADMIN")
-
-						// CLAIM DOCUMENT
+						// DOCUMENTS
 						.requestMatchers(HttpMethod.POST, "/api/document/upload/**").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.DELETE, "/api/document/**").hasRole("CUSTOMER")
 
-						// USERS
-						.requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
-						.requestMatchers(HttpMethod.PATCH, "/api/users/**").hasRole("ADMIN")
-
-						// CUSTOMER MANAGEMENT
+						// CUSTOMERS
 						.requestMatchers(HttpMethod.POST, "/api/customers/**").hasRole("CUSTOMER")
 						.requestMatchers(HttpMethod.PUT, "/api/customers/**").hasRole("CUSTOMER")
 						.requestMatchers(HttpMethod.GET, "/api/customers/profile").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/customers").hasAnyRole("ADMIN", "AGENT")
-						.requestMatchers(HttpMethod.GET, "/api/customers/page").hasAnyRole("ADMIN", "AGENT")
-						.requestMatchers(HttpMethod.GET, "/api/customers/*").hasAnyRole("ADMIN", "AGENT")
+						.requestMatchers(HttpMethod.GET, "/api/customers").hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/customers/page").hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/customers/*").hasAnyRole("ADMIN", "INTERNAL_STAFF")
 
-						// INSURANCE PRODUCT MANAGEMENT
+						// PRODUCTS
 						.requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PATCH, "/api/products/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.GET, "/api/products/active")
-						.hasAnyRole("ADMIN", "AGENT", "CUSTOMER").requestMatchers(HttpMethod.GET, "/api/products/**")
-						.hasAnyRole("ADMIN", "AGENT")
+						.hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/products/page")
+						.hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/products/*")
+						.hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
 
-						// payment
-						.requestMatchers(HttpMethod.POST, "/api/payments").hasAnyRole("CUSTOMER", "AGENT")
-						.requestMatchers(HttpMethod.GET, "/api/payment/my-paymentss").hasRole("CUSTOMER")
+						// PAYMENTS
+						.requestMatchers(HttpMethod.POST, "/api/payments").hasAnyRole("CUSTOMER", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/payments/my-payments").hasRole("CUSTOMER")
 						.requestMatchers(HttpMethod.GET, "/api/payments/my-policies/*").hasRole("CUSTOMER")
-						.requestMatchers(HttpMethod.GET, "/api/payments/policy/*").hasAnyRole("ADMIN", "AGENT")
-						.requestMatchers(HttpMethod.GET, "/api/payments/page").hasAnyRole("ADMIN", "AGENT")
-						.requestMatchers(HttpMethod.GET, "/api/payment/*").hasAnyRole("ADMIN", "AGENT", "CUSTOMER")
+						.requestMatchers(HttpMethod.GET, "/api/payments/policy/*").hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/payments/page").hasAnyRole("ADMIN", "INTERNAL_STAFF")
+						.requestMatchers(HttpMethod.GET, "/api/payments/*").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
 
-						// Fallback
 						.anyRequest().authenticated())
+
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
 				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();

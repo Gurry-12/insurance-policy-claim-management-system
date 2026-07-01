@@ -7,8 +7,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.insurance.demo.dto.request.ForgotPasswordRequestDTO;
 import com.insurance.demo.dto.request.LoginRequestDTO;
 import com.insurance.demo.dto.request.ResendOtpRequestDTO;
+import com.insurance.demo.dto.request.ResetPasswordRequestDTO;
 import com.insurance.demo.dto.request.UserRequestDTO;
 import com.insurance.demo.dto.request.VerifyOtpRequest;
 import com.insurance.demo.dto.response.ApiResponseDTO;
@@ -62,6 +64,18 @@ public class AuthController {
 	@Operation(summary = "Resend OTP", description = "Resend the OTP to user email and phone  to activate")
 	public ApiResponseDTO<ResendOtpResponseDTO> resendOtp(@Valid @RequestBody ResendOtpRequestDTO request){
 			return authService.resendOtp(request);
+	}
+	
+	@PostMapping("/forgot-password")
+	@Operation(summary = "Forgot Password", description = "Sends an OTP to the user's registered email and phone number for password reset.")
+	public ApiResponseDTO<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {
+		return authService.forgotPassword(request);
+	}
+
+	@PostMapping("/reset-password")
+	@Operation(summary = "Reset Password", description = "Resets the user's password using the OTPs sent to their email and phone.")
+	public ApiResponseDTO<String> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO request) {
+		return authService.resetPassword(request);
 	}
 
 }

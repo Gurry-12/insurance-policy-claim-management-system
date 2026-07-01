@@ -2,6 +2,7 @@ package com.insurance.demo.serviceimpl;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -24,6 +25,7 @@ import com.insurance.demo.model.PolicyPlan;
 import com.insurance.demo.repository.InsuranceProductRepository;
 import com.insurance.demo.repository.PolicyPlanRepository;
 import com.insurance.demo.service.PolicyPlanService;
+import com.insurance.demo.util.PaginationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +45,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		log.info("Creating policy plan: {}", dto.getPlanName());
 
-		if (dto.getCoverageAmount() <= dto.getPremiumAmount()) {
+		if (dto.getCoverageAmount().compareTo(dto.getPremiumAmount()) <= 0) {
 			throw new BadRequestException("The policy coverage amount must strictly exceed the required premium amount.");
 		}
 
@@ -86,7 +88,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		log.info("Updating policy plan with id: {}", planId);
 
-		if (dto.getCoverageAmount() <= dto.getPremiumAmount()) {
+		if (dto.getCoverageAmount().compareTo(dto.getPremiumAmount()) <= 0) {
 			throw new BadRequestException("Cannot create a policy plan under an inactive insurance product.");
 		}
 
@@ -144,6 +146,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 			PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
 			return new ApiResponseDTO<>("The policy plan is already marked as inactive", false, dto, LocalDateTime.now());
 		}
+		
 
 		plan.setIsActive(false);
 		PolicyPlan deactivatedPlan = policyPlanRepository.save(plan);
@@ -207,8 +210,8 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		log.info("Fetching policy plans with pagination: page={}, size={}, sortBy={}, direction={}, productId={}, active={}", pageNumber,
 				pageSize, sortBy, sortDirection, productId, isActive);
 
-		validatePagination(pageNumber, pageSize);
-		validateSortField(sortBy);
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "planName", "coverageAmount", "premiumAmount", "createdDate"));
 
 		Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
@@ -231,23 +234,6 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 				planPage.getTotalPages(), planPage.isLast(), sortDirection);
 	}
 
-
-	// Helper methods
-	private void validatePagination(int pageNumber, int pageSize) {
-		if (pageNumber < 0)
-			throw new BadRequestException("Page number cannot be negative");
-		if (pageSize <= 0)
-			throw new BadRequestException("Page size must be greater than 0");
-		if (pageSize > 100)
-			throw new BadRequestException("Page size cannot exceed 100");
-	}
-
-	private void validateSortField(String sortBy) {
-		List<String> allowedFields = List.of("id", "planName", "coverageAmount", "premiumAmount", "createdDate");
-		if (!allowedFields.contains(sortBy)) {
-			throw new BadRequestException("Invalid sort field: " + sortBy);
-		}
-	}
 
 	@Override
 	public ApiResponseDTO<PlanResponseDTO> getPlanById(Long planId) {

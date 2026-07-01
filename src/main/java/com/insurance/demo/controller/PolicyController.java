@@ -19,6 +19,7 @@ import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.service.PolicyService;
+import com.insurance.demo.service.ClaimService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -34,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class PolicyController {
 
 	private final PolicyService policyService;
+	private final ClaimService claimService;
 
 	@PostMapping("/purchase")
 	@ResponseStatus(HttpStatus.CREATED)
@@ -45,9 +47,9 @@ public class PolicyController {
 	}
 
 	@PostMapping("/issue")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@ResponseStatus(HttpStatus.CREATED)
-	@Operation(summary = "Issue Policy", description = "Manually issues a policy to a customer. Restricted to Admin/Agent.")
+	@Operation(summary = "Issue Policy", description = "Manually issues a policy to a customer. Restricted to Admin/Internal Staff.")
 	public ApiResponseDTO<PolicyResponseDTO> issuePolicy(@Valid @RequestBody PolicyIssueRequestDTO requestDTO) {
 
 		return policyService.issuePolicy(requestDTO);
@@ -58,42 +60,49 @@ public class PolicyController {
 	@Operation(summary = "Get Policy of loged in customer", description = "Retrieves the details of a loged in customer's purchased policy.")
 	public PageResponseDTO<PolicyResponseDTO> getMyPolicies(Authentication authentication,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
-			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String direction) {
+			@RequestParam(defaultValue = "id") String sort, @RequestParam(defaultValue = "asc") String direction) {
 
-		return policyService.getCustomerPolicies(authentication.getName(), page, size, sortBy, direction);
+		return policyService.getCustomerPolicies(authentication.getName(), page, size, sort, direction);
 	}
 
 	@GetMapping("/customer/{customerId}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get Policy by customer ID", description = "Retrieves the details of a specific customer's purchased policy.")
 	public PageResponseDTO<PolicyResponseDTO> getPoliciesByCustomer(@PathVariable Long customerId,
 			@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
-			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String direction) {
+			@RequestParam(defaultValue = "id") String sort, @RequestParam(defaultValue = "asc") String direction) {
 
-		return policyService.getPoliciesByCustomer(customerId, page, size, sortBy, direction);
+		return policyService.getPoliciesByCustomer(customerId, page, size, sort, direction);
 	}
 
 	@GetMapping
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get All Policies", description = "Retrieves a paginated list of all policies. Supports filtering by customer ID, plan ID, and status.")
 	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue = "id") String sortBy,
+			@RequestParam(defaultValue = "10") int size, @RequestParam(defaultValue = "id") String sort,
 			@RequestParam(defaultValue = "asc") String direction,
 			@RequestParam(required = false) Long customerId,
 			@RequestParam(required = false) String status) {
 
-		return policyService.getAllPolicies(page, size, sortBy, direction, customerId, status);
+		return policyService.getAllPolicies(page, size, sort, direction, customerId, status);
 	}
 
 	@GetMapping("/{policyId}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT', 'CUSTOMER')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
 	@Operation(summary = "Get Policy by ID", description = "Retrieves the details of a specific purchased policy.")
 	public ApiResponseDTO<PolicyResponseDTO> getPolicyById(@PathVariable Long policyId) {
 		return policyService.getPolicyById(policyId);
 	}
-	
+
+	@GetMapping("/{policyId}/claims")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
+	@Operation(summary = "Get claims by Policy ID", description = "Retrieves all claims associated with a specific policy.")
+	public org.springframework.http.ResponseEntity<?> getClaimsByPolicy(@PathVariable Long policyId) {
+		return org.springframework.http.ResponseEntity.ok(claimService.getClaimsByPolicyId(policyId));
+	}
+
 	@PatchMapping("/{policyId}/cancel")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Cancel Policy", description = "Cancels an active or pending insurance policy.")
 	public ApiResponseDTO<PolicyResponseDTO> cancelPolicy(@PathVariable Long policyId) {
 

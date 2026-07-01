@@ -1,5 +1,6 @@
 package com.insurance.demo.dto.response;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -32,15 +33,17 @@ public class PolicyResponseDTO {
 
 	private String policyStatus;
 
-	private Double totalPremiumPaid;
+	private BigDecimal totalPremiumPaid;
 
 	private String productType;
 
-	private Double coverageAmount;
+	private BigDecimal coverageAmount;
 
-	private Double premiumAmount;
+	private BigDecimal premiumAmount;
 
 	private String premiumType;
 
 	private LocalDateTime createdDate;
+
+	private BigDecimal remainingClaimAmount;
 }

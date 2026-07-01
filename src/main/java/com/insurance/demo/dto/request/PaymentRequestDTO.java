@@ -6,6 +6,7 @@ import com.insurance.demo.enums.PaymentStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,15 +18,15 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PaymentRequestDTO {
 
-	@NotNull(message = "Policy Id is required")
+	//@NotNull(message = "Policy Id is required")
 	private Long policyId;
 
 	@Positive(message = "Amount must be greater than zero")
-	private Double amount;
+	private BigDecimal amount;
 
 	@NotNull(message = "Payment mode is required")
 	private PaymentMode paymentMode;
 
-	@NotNull(message = "Payment status is required")
+//	@NotNull(message = "Payment status is required")
 	private PaymentStatus paymentStatus;
 }

@@ -1,5 +1,6 @@
 package com.insurance.demo.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -48,8 +50,8 @@ public class Claim {
 
     @Positive(message = "Claim amount must be greater than zero")
     @NotNull(message = "Claim amount is required")
-    @Column(nullable = false)
-    private Double claimAmount;
+    @Column(nullable = false, precision = 15, scale = 2)
+    private BigDecimal claimAmount;
 
     @NotBlank(message = "Claim reason is required")
     @Column(nullable = false)
@@ -64,8 +66,8 @@ public class Claim {
     @NotNull(message = "Claim status is required")
     private ClaimStatus claimStatus;
 
-    @Column(name = "agent_remarks")
-    private String agentRemarks;
+    @Column(name = "staff_remarks")
+    private String staffRemarks;
 
     @Column(name = "admin_remarks")
     private String adminRemarks;
@@ -83,9 +85,16 @@ public class Claim {
     @NotNull(message = "Policy is required")
     private Policy policy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_staff_id")
+    private AppUser assignedStaff;
+
     @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ClaimDocument> claimDocuments = new ArrayList<>();
 
     @OneToMany(mappedBy = "claim", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ClaimStatusHistory> claimStatusHistories = new ArrayList<>();
+
+    @Version
+    private Long version;
 }

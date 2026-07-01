@@ -11,12 +11,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResendOtpRequestDTO {
+public class ForgotPasswordRequestDTO {
 
-	@NotBlank
-	@Email
+	@Email(message = "enter a valid email")
+	@NotBlank(message = "email is required")
 	private String email;
-	
-	@NotBlank 
-	private String phone;
+
 }

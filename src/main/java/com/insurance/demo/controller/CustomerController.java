@@ -45,7 +45,7 @@ public class CustomerController {
 	}
 
 	@GetMapping("/{customerId}")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get Customer by ID", description = "Retrieves a specific customer profile by ID.")
 	public ApiResponseDTO<CustomerResponseDTO> getCustomerById(@PathVariable Long customerId) {
 
@@ -53,8 +53,8 @@ public class CustomerController {
 	}
 
 	@GetMapping
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
-	@Operation(summary = "Get All Customers", description = "Retrieves a list of all customer profiles. Restricted to Admin/Agent.")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
+	@Operation(summary = "Get All Customers", description = "Retrieves a list of all customer profiles. Restricted to Admin/Internal Staff.")
 	public ApiResponseDTO<List<CustomerResponseDTO>> getAllCustomers() {
 
 		return customerService.getAllCustomers();
@@ -70,8 +70,8 @@ public class CustomerController {
 	}
 
 	@GetMapping("/page")
-	@PreAuthorize("hasAnyRole('ADMIN', 'AGENT')")
-	@Operation(summary = "Get All Customers", description = "Retrieves a paginated list of all customer profiles. Restricted to Admin/Agent.")
+	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
+	@Operation(summary = "Get All Customers", description = "Retrieves a paginated list of all customer profiles. Restricted to Admin/Internal Staff.")
 	public PageResponseDTO<CustomerResponseDTO> getAllCustomersWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDirection,

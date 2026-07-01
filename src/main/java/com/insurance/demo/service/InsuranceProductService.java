@@ -6,10 +6,6 @@ import com.insurance.demo.dto.request.ProductRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.ProductResponseDTO;
-import com.insurance.demo.dto.response.UserResponseDTO;
-import com.insurance.demo.model.InsuranceProduct;
-
-import jakarta.validation.Valid;
 
 public interface InsuranceProductService {
 
@@ -20,7 +16,7 @@ public interface InsuranceProductService {
 	PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, String productType, Boolean isActive);
 
-	ProductResponseDTO updateProduct(Long id, @Valid ProductRequestDTO requestDTO);
+	ProductResponseDTO updateProduct(Long id, ProductRequestDTO requestDTO);
 
 	ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts();
 

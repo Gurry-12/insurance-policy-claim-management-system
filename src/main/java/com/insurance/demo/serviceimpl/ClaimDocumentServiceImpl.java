@@ -54,8 +54,19 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 			}
 
 			if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
-
 				throw new BadRequestException("Uploaded document must have a valid file name.");
+			}
+
+			// File type validation: only images and PDFs allowed
+			String contentType = file.getContentType();
+			if (contentType == null || !java.util.Set.of("image/jpeg", "image/png", "image/jpg", "application/pdf")
+					.contains(contentType)) {
+				throw new BadRequestException("Only JPEG, PNG, and PDF documents are accepted.");
+			}
+
+			// File size validation: max 10 MB per file
+			if (file.getSize() > 10 * 1024 * 1024) {
+				throw new BadRequestException("Each document must not exceed 10 MB in size.");
 			}
 		}
 
@@ -64,7 +75,7 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 		Claim claim = claimRepository.findById(claimId)
 				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
 
-		// Security Check - Only owner or agent/admin can add documents
+		// Security Check - Only owner or staff/admin can add documents
 		if (!claim.getPolicy().getCustomer().getUser().getEmail().equals(currentUserEmail)) {
 			throw new BadRequestException("You are only permitted to upload supporting documents to your own claims.");
 		}

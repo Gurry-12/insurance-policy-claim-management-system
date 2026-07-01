@@ -1,5 +1,6 @@
 package com.insurance.demo.dto.request;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -22,7 +23,7 @@ public class ClaimRequestDTO {
 
 	@NotNull(message = "Claim amount is required")
 	@Positive(message = "Claim amount must be greater than zero")
-	private Double claimAmount;
+	private BigDecimal claimAmount;
 
 	@NotBlank(message = "Claim reason is required")
 	private String claimReason;

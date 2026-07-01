@@ -1,8 +1,10 @@
 package com.insurance.demo.dto.response;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -23,7 +25,7 @@ public class ClaimResponseDTO {
 
 	private String policyNumber;
 
-	private Double claimAmount;
+	private BigDecimal claimAmount;
 
 	private String claimReason;
 
@@ -31,7 +33,7 @@ public class ClaimResponseDTO {
 
 	private String claimStatus;
 
-	private String agentRemarks;
+	private String staffRemarks;
 
 	private String adminRemarks;
 
@@ -42,4 +44,10 @@ public class ClaimResponseDTO {
 	private LocalDateTime updatedDate;
 	
 	private List<ClaimDocumentResponseDTO> documents;
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private Long assignedStaffId;
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	private String assignedStaffName;
 }

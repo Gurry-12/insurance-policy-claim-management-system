@@ -1,5 +1,6 @@
 package com.insurance.demo.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -44,8 +45,8 @@ public class PremiumPayment {
 
 	@Positive(message = "amount should be positive")
 	@NotNull(message = "amount can't be null")
-	@Column(name = "amount", nullable = false)
-	private Double amount;
+	@Column(name = "amount", nullable = false, precision = 15, scale = 2)
+	private BigDecimal amount;
 
 	@Column(name = "payment_date", nullable = false)
 	private LocalDateTime paymentDate = LocalDateTime.now();

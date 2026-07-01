@@ -6,8 +6,10 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import com.insurance.demo.enums.ProductType;
 import com.insurance.demo.enums.Role;
 import com.insurance.demo.model.AppUser;
 
@@ -28,9 +30,11 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
 	Page<AppUser> findByRoleAndIsActive(Role role, Boolean isActive, Pageable pageable);
 
+	@Query("SELECT a FROM AppUser a WHERE a.role = :role")
 	Page<AppUser> findByRole(Role role, Pageable pageable);
 
 	Page<AppUser> findByIsActive(Boolean isActive, Pageable pageable);
 
 	Optional<AppUser> findByEmailAndMobileNumber(String email, String mobileNumber);
+
 }
