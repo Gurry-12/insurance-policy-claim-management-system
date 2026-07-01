@@ -267,6 +267,10 @@ public class PolicyServiceImpl implements PolicyService {
 
 		Policy policy = policyRepository.findById(policyId).orElseThrow(() -> new PolicyNotFoundException(policyId));
 
+		if (policy.getPolicyStatus() == PolicyStatus.CANCELLED || policy.getPolicyStatus() == PolicyStatus.EXPIRED) {
+			throw new BadRequestException("Cannot cancel a policy that is already " + policy.getPolicyStatus().name());
+		}
+
 		// Block cancellation if any claim is still open
 		List<ClaimStatus> openStatuses = List.of(ClaimStatus.SUBMITTED, ClaimStatus.UNDER_REVIEW, ClaimStatus.RECOMMENDED_FOR_APPROVAL, ClaimStatus.RECOMMENDED_FOR_REJECTION);
 		boolean hasOpenClaims = policy.getClaims().stream()
