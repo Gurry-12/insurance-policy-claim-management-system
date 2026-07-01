@@ -6,13 +6,10 @@ import com.insurance.demo.dto.request.PaymentRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PaymentResponseDTO;
-import com.insurance.demo.dto.response.ProductResponseDTO;
-
-import jakarta.validation.Valid;
 
 public interface PremiumPaymentService {
 
-	public ApiResponseDTO<PaymentResponseDTO> recordPayment(@Valid PaymentRequestDTO dto);
+	public ApiResponseDTO<PaymentResponseDTO> recordPayment( PaymentRequestDTO dto);
 	
 	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByPolicy(Long id);
 

@@ -21,7 +21,6 @@ public class OtpService {
 
 	private final OtpVerificationRepository otpRepository;
 	private final EmailService emailService;
-	private final PasswordEncoder passwordEncoder;
 	private final SmsService smsService;
 	private final SecureRandom secureRandom = new SecureRandom();
 
@@ -53,13 +52,13 @@ public class OtpService {
 			throw new BadRequestException("OTP expired. Please register again to get a new OTP.");
 		}
 
-		if (!passwordEncoder.matches(emailOtp, latestOtp.getEmailOtp())) {
-			throw new BadRequestException("Invalid email OTP");
-		}
+		if (!latestOtp.getEmailOtp().equals(emailOtp)) {
+            throw new BadRequestException("Invalid email OTP");
+        }
 
-		if (!passwordEncoder.matches(phoneOtp, latestOtp.getPhoneOtp())) {
-			throw new BadRequestException("Invalid phone OTP");
-		}
+        if (!latestOtp.getPhoneOtp().equals(phoneOtp)) {
+            throw new BadRequestException("Invalid phone OTP");
+        }
 
 		latestOtp.setUsed(true);
 		otpRepository.save(latestOtp);

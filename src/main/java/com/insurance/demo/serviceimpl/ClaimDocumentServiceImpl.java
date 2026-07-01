@@ -59,9 +59,8 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 
 			// File type validation: only images and PDFs allowed
 			String contentType = file.getContentType();
-			if (contentType == null || !java.util.Set.of(
-					"image/jpeg", "image/png", "image/jpg", "application/pdf"
-			).contains(contentType)) {
+			if (contentType == null || !java.util.Set.of("image/jpeg", "image/png", "image/jpg", "application/pdf")
+					.contains(contentType)) {
 				throw new BadRequestException("Only JPEG, PNG, and PDF documents are accepted.");
 			}
 

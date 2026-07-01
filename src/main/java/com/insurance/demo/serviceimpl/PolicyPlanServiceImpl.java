@@ -144,6 +144,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 			PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
 			return new ApiResponseDTO<>("The policy plan is already marked as inactive", false, dto, LocalDateTime.now());
 		}
+		
 
 		plan.setIsActive(false);
 		PolicyPlan deactivatedPlan = policyPlanRepository.save(plan);
