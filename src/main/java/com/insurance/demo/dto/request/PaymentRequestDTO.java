@@ -21,7 +21,7 @@ public class PaymentRequestDTO {
 	//@NotNull(message = "Policy Id is required")
 	private Long policyId;
 
-	@Positive(message = "Amount must be greater than zero")
+	@Positive(message = "Payment amount must be strictly greater than 0")
 	private BigDecimal amount;
 
 	@NotNull(message = "Payment mode is required")
