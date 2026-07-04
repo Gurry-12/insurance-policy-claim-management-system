@@ -13,6 +13,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -115,14 +116,16 @@ public class ClaimServiceImpl implements ClaimService {
 		BigDecimal remainingCoverage = policy.getPolicyPlan().getCoverageAmount().subtract(activeClaimsSum);
 
 		if (dto.getClaimAmount().compareTo(remainingCoverage) > 0) {
-			throw new BadRequestException("The requested claim amount exceeds your remaining policy coverage of " + remainingCoverage);
+			throw new BadRequestException(
+					"The requested claim amount exceeds your remaining policy coverage of " + remainingCoverage);
 		}
 
 		if (dto.getIncidentDate().isAfter(LocalDate.now())) {
 			throw new BadRequestException("Incident date cannot be in the future");
 		}
-		
-		if(dto.getIncidentDate().isBefore(policy.getStartDate()) || dto.getIncidentDate().isAfter(policy.getEndDate())) {
+
+		if (dto.getIncidentDate().isBefore(policy.getStartDate())
+				|| dto.getIncidentDate().isAfter(policy.getEndDate())) {
 			throw new BadRequestException("Incident date should be between the policy period");
 		}
 
@@ -165,10 +168,12 @@ public class ClaimServiceImpl implements ClaimService {
 				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		AppUser currentUser = userRepository.findByEmail(auth.getName()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+		AppUser currentUser = userRepository.findByEmail(auth.getName())
+				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
 		if (claim.getAssignedStaff() == null || !claim.getAssignedStaff().getId().equals(currentUser.getId())) {
-			throw new AccessDeniedException("You are not authorized to review this claim. It is assigned to another staff member.");
+			throw new AccessDeniedException(
+					"You are not authorized to review this claim. It is assigned to another staff member.");
 		}
 
 		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
@@ -258,14 +263,17 @@ public class ClaimServiceImpl implements ClaimService {
 		response.setDocuments(documents);
 		return new ApiResponseDTO<>("Claim details retrieved successfully.", true, response, LocalDateTime.now());
 	}
+
 	@Override
 	@Transactional(readOnly = true)
 	public ApiResponseDTO<List<ClaimResponseDTO>> getClaimsByPolicyId(Long policyId) {
 		List<Claim> claims = claimRepository.findByPolicyId(policyId);
 		List<ClaimResponseDTO> responseList = new java.util.ArrayList<>();
 		for (Claim claim : claims) {
-			List<com.insurance.demo.dto.response.ClaimDocumentResponseDTO> documents = claimDocumentRepository.findByClaimId(claim.getId()).stream()
-					.map(document -> modelMapper.map(document, com.insurance.demo.dto.response.ClaimDocumentResponseDTO.class)).toList();
+			List<com.insurance.demo.dto.response.ClaimDocumentResponseDTO> documents = claimDocumentRepository
+					.findByClaimId(claim.getId()).stream().map(document -> modelMapper.map(document,
+							com.insurance.demo.dto.response.ClaimDocumentResponseDTO.class))
+					.toList();
 			ClaimResponseDTO response = convertToResponseDTO(claim);
 			response.setDocuments(documents);
 			responseList.add(response);
@@ -303,55 +311,60 @@ public class ClaimServiceImpl implements ClaimService {
 	@Override
 	@Transactional(readOnly = true)
 	public PageResponseDTO<ClaimResponseDTO> getAllClaimsWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection, Long customerId, String status) {
+			String sortDirection, Long customerId, String status, Double minClaimAmount, Double maxClaimAmount) {
 
-		log.info("Fetching claims with pagination: page={}, size={}, sortBy={}, customerId={}, status={}", pageNumber,
-				pageSize, sortBy, customerId, status);
+		log.info("Fetching claims with pagination: page={}, size={}, sortBy={}, customerId={}, status={}, minAmt={}, maxAmt={}", pageNumber,
+				pageSize, sortBy, customerId, status, minClaimAmount, maxClaimAmount);
 
 		PaginationValidator.validate(pageNumber, pageSize);
-		PaginationValidator.validateSortField(sortBy, Set.of("id", "claimNumber", "claimAmount", "createdDate", "claimStatus"));
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "claimNumber", "claimAmount", "createdDate",
+				"claimStatus", "policyNumber", "policy.policyNumber"));
 
+		String mappedSortBy = "policyNumber".equals(sortBy) ? "policy.policyNumber" : sortBy;
 		Sort.Direction direction = "desc".equalsIgnoreCase(sortDirection) ? Sort.Direction.DESC : Sort.Direction.ASC;
-		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
+		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, mappedSortBy));
 
-		ClaimStatus claimStatus = null;
+		Specification<Claim> spec = (root, query, cb) -> cb.conjunction();
+		
+		if (customerId != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("policy").get("customer").get("id"), customerId));
+		}
+		
 		if (status != null && !status.trim().isEmpty()) {
 			try {
-				claimStatus = ClaimStatus.valueOf(status.toUpperCase());
+				ClaimStatus claimStatus = ClaimStatus.valueOf(status.toUpperCase());
+				spec = spec.and((root, query, cb) -> cb.equal(root.get("claimStatus"), claimStatus));
 			} catch (IllegalArgumentException e) {
 				throw new BadRequestException("Invalid claim status provided for filtering: " + status);
 			}
 		}
 
-		Page<Claim> claimPage;
+		if (minClaimAmount != null) {
+			spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("claimAmount"), minClaimAmount));
+		}
+		
+		if (maxClaimAmount != null) {
+			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("claimAmount"), maxClaimAmount));
+		}
+
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
-		AppUser currentUser = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
-		boolean isInternalStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
-		ProductType staffSpeciality = null;
-
-		if (isInternalStaff && currentUser.getStaffSpeciality() != null) {
-			staffSpeciality = currentUser.getStaffSpeciality().getProductSpeciality();
-		}
+		AppUser currentUser = userRepository.findByEmail(email)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+		boolean isInternalStaff = auth.getAuthorities().stream()
+				.anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
 
 		if (isInternalStaff) {
+			ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
 			if (staffSpeciality == null) {
 				// Staff without a speciality should see no claims
-				claimPage = Page.empty(pageable);
-			} else if (claimStatus != null) {
-				claimPage = claimRepository.findByPolicyPolicyPlanInsuranceProductProductTypeAndClaimStatus(staffSpeciality, claimStatus, pageable);
+				spec = spec.and((root, query, cb) -> cb.disjunction()); // false condition
 			} else {
-				claimPage = claimRepository.findByPolicyPolicyPlanInsuranceProductProductType(staffSpeciality, pageable);
+				spec = spec.and((root, query, cb) -> cb.equal(root.get("policy").get("policyPlan").get("insuranceProduct").get("productType"), staffSpeciality));
 			}
-		} else if (customerId != null && claimStatus != null) {
-			claimPage = claimRepository.findByPolicyCustomerIdAndClaimStatus(customerId, claimStatus, pageable);
-		} else if (customerId != null) {
-			claimPage = claimRepository.findByPolicyCustomerId(customerId, pageable);
-		} else if (claimStatus != null) {
-			claimPage = claimRepository.findByClaimStatus(claimStatus, pageable);
-		} else {
-			claimPage = claimRepository.findAll(pageable);
 		}
+
+		Page<Claim> claimPage = claimRepository.findAll(spec, pageable);
 
 		List<ClaimResponseDTO> content = claimPage.getContent().stream().map(this::convertToResponseDTO).toList();
 

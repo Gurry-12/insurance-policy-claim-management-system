@@ -62,9 +62,13 @@ public class PremiumPaymentController {
 	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDirection,
-			@RequestParam(required = false) Long policyId, @RequestParam(required = false) String paymentStatus) {
+			@RequestParam(required = false) Long policyId,
+			@RequestParam(required = false) String paymentStatus,
+			@RequestParam(required = false) String transactionId,
+			@RequestParam(required = false) Double minAmount,
+			@RequestParam(required = false) Double maxAmount) {
 		return paymentService.getAllPaymentsWithPagination(pageNumber, pageSize, sortBy, sortDirection, policyId,
-				paymentStatus);
+				paymentStatus, transactionId, minAmount, maxAmount);
 	}
 
 	@GetMapping("/my-payments")

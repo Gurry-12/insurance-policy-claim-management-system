@@ -85,8 +85,9 @@ public class InsuranceProductController {
 			@RequestParam(defaultValue = "id") String sortBy,
 			@RequestParam(defaultValue = "asc") String sortDirection,
 			@RequestParam(required = false) String productType,
-			@RequestParam(required = false) Boolean isActive) {
-		return productService.getAllProductsWithPagination(pageNumber, pageSize, sortBy, sortDirection, productType, isActive);
+			@RequestParam(required = false) Boolean isActive,
+			@RequestParam(required = false) String productName) {
+		return productService.getAllProductsWithPagination(pageNumber, pageSize, sortBy, sortDirection, productType, isActive, productName);
 	}
 	
 	@PatchMapping("/{id}/activate")

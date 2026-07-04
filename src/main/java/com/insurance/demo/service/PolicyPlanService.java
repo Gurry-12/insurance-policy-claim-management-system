@@ -21,8 +21,7 @@ public interface PolicyPlanService {
 
     ApiResponseDTO<List<PlanResponseDTO>> viewActivePlansUnderInsuranceProduct(Long productId);
 
-    PageResponseDTO<PlanResponseDTO> getAllPlansWithPagination(int pageNumber, int pageSize, 
-                                                              String sortBy, String sortDirection, Long productId, Boolean isActive);
+    PageResponseDTO<PlanResponseDTO> getAllPlansWithPagination(int pageNumber, int pageSize, String sortBy, String sortDirection, Long productId, Boolean isActive, String planName, Double minCoverageAmount, Double maxCoverageAmount, Double minPremiumAmount, Double maxPremiumAmount);
 
 	ApiResponseDTO<PlanResponseDTO> getPlanById(Long planId);
 }
