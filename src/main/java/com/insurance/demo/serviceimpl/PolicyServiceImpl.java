@@ -1,7 +1,6 @@
 package com.insurance.demo.serviceimpl;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +22,7 @@ import com.insurance.demo.dto.request.PolicyPurchaseRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PolicyResponseDTO;
+import com.insurance.demo.enums.ClaimStatus;
 import com.insurance.demo.enums.PolicyStatus;
 import com.insurance.demo.enums.ProductType;
 import com.insurance.demo.exception.BadRequestException;
@@ -33,15 +33,13 @@ import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.Customer;
 import com.insurance.demo.model.Policy;
 import com.insurance.demo.model.PolicyPlan;
+import com.insurance.demo.repository.ClaimRepository;
 import com.insurance.demo.repository.CustomerRepository;
 import com.insurance.demo.repository.PolicyPlanRepository;
 import com.insurance.demo.repository.PolicyRepository;
-import com.insurance.demo.repository.ClaimRepository;
-import com.insurance.demo.enums.ClaimStatus;
 import com.insurance.demo.service.PolicyService;
 import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.util.PolicyNumberGenerator;
-import com.sun.jdi.request.DuplicateRequestException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -223,6 +221,7 @@ public class PolicyServiceImpl implements PolicyService {
 		if (policyNumber != null && !policyNumber.trim().isEmpty()) {
 			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("policyNumber")), "%" + policyNumber.trim().toLowerCase() + "%"));
 		}
+
 
 		Page<Policy> policyPage = policyRepository.findAll(spec, pageable);
 
