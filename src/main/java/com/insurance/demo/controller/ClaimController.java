@@ -66,9 +66,11 @@ public class ClaimController {
 	public PageResponseDTO<ClaimResponseDTO> getAllClaims(@RequestParam(defaultValue = "0") int pageNumber,
 			@RequestParam(defaultValue = "10") int pageSize, @RequestParam(defaultValue = "createdDate") String sortBy,
 			@RequestParam(defaultValue = "desc") String sortDirection, @RequestParam(required = false) Long customerId,
-			@RequestParam(required = false) String status) {
+			@RequestParam(required = false) String status,
+			@RequestParam(required = false) Double minClaimAmount,
+			@RequestParam(required = false) Double maxClaimAmount) {
 
-		return claimService.getAllClaimsWithPagination(pageNumber, pageSize, sortBy, sortDirection, customerId, status);
+		return claimService.getAllClaimsWithPagination(pageNumber, pageSize, sortBy, sortDirection, customerId, status, minClaimAmount, maxClaimAmount);
 	}
 
 	@GetMapping("/{claimId}")

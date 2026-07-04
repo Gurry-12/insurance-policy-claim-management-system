@@ -16,8 +16,10 @@ import com.insurance.demo.enums.ClaimStatus;
 import com.insurance.demo.enums.ProductType;
 import com.insurance.demo.model.Claim;
 
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 @Repository
-public interface ClaimRepository extends JpaRepository<Claim, Long>{
+public interface ClaimRepository extends JpaRepository<Claim, Long>, JpaSpecificationExecutor<Claim>{
 
 	Optional<Claim> findByClaimNumber(String claimNumber);
 

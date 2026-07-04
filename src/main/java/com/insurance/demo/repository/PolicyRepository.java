@@ -9,7 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.insurance.demo.enums.PolicyStatus;
 import com.insurance.demo.model.Policy;
 
-public interface PolicyRepository extends JpaRepository<Policy, Long> {
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+public interface PolicyRepository extends JpaRepository<Policy, Long>, JpaSpecificationExecutor<Policy> {
 
 	boolean existsByPolicyNumber(String policyNumber);
 

@@ -4,12 +4,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,6 +39,7 @@ import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.repository.ClaimRepository;
 import com.insurance.demo.enums.ClaimStatus;
 import com.insurance.demo.service.PolicyService;
+import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.util.PolicyNumberGenerator;
 import com.sun.jdi.request.DuplicateRequestException;
 
@@ -194,31 +197,34 @@ public class PolicyServiceImpl implements PolicyService {
 
 	@Override
 	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int pageNumber, int pageSize, String sortBy,
-			String sortDirection, Long customerId, String status) {
+			String sortDirection, Long customerId, String status, String policyNumber) {
+
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "policyNumber", "policyStatus", "totalPremiumPaid"));
 
 		Sort sort = sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
 
-		PolicyStatus statusEnum = null;
+		Specification<Policy> spec = (root, query, cb) -> cb.conjunction();
+		
+		if (customerId != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("customer").get("id"), customerId));
+		}
+		
 		if (status != null && !status.trim().isEmpty()) {
 			try {
-				statusEnum = PolicyStatus.valueOf(status.trim().toUpperCase());
+				PolicyStatus statusEnum = PolicyStatus.valueOf(status.trim().toUpperCase());
+				spec = spec.and((root, query, cb) -> cb.equal(root.get("policyStatus"), statusEnum));
 			} catch (IllegalArgumentException e) {
 				throw new BadRequestException("Invalid policy status filter: " + status);
 			}
 		}
 
-		Page<Policy> policyPage;
-		if (customerId != null && statusEnum != null) {
-			policyPage = policyRepository.findByCustomerIdAndPolicyStatus(customerId, statusEnum, pageable);
-		} else if (customerId != null) {
-			policyPage = policyRepository.findByCustomerId(customerId, pageable);
-		} else if (statusEnum != null) {
-			policyPage = policyRepository.findByPolicyStatus(statusEnum, pageable);
-		} else {
-			policyPage = policyRepository.findAll(pageable);
+		if (policyNumber != null && !policyNumber.trim().isEmpty()) {
+			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("policyNumber")), "%" + policyNumber.trim().toLowerCase() + "%"));
 		}
+
+		Page<Policy> policyPage = policyRepository.findAll(spec, pageable);
 
 		List<PolicyResponseDTO> content = policyPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
@@ -227,38 +233,44 @@ public class PolicyServiceImpl implements PolicyService {
 	}
 
 	@Override
-	public PageResponseDTO<PolicyResponseDTO> getCustomerPolicies(String email, int page, int size, String sortBy,
-			String direction) {
+	public PageResponseDTO<PolicyResponseDTO> getCustomerPolicies(String email, int pageNumber, int pageSize, String sortBy,
+			String sortDirection) {
 
 		Customer customer = customerRepository.findByUserEmail(email)
 				.orElseThrow(() -> new RuntimeException("Customer not found"));
 
-		Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "policyNumber", "policyStatus", "totalPremiumPaid"));
 
-		Pageable pageable = PageRequest.of(page, size, sort);
+		Sort sort = sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+
+		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
 
 		Page<Policy> policyPage = policyRepository.findByCustomerId(customer.getId(), pageable);
 
 		List<PolicyResponseDTO> content = policyPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
 		return new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
-				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), direction);
+				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), sortDirection);
 	}
 
 	@Override
-	public PageResponseDTO<PolicyResponseDTO> getPoliciesByCustomer(Long customerId, int page, int size, String sortBy,
-			String direction) {
+	public PageResponseDTO<PolicyResponseDTO> getPoliciesByCustomer(Long customerId, int pageNumber, int pageSize, String sortBy,
+			String sortDirection) {
 
-		Sort sort = direction.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+		PaginationValidator.validate(pageNumber, pageSize);
+		PaginationValidator.validateSortField(sortBy, Set.of("id", "policyNumber", "policyStatus", "totalPremiumPaid"));
 
-		Pageable pageable = PageRequest.of(page, size, sort);
+		Sort sort = sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+
+		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
 
 		Page<Policy> policyPage = policyRepository.findByCustomerId(customerId, pageable);
 
 		List<PolicyResponseDTO> content = policyPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
 		return new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
-				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), direction);
+				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), sortDirection);
 	}
 
 	@Override

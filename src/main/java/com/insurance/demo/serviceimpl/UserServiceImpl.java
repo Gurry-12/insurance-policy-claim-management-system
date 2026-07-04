@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,11 +22,11 @@ import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
-import com.insurance.demo.model.StaffSpeciality;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
+import com.insurance.demo.model.StaffSpeciality;
 import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.service.UserService;
 import com.insurance.demo.util.PaginationValidator;
@@ -51,8 +52,7 @@ public class UserServiceImpl implements UserService {
 		log.info("fatching all users");
 		List<AppUser> users = userRepository.findAll();
 
-		List<UserResponseDTO> userResponseDTOs = users.stream()
-				.map(user -> mapToUserResponseDTO(user)).toList();
+		List<UserResponseDTO> userResponseDTOs = users.stream().map(user -> mapToUserResponseDTO(user)).toList();
 
 		ApiResponseDTO<List<UserResponseDTO>> apiResponseDTO = new ApiResponseDTO<>();
 
@@ -159,6 +159,7 @@ public class UserServiceImpl implements UserService {
 		user.setStaffSpeciality(staffSpeciality);
 		user.setIsActive(false);
 		user.setEmailVerified(false);
+		user.setPhoneVerified(false);
 		AppUser retrivedUser = userRepository.save(user);
 
 		otpService.createAndSendOtp(retrivedUser);
@@ -171,12 +172,13 @@ public class UserServiceImpl implements UserService {
 	@Override
 	@Transactional(readOnly = true)
 	public PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection, String role, Boolean isActive) {
+			String sortDirection, String role, Boolean isActive, String fullName, String email) {
 		log.info(
 				"Fetching Users with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, role: {}, isActive: {}",
 				pageNumber, pageSize, sortBy, sortDirection, role, isActive);
 		PaginationValidator.validate(pageNumber, pageSize);
-		PaginationValidator.validateSortField(sortBy, Set.of("id", "fullName", "email", "mobileNumber", "role", "isActive"));
+		PaginationValidator.validateSortField(sortBy,
+				Set.of("id", "fullName", "email", "mobileNumber", "role", "isActive"));
 
 		Role roleEnum = null;
 		if (role != null && !role.trim().isEmpty()) {
@@ -189,18 +191,27 @@ public class UserServiceImpl implements UserService {
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
 
-		Page<AppUser> userPage;
-		if (roleEnum != null && isActive != null) {
-			userPage = userRepository.findByRoleAndIsActive(roleEnum, isActive, pageable);
-		} else if (roleEnum != null) {
-			userPage = userRepository.findByRole(roleEnum, pageable);
-		} else if (isActive != null) {
-			userPage = userRepository.findByIsActive(isActive, pageable);
-		} else {
-			userPage = userRepository.findAll(pageable);
+		Specification<AppUser> spec = (root, query, cb) -> cb.conjunction();
+
+		if (roleEnum != null) {
+			Role finalRoleEnum = roleEnum;
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("role"), finalRoleEnum));
 		}
-		List<UserResponseDTO> content = userPage.getContent().stream()
-				.map(user -> mapToUserResponseDTO(user)).toList();
+		if (isActive != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), isActive));
+		}
+		if (fullName != null && !fullName.trim().isEmpty()) {
+			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("fullName")),
+					"%" + fullName.trim().toLowerCase() + "%"));
+		}
+		if (email != null && !email.trim().isEmpty()) {
+			spec = spec.and(
+					(root, query, cb) -> cb.like(cb.lower(root.get("email")), "%" + email.trim().toLowerCase() + "%"));
+		}
+
+		Page<AppUser> userPage = userRepository.findAll(spec, pageable);
+
+		List<UserResponseDTO> content = userPage.getContent().stream().map(user -> mapToUserResponseDTO(user)).toList();
 		return new PageResponseDTO<>(content, userPage.getNumber(), userPage.getSize(), userPage.getTotalElements(),
 				userPage.getTotalPages(), userPage.isLast(), sortDirection);
 	}

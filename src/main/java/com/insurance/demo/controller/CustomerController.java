@@ -75,9 +75,10 @@ public class CustomerController {
 	public PageResponseDTO<CustomerResponseDTO> getAllCustomersWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDirection,
-			@RequestParam(required = false) String city, @RequestParam(required = false) String state) {
+			@RequestParam(required = false) String city, @RequestParam(required = false) String state,
+			@RequestParam(required = false) String pinCode) {
 
-		return customerService.getAllCustomersWithPagination(pageNumber, pageSize, sortBy, sortDirection, city, state);
+		return customerService.getAllCustomersWithPagination(pageNumber, pageSize, sortBy, sortDirection, city, state, pinCode);
 	}
 
 	@GetMapping("/profile")

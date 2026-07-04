@@ -96,9 +96,14 @@ public class PolicyPlanController {
             @RequestParam(defaultValue = "createdDate") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDirection,
             @RequestParam(required = false) Long productId,
-            @RequestParam(required = false) Boolean isActive) {
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) String planName,
+            @RequestParam(required = false) Double minCoverageAmount,
+            @RequestParam(required = false) Double maxCoverageAmount,
+            @RequestParam(required = false) Double minPremiumAmount,
+            @RequestParam(required = false) Double maxPremiumAmount) {
 
-        return policyPlanService.getAllPlansWithPagination(pageNumber, pageSize, sortBy, sortDirection, productId, isActive);
+        return policyPlanService.getAllPlansWithPagination(pageNumber, pageSize, sortBy, sortDirection, productId, isActive, planName, minCoverageAmount, maxCoverageAmount, minPremiumAmount, maxPremiumAmount);
     }
 
     @GetMapping("/{planId}")

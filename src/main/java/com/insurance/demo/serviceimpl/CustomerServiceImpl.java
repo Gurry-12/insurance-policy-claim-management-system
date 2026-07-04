@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -130,31 +131,30 @@ public class CustomerServiceImpl implements CustomerService {
 	@Override
 	@Transactional(readOnly = true)
 	public PageResponseDTO<CustomerResponseDTO> getAllCustomersWithPagination(int pageNumber, int pageSize,
-			String sortBy, String sortDirection, String city, String state) {
+			String sortBy, String sortDirection, String city, String state, String pinCode) {
 
 		logger.info(
-				"Fetching customers with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, city: {}, state: {}",
-				pageNumber, pageSize, sortBy, sortDirection, city, state);
+				"Fetching customers with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, city: {}, state: {}, pinCode: {}",
+				pageNumber, pageSize, sortBy, sortDirection, city, state, pinCode);
 
 		PaginationValidator.validate(pageNumber, pageSize);
 		PaginationValidator.validateSortField(sortBy, Set.of("id", "city", "state", "pinCode", "createdDate"));
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
 
-		Page<Customer> customerPage;
-		boolean hasCity = city != null && !city.trim().isEmpty();
-		boolean hasState = state != null && !state.trim().isEmpty();
-
-		if (hasCity && hasState) {
-			customerPage = customerRepository.findByCityContainingIgnoreCaseAndStateContainingIgnoreCase(city.trim(),
-					state.trim(), pageable);
-		} else if (hasCity) {
-			customerPage = customerRepository.findByCityContainingIgnoreCase(city.trim(), pageable);
-		} else if (hasState) {
-			customerPage = customerRepository.findByStateContainingIgnoreCase(state.trim(), pageable);
-		} else {
-			customerPage = customerRepository.findAll(pageable);
+		Specification<Customer> spec = (root, query, cb) -> cb.conjunction();
+		
+		if (city != null && !city.trim().isEmpty()) {
+			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("city")), "%" + city.trim().toLowerCase() + "%"));
 		}
+		if (state != null && !state.trim().isEmpty()) {
+			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("state")), "%" + state.trim().toLowerCase() + "%"));
+		}
+		if (pinCode != null && !pinCode.trim().isEmpty()) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("pinCode"), pinCode.trim()));
+		}
+
+		Page<Customer> customerPage = customerRepository.findAll(spec, pageable);
 
 		List<CustomerResponseDTO> content = customerPage.getContent().stream().map(this::convertToResponseDTO).toList();
 

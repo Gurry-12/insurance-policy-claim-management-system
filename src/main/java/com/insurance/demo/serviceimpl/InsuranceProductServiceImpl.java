@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,10 +84,10 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	@Override
 	@Transactional
 	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection, String productType, Boolean isActive) {
+			String sortDirection, String productType, Boolean isActive, String productName) {
 
-		log.info("Fetching products with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, type: {}, active: {}",
-				pageNumber, pageSize, sortBy, sortDirection, productType, isActive);
+		log.info("Fetching products with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, type: {}, active: {}, productName: {}",
+				pageNumber, pageSize, sortBy, sortDirection, productType, isActive, productName);
 		PaginationValidator.validate(pageNumber, pageSize);
 		PaginationValidator.validateSortField(sortBy, Set.of("id", "productName", "productType"));
 
@@ -100,22 +101,27 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		}
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
-		Page<InsuranceProduct> productPage;
-		if (typeEnum != null && isActive != null) {
-			productPage = productRepository.findByProductTypeAndIsActive(typeEnum, isActive, pageable);
-		} else if (typeEnum != null) {
-			productPage = productRepository.findByProductType(typeEnum, pageable);
-		} else if (isActive != null) {
-			productPage = productRepository.findByIsActive(isActive, pageable);
-		} else {
-			productPage = productRepository.findAll(pageable);
+		
+		Specification<InsuranceProduct> spec = (root, query, cb) -> cb.conjunction();
+		
+		if (typeEnum != null) {
+			com.insurance.demo.enums.ProductType finalTypeEnum = typeEnum;
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("productType"), finalTypeEnum));
 		}
+		if (isActive != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), isActive));
+		}
+		if (productName != null && !productName.trim().isEmpty()) {
+			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("productName")), "%" + productName.trim().toLowerCase() + "%"));
+		}
+
+		Page<InsuranceProduct> productPage = productRepository.findAll(spec, pageable);
+
 		List<ProductResponseDTO> content = productPage.getContent().stream()
 				.map(product -> modelMapper.map(product, ProductResponseDTO.class)).toList();
 		return new PageResponseDTO<>(content, productPage.getNumber(), productPage.getSize(),
 				productPage.getTotalElements(), productPage.getTotalPages(), productPage.isLast(), sortDirection);
 	}
-
 
 	private Direction getSortDirection(String sortDirection) {
 		if (sortDirection == null || sortDirection.equalsIgnoreCase("asc"))
@@ -125,8 +131,6 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		throw new BadRequestException("Sort direction must be asc or desc.");
 	}
 
-	
-	
 	@Transactional(readOnly = true)
 	public ApiResponseDTO<List<ProductResponseDTO>> viewActiveProducts() throws ResourceNotFoundException {
 

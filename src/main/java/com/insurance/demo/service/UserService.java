@@ -19,7 +19,7 @@ public interface UserService {
 	ApiResponseDTO<UserResponseDTO> createInternalStaffUser(CreateStaffRequestDTO staffRequestDTO);
 
 	PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection, String role, Boolean isActive);
+			String sortDirection, String role, Boolean isActive, String fullName, String email);
 
 	UserResponseDTO findByEmail(String username);
 	
