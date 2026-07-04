@@ -10,8 +10,10 @@ import org.springframework.stereotype.Repository;
 
 import com.insurance.demo.model.PolicyPlan;
 
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 @Repository
-public interface PolicyPlanRepository extends JpaRepository<PolicyPlan, Long> {
+public interface PolicyPlanRepository extends JpaRepository<PolicyPlan, Long>, JpaSpecificationExecutor<PolicyPlan> {
 
 
 	Optional<PolicyPlan> findByIdAndIsActiveTrue(Long id);

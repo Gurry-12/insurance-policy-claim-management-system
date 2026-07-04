@@ -509,7 +509,7 @@ All endpoints require `Authorization: Bearer <admin-token>`.
 
 ### `GET /policies` — ADMIN, INTERNAL_STAFF — List all policies (paginated)
 
-**Query params:** `page`, `size`, `sort`, `direction`, `customerId` (optional), `status` (optional filter: PENDING_PAYMENT|ACTIVE|EXPIRED|CANCELLED)
+**Query params:** `page`, `size`, `sort` (id|policyNumber|policyStatus|totalPremiumPaid), `direction`, `customerId` (optional), `status` (optional filter: PENDING_PAYMENT|ACTIVE|EXPIRED|CANCELLED), `policyNumber` (optional, partial match), `fromDate` (optional, filters by createdDate ≥), `toDate` (optional, filters by createdDate ≤)
 
 **Response** `200 OK` — `PageResponseDTO<PolicyResponseDTO>`
 

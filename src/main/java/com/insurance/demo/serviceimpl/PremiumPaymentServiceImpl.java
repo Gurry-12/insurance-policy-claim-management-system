@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -210,33 +211,42 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 	@Override
 	@Transactional(readOnly = true)
 	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection, Long policyId, String paymentStatus) {
+			String sortDirection, Long policyId, String paymentStatus, String transactionId, Double minAmount, Double maxAmount) {
 
 		log.info("Fetching Payments with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, policyId: {}, status: {}",
 				pageNumber, pageSize, sortBy, sortDirection, policyId, paymentStatus);
 		PaginationValidator.validate(pageNumber, pageSize);
 		PaginationValidator.validateSortField(sortBy, Set.of("id", "amount", "paymentDate", "paymentMode", "paymentStatus"));
 
-		com.insurance.demo.enums.PaymentStatus statusEnum = null;
+		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
+
+		Specification<PremiumPayment> spec = (root, query, cb) -> cb.conjunction();
+		
+		if (policyId != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("policy").get("id"), policyId));
+		}
+		
 		if (paymentStatus != null && !paymentStatus.trim().isEmpty()) {
 			try {
-				statusEnum = com.insurance.demo.enums.PaymentStatus.valueOf(paymentStatus.trim().toUpperCase());
+				com.insurance.demo.enums.PaymentStatus statusEnum = com.insurance.demo.enums.PaymentStatus.valueOf(paymentStatus.trim().toUpperCase());
+				spec = spec.and((root, query, cb) -> cb.equal(root.get("paymentStatus"), statusEnum));
 			} catch (IllegalArgumentException e) {
 				throw new BadRequestException("Invalid payment status filter: " + paymentStatus);
 			}
 		}
 
-		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
-		Page<PremiumPayment> paymentPage;
-		if (policyId != null && statusEnum != null) {
-			paymentPage = paymentRepository.findByPolicyIdAndPaymentStatus(policyId, statusEnum, pageable);
-		} else if (policyId != null) {
-			paymentPage = paymentRepository.findByPolicyId(policyId, pageable);
-		} else if (statusEnum != null) {
-			paymentPage = paymentRepository.findByPaymentStatus(statusEnum, pageable);
-		} else {
-			paymentPage = paymentRepository.findAll(pageable);
+		if (transactionId != null && !transactionId.trim().isEmpty()) {
+			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("transactionReference")), "%" + transactionId.trim().toLowerCase() + "%"));
 		}
+
+		if (minAmount != null) {
+			spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("amount"), minAmount));
+		}
+		if (maxAmount != null) {
+			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("amount"), maxAmount));
+		}
+
+		Page<PremiumPayment> paymentPage = paymentRepository.findAll(spec, pageable);
 
 		List<PaymentResponseDTO> content = paymentPage.getContent().stream()
 				.map(payment -> {

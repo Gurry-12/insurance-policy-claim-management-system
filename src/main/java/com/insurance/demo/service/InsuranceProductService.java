@@ -14,7 +14,7 @@ public interface InsuranceProductService {
 	ApiResponseDTO<ProductResponseDTO> deactivateProduct(Long id);
 
 	PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection, String productType, Boolean isActive);
+			String sortDirection, String productType, Boolean isActive, String productName);
 
 	ProductResponseDTO updateProduct(Long id, ProductRequestDTO requestDTO);
 

@@ -11,8 +11,10 @@ import org.springframework.stereotype.Repository;
 import com.insurance.demo.enums.PaymentStatus;
 import com.insurance.demo.model.PremiumPayment;
 
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
 @Repository
-public interface PremiumPaymentRepository extends JpaRepository<PremiumPayment, Long>{
+public interface PremiumPaymentRepository extends JpaRepository<PremiumPayment, Long>, JpaSpecificationExecutor<PremiumPayment>{
 	
 	boolean existsByTransactionReference(String transactionReference);
 

@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,7 +47,8 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		log.info("Creating policy plan: {}", dto.getPlanName());
 
 		if (dto.getCoverageAmount().compareTo(dto.getPremiumAmount()) <= 0) {
-			throw new BadRequestException("The policy coverage amount must strictly exceed the required premium amount.");
+			throw new BadRequestException(
+					"The policy coverage amount must strictly exceed the required premium amount.");
 		}
 
 		// Validate Product exists and is active
@@ -144,9 +146,9 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		if (Boolean.FALSE.equals(plan.getIsActive())) {
 			PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
-			return new ApiResponseDTO<>("The policy plan is already marked as inactive", false, dto, LocalDateTime.now());
+			return new ApiResponseDTO<>("The policy plan is already marked as inactive", false, dto,
+					LocalDateTime.now());
 		}
-		
 
 		plan.setIsActive(false);
 		PolicyPlan deactivatedPlan = policyPlanRepository.save(plan);
@@ -205,27 +207,48 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 	@Override
 	@Transactional(readOnly = true)
 	public PageResponseDTO<PlanResponseDTO> getAllPlansWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection, Long productId, Boolean isActive) {
+			String sortDirection, Long productId, Boolean isActive, String planName, Double minCoverageAmount,
+			Double maxCoverageAmount, Double minPremiumAmount, Double maxPremiumAmount) {
 
-		log.info("Fetching policy plans with pagination: page={}, size={}, sortBy={}, direction={}, productId={}, active={}", pageNumber,
-				pageSize, sortBy, sortDirection, productId, isActive);
+		log.info(
+				"Fetching policy plans with pagination: page={}, size={}, sortBy={}, direction={}, productId={}, active={}, planName={}, minCov={}, maxCov={}, minPrem={}, maxPrem={}",
+				pageNumber, pageSize, sortBy, sortDirection, productId, isActive, planName, minCoverageAmount,
+				maxCoverageAmount, minPremiumAmount, maxPremiumAmount);
 
 		PaginationValidator.validate(pageNumber, pageSize);
-		PaginationValidator.validateSortField(sortBy, Set.of("id", "planName", "coverageAmount", "premiumAmount", "createdDate"));
+		PaginationValidator.validateSortField(sortBy,
+				Set.of("id", "planName", "coverageAmount", "premiumAmount", "createdDate"));
 
 		Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
 
-		Page<PolicyPlan> planPage;
-		if (productId != null && isActive != null) {
-			planPage = policyPlanRepository.findByInsuranceProductIdAndIsActive(productId, isActive, pageable);
-		} else if (productId != null) {
-			planPage = policyPlanRepository.findByInsuranceProductId(productId, pageable);
-		} else if (isActive != null) {
-			planPage = policyPlanRepository.findByIsActive(isActive, pageable);
-		} else {
-			planPage = policyPlanRepository.findAll(pageable);
+		Specification<PolicyPlan> spec = (root, query, cb) -> cb.conjunction();
+
+		if (productId != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("insuranceProduct").get("id"), productId));
 		}
+		if (isActive != null) {
+			spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), isActive));
+		}
+		if (planName != null && !planName.trim().isEmpty()) {
+			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("planName")),
+					"%" + planName.trim().toLowerCase() + "%"));
+		}
+		if (minCoverageAmount != null) {
+			spec = spec
+					.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("coverageAmount"), minCoverageAmount));
+		}
+		if (maxCoverageAmount != null) {
+			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("coverageAmount"), maxCoverageAmount));
+		}
+		if (minPremiumAmount != null) {
+			spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("premiumAmount"), minPremiumAmount));
+		}
+		if (maxPremiumAmount != null) {
+			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("premiumAmount"), maxPremiumAmount));
+		}
+
+		Page<PolicyPlan> planPage = policyPlanRepository.findAll(spec, pageable);
 
 		List<PlanResponseDTO> content = planPage.getContent().stream()
 				.map(plan -> modelMapper.map(plan, PlanResponseDTO.class)).toList();
@@ -234,7 +257,6 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 				planPage.getTotalPages(), planPage.isLast(), sortDirection);
 	}
 
-
 	@Override
 	public ApiResponseDTO<PlanResponseDTO> getPlanById(Long planId) {
 
@@ -242,14 +264,15 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 				.orElseThrow(() -> new ResourceNotFoundException("Policy plan not found with id: " + planId));
 
 		org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-		boolean isCustomer = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+		boolean isCustomer = auth != null
+				&& auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 
 		if (isCustomer && !Boolean.TRUE.equals(plan.getIsActive())) {
 			throw new ResourceNotFoundException("No active plan associated with id - " + planId);
 		}
 
-		return new ApiResponseDTO<>("Policy plan retrieved successfully.", true, modelMapper.map(plan, PlanResponseDTO.class),
-				LocalDateTime.now());
+		return new ApiResponseDTO<>("Policy plan retrieved successfully.", true,
+				modelMapper.map(plan, PlanResponseDTO.class), LocalDateTime.now());
 
 	}
 }

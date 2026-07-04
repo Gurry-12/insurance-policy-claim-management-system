@@ -77,7 +77,8 @@ public class UserController {
 	public PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(@RequestParam(defaultValue = "0") int pageNumber,
 			@RequestParam(defaultValue = "10") int pageSize, @RequestParam(defaultValue = "id") String sortBy,
 			@RequestParam(defaultValue = "asc") String sortDirection, @RequestParam(required = false) String role,
-			@RequestParam(required = false) Boolean isActive) {
-		return userService.getAllUsersWithPagination(pageNumber, pageSize, sortBy, sortDirection, role, isActive);
+			@RequestParam(required = false) Boolean isActive, @RequestParam(required = false) String fullName,
+			@RequestParam(required = false) String email) {
+		return userService.getAllUsersWithPagination(pageNumber, pageSize, sortBy, sortDirection, role, isActive, fullName, email);
 	}
 }
