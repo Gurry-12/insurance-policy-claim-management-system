@@ -23,6 +23,7 @@ public class SmsService {
     @Value("${app.twilio.from-phone}")
     private String fromPhone;
 
+
     
     public void sendOtp(String toPhone, String otp) {
         if (!StringUtils.hasText(accountSid) || !StringUtils.hasText(authToken) || !StringUtils.hasText(fromPhone)) {
@@ -31,10 +32,12 @@ public class SmsService {
         }
 
         Twilio.init(accountSid, authToken);
+        String messageText = "Your verification OTP is: " + otp + ". Valid for 5 minutes. Do not share it with anyone.";
+
         Message.creator(
                 new PhoneNumber(toPhone),
                 new PhoneNumber(fromPhone),
-                "Your phone verification OTP is: " + otp
+                messageText
         ).create();
     }
 }
