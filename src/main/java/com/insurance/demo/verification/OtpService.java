@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.model.OtpVerification;
@@ -35,7 +36,8 @@ public class OtpService {
 				.expiresAt(LocalDateTime.now().plusMinutes(expiryMinutes)).used(false).sendCount(1).build();
 
 		otpRepository.save(otpVerification);
-		emailService.sendOtp(user.getEmail(), emailOtp);
+		boolean isStaff = Role.ROLE_INTERNAL_STAFF.equals(user.getRole());
+		emailService.sendOtp(user.getEmail(), emailOtp, isStaff);
 		smsService.sendOtp(user.getMobileNumber(), phoneOtp);
 	}
 
@@ -57,7 +59,8 @@ public class OtpService {
 				latestOtp.setLastSentAt(LocalDateTime.now());
 				otpRepository.save(latestOtp);
 
-				emailService.sendOtp(user.getEmail(), latestOtp.getEmailOtp());
+				boolean isStaff = Role.ROLE_INTERNAL_STAFF.equals(user.getRole());
+				emailService.sendOtp(user.getEmail(), latestOtp.getEmailOtp(), isStaff);
 				smsService.sendOtp(user.getMobileNumber(), latestOtp.getPhoneOtp());
 			} else {
 				// Create new if expired or used
