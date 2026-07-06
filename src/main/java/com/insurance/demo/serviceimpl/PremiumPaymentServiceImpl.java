@@ -39,7 +39,7 @@ import com.insurance.demo.repository.PremiumPaymentRepository;
 import com.insurance.demo.service.PremiumPaymentService;
 import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.util.TransactionReferenceGenerator;
-
+import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,7 +61,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		log.info("Recording payment for policy id: {}", dto.getPolicyId());
 
 		Policy policy = policyRepository.findById(dto.getPolicyId())
-				.orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + dto.getPolicyId()));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + dto.getPolicyId()));
 
 		String email = SecurityContextHolder.getContext().getAuthentication().getName();
 
@@ -69,28 +69,42 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 				.anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 
 		if (isCustomer && !policy.getCustomer().getUser().getEmail().equals(email)) {
-			throw new AccessDeniedException("You are not allowed to record payment for another customer's policy");
+			throw new AccessDeniedException(MessageConstants.Security.NOT_OWN_POLICY_PAYMENT);
+		}
+
+		boolean isStaff = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+				.anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(email)
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			com.insurance.demo.enums.ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			com.insurance.demo.enums.ProductType policyProductType = (policy.getPolicyPlan() != null && policy.getPolicyPlan().getInsuranceProduct() != null)
+					? policy.getPolicyPlan().getInsuranceProduct().getProductType() : null;
+
+			if (staffSpeciality == null || !staffSpeciality.equals(policyProductType)) {
+				throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_RECORD_PAYMENT_DENIED);
+			}
 		}
 
 		if (policy.getPolicyPlan().getPremiumAmount().compareTo(dto.getAmount()) != 0) {
-			throw new BadRequestException("Payment amount must match premium amount");
+			throw new BadRequestException(MessageConstants.Payment.AMOUNT_MISMATCH);
 		}
 
 		if (PolicyStatus.CANCELLED.equals(policy.getPolicyStatus())) {
-			throw new BadRequestException("you are restricted to make payment for a cancelled policy");
+			throw new BadRequestException(MessageConstants.Payment.CANCELLED_POLICY_RESTRICTED);
 		}
 
 		if (PolicyStatus.EXPIRED.equals(policy.getPolicyStatus())) {
-			throw new BadRequestException("you are restricted to make payment for a expired policy");
+			throw new BadRequestException(MessageConstants.Payment.EXPIRED_POLICY_RESTRICTED);
 		}
 
-		
 		// one time payment
 		if (policy.getPolicyPlan().getPremiumType().equals(PremiumType.ONE_TIME)) {
 			// verify any existing payment for this policy -
 			if (paymentRepository.existsByPolicyIdAndPaymentStatus(policy.getId(), PaymentStatus.SUCCESS)) {
 
-				throw new BadRequestException("Premium has already been paid for this ONE_TIME plan.");
+				throw new BadRequestException(MessageConstants.Payment.ONE_TIME_ALREADY_PAID);
 			}
 
 		}
@@ -110,7 +124,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 
 				if (LocalDateTime.now().isBefore(paymentWindowStart)) {
 					throw new BadRequestException(
-							"Next annual premium can be paid only after " + paymentWindowStart.toLocalDate() + " (includes 15-day early payment window)");
+							MessageConstants.Payment.EARLY_PAYMENT_RESTRICTION + paymentWindowStart.toLocalDate() + " (includes 15-day early payment window)");
 				}
 			}
 
@@ -118,21 +132,21 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 					PaymentStatus.SUCCESS);
 
 			if (successfulPayments >= policy.getPolicyPlan().getDuration()) {
-				throw new BadRequestException("All annual premiums for this policy have already been paid.");
+				throw new BadRequestException(MessageConstants.Payment.ALL_PREMIUMS_PAID);
 			}
 		}
 
 		String transactionReferance = TransactionReferenceGenerator.generateTransactionReference();
 
 		if (paymentRepository.existsByTransactionReference(transactionReferance)) {
-			throw new DuplicateResourceException("Transaction reference already exists");
+			throw new DuplicateResourceException(MessageConstants.Payment.DUPLICATE_REFERENCE);
 		}
 
 		// Fix: compare against total required premium (premiumAmount * duration), not coverage amount
 		BigDecimal totalRequiredPremium = policy.getPolicyPlan().getPremiumAmount()
 				.multiply(BigDecimal.valueOf(policy.getPolicyPlan().getDuration()));
 		if (policy.getTotalPremiumPaid().add(dto.getAmount()).compareTo(totalRequiredPremium) > 0) {
-			throw new BadRequestException("Total payments would exceed the required premium for this policy.");
+			throw new BadRequestException(MessageConstants.Payment.PREMIUM_LIMIT_EXCEEDED);
 		}
 
 		PremiumPayment payment = new PremiumPayment();
@@ -162,13 +176,31 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		PaymentResponseDTO responseDTO = modelMapper.map(savedPayment, PaymentResponseDTO.class);
 		responseDTO.setPolicyNumber(policy.getPolicyNumber());
 
-		return new ApiResponseDTO<>("Payment recorded successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Payment.RECORDED_SUCCESS, true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public ApiResponseDTO<List<PaymentResponseDTO>> getPaymentsByPolicy(Long id) {
 		log.info("Fetching payments by policy: {}", id);
+
+		Policy policy = policyRepository.findById(id)
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + id));
+
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(auth.getName())
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			com.insurance.demo.enums.ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			com.insurance.demo.enums.ProductType policyProductType = (policy.getPolicyPlan() != null && policy.getPolicyPlan().getInsuranceProduct() != null)
+					? policy.getPolicyPlan().getInsuranceProduct().getProductType() : null;
+
+			if (staffSpeciality == null || !staffSpeciality.equals(policyProductType)) {
+				throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_VIEW_PAYMENT_DENIED);
+			}
+		}
 
 		List<PremiumPayment> list = paymentRepository.findByPolicyId(id);
 
@@ -179,7 +211,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 					return dto;
 				}).toList();
 
-		return new ApiResponseDTO<>("Payments fetched successfully", true, responseList, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Payment.FETCHED_SUCCESS, true, responseList, LocalDateTime.now());
 	}
 
 	@Override
@@ -188,7 +220,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		log.info("Fetching payments by paymentid: {}", paymentId);
 
 		PremiumPayment payment = paymentRepository.findById(paymentId)
-				.orElseThrow(() -> new ResourceNotFoundException("Payment not found with id: " + paymentId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + paymentId));
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String email = authentication.getName();
@@ -199,18 +231,34 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		if (isCustomer && (payment.getPolicy() == null || payment.getPolicy().getCustomer() == null ||
 				payment.getPolicy().getCustomer().getUser() == null ||
 				!payment.getPolicy().getCustomer().getUser().getEmail().equals(email))) {
-			throw new AccessDeniedException("You are not allowed to view this payment");
+			throw new AccessDeniedException(MessageConstants.Security.NOT_OWN_PAYMENT);
+		}
+
+		boolean isStaff = authentication.getAuthorities()
+				.stream()
+				.anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(email)
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			com.insurance.demo.enums.ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			com.insurance.demo.enums.ProductType policyProductType = (payment.getPolicy() != null && payment.getPolicy().getPolicyPlan() != null && payment.getPolicy().getPolicyPlan().getInsuranceProduct() != null)
+					? payment.getPolicy().getPolicyPlan().getInsuranceProduct().getProductType() : null;
+
+			if (staffSpeciality == null || !staffSpeciality.equals(policyProductType)) {
+				throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_VIEW_PAYMENT_DENIED);
+			}
 		}
 
 		PaymentResponseDTO responseDTO = modelMapper.map(payment, PaymentResponseDTO.class);
 		responseDTO.setPolicyNumber(payment.getPolicy().getPolicyNumber());
 
-		return new ApiResponseDTO<>("Payment fetched successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Payment.FETCHED_SUCCESS, true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(int pageNumber, int pageSize, String sortBy,
+	public ApiResponseDTO<PageResponseDTO<PaymentResponseDTO>> getAllPaymentsWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, Long policyId, String paymentStatus, String transactionId, Double minAmount, Double maxAmount) {
 
 		log.info("Fetching Payments with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, policyId: {}, status: {}",
@@ -220,7 +268,21 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(getSortDirection(sortDirection), sortBy));
 
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+
 		Specification<PremiumPayment> spec = (root, query, cb) -> cb.conjunction();
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(auth.getName())
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			com.insurance.demo.enums.ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			if (staffSpeciality == null) {
+				spec = spec.and((root, query, cb) -> cb.disjunction());
+			} else {
+				spec = spec.and((root, query, cb) -> cb.equal(root.get("policy").get("policyPlan").get("insuranceProduct").get("productType"), staffSpeciality));
+			}
+		}
 		
 		if (policyId != null) {
 			spec = spec.and((root, query, cb) -> cb.equal(root.get("policy").get("id"), policyId));
@@ -231,7 +293,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 				com.insurance.demo.enums.PaymentStatus statusEnum = com.insurance.demo.enums.PaymentStatus.valueOf(paymentStatus.trim().toUpperCase());
 				spec = spec.and((root, query, cb) -> cb.equal(root.get("paymentStatus"), statusEnum));
 			} catch (IllegalArgumentException e) {
-				throw new BadRequestException("Invalid payment status filter: " + paymentStatus);
+				throw new BadRequestException(MessageConstants.Payment.INVALID_STATUS_FILTER + paymentStatus);
 			}
 		}
 
@@ -254,8 +316,10 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 					dto.setPolicyNumber(payment.getPolicy().getPolicyNumber());
 					return dto;
 				}).toList();
-		return new PageResponseDTO<>(content, paymentPage.getNumber(), paymentPage.getSize(),
+		PageResponseDTO<PaymentResponseDTO> pageResponse = new PageResponseDTO<>(content, paymentPage.getNumber(), paymentPage.getSize(),
 				paymentPage.getTotalElements(), paymentPage.getTotalPages(), paymentPage.isLast(), sortDirection);
+				
+		return new ApiResponseDTO<>(MessageConstants.Payment.ALL_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 
@@ -264,7 +328,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 			return Sort.Direction.ASC;
 		if (sortDirection.equalsIgnoreCase("desc"))
 			return Sort.Direction.DESC;
-		throw new BadRequestException("Sort direction must be asc or desc.");
+		throw new BadRequestException(MessageConstants.Common.SORT_DIRECTION_INVALID);
 	}
 
 	@Override
@@ -273,7 +337,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String email = authentication.getName();
 		AppUser user = userRepository.findByEmail(email)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 
 		log.info("Fetching payment history for customer email: {}", email);
 		List<PremiumPayment> payments = paymentRepository.findByPolicyCustomerUserId(user.getId());
@@ -285,7 +349,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 					return dto;
 				}).toList();
 
-		return new ApiResponseDTO<>("Payment history fetched successfully", true, responseList, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Payment.HISTORY_FETCHED, true, responseList, LocalDateTime.now());
 	}
 
 	@Override
@@ -294,7 +358,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String email = authentication.getName();
 		AppUser user = userRepository.findByEmail(email)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 
 		log.info("Fetching payments for policy ID: {} by customer email: {}", policyId, email);
 		List<PremiumPayment> payments = paymentRepository.findByPolicyIdAndPolicyCustomerUserId(policyId, user.getId());
@@ -306,7 +370,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 					return dto;
 				}).toList();
 
-		return new ApiResponseDTO<>("Payments for policy fetched successfully", true, responseList, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Payment.POLICY_PAYMENTS_FETCHED, true, responseList, LocalDateTime.now());
 	}
 
 }

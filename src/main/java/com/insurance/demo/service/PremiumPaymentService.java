@@ -15,8 +15,9 @@ public interface PremiumPaymentService {
 
 	public ApiResponseDTO<PaymentResponseDTO> getPaymentById(Long paymentId);
 
-	public 	PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(int pageNumber, int pageSize, String sortBy,
-			String sortDirection, Long policyId, String paymentStatus, String transactionId, Double minAmount, Double maxAmount);
+	public ApiResponseDTO<PageResponseDTO<PaymentResponseDTO>> getAllPaymentsWithPagination(int pageNumber,
+			int pageSize, String sortBy, String sortDirection, Long policyId, String paymentStatus,
+			String transactionId, Double minAmount, Double maxAmount);
 
 	public ApiResponseDTO<List<PaymentResponseDTO>> getMyPayments();
 

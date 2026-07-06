@@ -72,7 +72,7 @@ public class CustomerController {
 	@GetMapping("/page")
 	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get All Customers", description = "Retrieves a paginated list of all customer profiles. Restricted to Admin/Internal Staff.")
-	public PageResponseDTO<CustomerResponseDTO> getAllCustomersWithPagination(
+	public ApiResponseDTO<PageResponseDTO<CustomerResponseDTO>> getAllCustomersWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDirection,
 			@RequestParam(required = false) String city, @RequestParam(required = false) String state,

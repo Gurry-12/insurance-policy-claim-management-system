@@ -45,12 +45,12 @@ public class OtpService {
 	public void sendOrResendOtp(AppUser user) {
 		int totalSends = otpRepository.getTotalOtpSendsSince(user, LocalDateTime.now().minusHours(24));
 		if (totalSends >= 4) {
-			throw new BadRequestException("You have reached the maximum limit of 4 OTP requests in the last 24 hours.");
+			throw new BadRequestException(com.insurance.demo.util.MessageConstants.Auth.OTP_LIMIT_EXCEEDED);
 		}
 
 		otpRepository.findTopByUserOrderByCreatedAtDesc(user).ifPresentOrElse(latestOtp -> {
 			if (latestOtp.getLastSentAt() != null && latestOtp.getLastSentAt().plusSeconds(60).isAfter(LocalDateTime.now())) {
-				throw new BadRequestException("Please wait at least 60 seconds before requesting another OTP.");
+				throw new BadRequestException(com.insurance.demo.util.MessageConstants.Auth.OTP_RETRY_WAIT);
 			}
 
 			if (!latestOtp.isUsed() && latestOtp.getExpiresAt().isAfter(LocalDateTime.now())) {
@@ -78,18 +78,18 @@ public class OtpService {
 		
 		OtpVerification latestOtp = otpRepository.findTopByUserOrderByCreatedAtDesc(user)
 
-				.orElseThrow(() -> new BadRequestException("No active OTP found. Please register again."));
+				.orElseThrow(() -> new BadRequestException(com.insurance.demo.util.MessageConstants.Auth.OTP_NOT_FOUND));
 
 		if (latestOtp.getExpiresAt().isBefore(LocalDateTime.now())) {
-			throw new BadRequestException("OTP expired. Please register again to get a new OTP.");
+			throw new BadRequestException(com.insurance.demo.util.MessageConstants.Auth.OTP_EXPIRED);
 		}
 
 		if (!latestOtp.getEmailOtp().equals(emailOtp)) {
-            throw new BadRequestException("Invalid email OTP");
+            throw new BadRequestException(com.insurance.demo.util.MessageConstants.Auth.INVALID_EMAIL_OTP);
         }
 
         if (!latestOtp.getPhoneOtp().equals(phoneOtp)) {
-            throw new BadRequestException("Invalid phone OTP");
+            throw new BadRequestException(com.insurance.demo.util.MessageConstants.Auth.INVALID_PHONE_OTP);
         }
 
 		latestOtp.setUsed(true);

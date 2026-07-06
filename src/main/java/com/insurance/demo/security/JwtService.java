@@ -24,7 +24,7 @@ public class JwtService {
 	@Value("${app.jwt.expiration-ms}")
 	private long jwtExpirationMs;
 
-	public String generateToken(UserDetails userDetails, String fullName) {
+	public String generateToken(UserDetails userDetails, String fullName, String productSpeciality) {
 
 		List<String> roles = userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
 
@@ -32,6 +32,7 @@ public class JwtService {
 		Date expiryDate = new Date(issuedAt.getTime() + jwtExpirationMs);
 
 		return Jwts.builder().subject(userDetails.getUsername()).claim("roles", roles).claim("fullName", fullName)
+				.claim("productSpeciality", productSpeciality)
 				.issuedAt(issuedAt).expiration(expiryDate).signWith(getSigningKey()).compact();
 	}
 

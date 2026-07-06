@@ -16,14 +16,14 @@ public interface PolicyService {
 
 	ApiResponseDTO<PolicyResponseDTO> getPolicyById(Long policyId);
 
-	PageResponseDTO<PolicyResponseDTO> getAllPolicies(int pageNumber, int pageSize, String sortBy, String sortDirection,
-			Long customerId, String status, String policyNumber);
+	ApiResponseDTO<PageResponseDTO<PolicyResponseDTO>> getAllPolicies(int pageNumber, int pageSize, String sortBy,
+			String sortDirection, Long customerId, String status, String policyNumber);
 
-	PageResponseDTO<PolicyResponseDTO> getCustomerPolicies(String email, int pageNumber, int pageSize, String sortBy,
-			String sortDirection);
+	ApiResponseDTO<PageResponseDTO<PolicyResponseDTO>> getCustomerPolicies(String email, int pageNumber, int pageSize,
+			String sortBy, String sortDirection);
 
-	PageResponseDTO<PolicyResponseDTO> getPoliciesByCustomer(Long customerId, int pageNumber, int pageSize, String sortBy,
-			String sortDirection);
+	ApiResponseDTO<PageResponseDTO<PolicyResponseDTO>> getPoliciesByCustomer(Long customerId, int pageNumber,
+			int pageSize, String sortBy, String sortDirection);
 
 
 	ApiResponseDTO<PolicyResponseDTO> cancelPolicy(Long policyId);

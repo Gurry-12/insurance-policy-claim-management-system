@@ -2,6 +2,7 @@ package com.insurance.demo.dto.request;
 
 import java.time.LocalDate;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
@@ -16,28 +17,28 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CustomerRequestDTO {
 
-	@Past(message = "Date of birth must be in the past")
+	@Past(message = MessageConstants.Validation.DOB_PAST)
 	private LocalDate dateOfBirth;
 
-	@NotBlank(message = "Address is required")
+	@NotBlank(message = MessageConstants.Validation.ADDRESS_REQUIRED)
 	private String address;
 
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
-	@NotBlank(message = "City is required")
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = MessageConstants.Validation.LETTERS_SPACES_ONLY)
+	@NotBlank(message = MessageConstants.Validation.CITY_REQUIRED)
 	private String city;
 
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
-	@NotBlank(message = "State is required")
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = MessageConstants.Validation.LETTERS_SPACES_ONLY)
+	@NotBlank(message = MessageConstants.Validation.STATE_REQUIRED)
 	private String state;
 
-	@Pattern(regexp = "^[1-9][0-9]{5}$", message = "Enter valid PIN code")
+	@Pattern(regexp = "^[1-9][0-9]{5}$", message = MessageConstants.Validation.PIN_CODE_VALID)
 	private String pinCode;
 
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
-	@NotBlank(message = "Nominee name is required")
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = MessageConstants.Validation.LETTERS_SPACES_ONLY)
+	@NotBlank(message = MessageConstants.Validation.NOMINEE_NAME_REQUIRED)
 	private String nomineeName;
 
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
-	@NotBlank(message = "Nominee relation is required")
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = MessageConstants.Validation.LETTERS_SPACES_ONLY)
+	@NotBlank(message = MessageConstants.Validation.NOMINEE_RELATION_REQUIRED)
 	private String nomineeRelation;
 }

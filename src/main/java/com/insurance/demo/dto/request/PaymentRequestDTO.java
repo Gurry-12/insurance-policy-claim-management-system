@@ -3,6 +3,7 @@ package com.insurance.demo.dto.request;
 import com.insurance.demo.enums.PaymentMode;
 import com.insurance.demo.enums.PaymentStatus;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -21,10 +22,10 @@ public class PaymentRequestDTO {
 	//@NotNull(message = "Policy Id is required")
 	private Long policyId;
 
-	@Positive(message = "Payment amount must be strictly greater than 0")
+	@Positive(message = MessageConstants.Validation.PAYMENT_AMOUNT_POSITIVE)
 	private BigDecimal amount;
 
-	@NotNull(message = "Payment mode is required")
+	@NotNull(message = MessageConstants.Validation.PAYMENT_MODE_REQUIRED)
 	private PaymentMode paymentMode;
 
 //	@NotNull(message = "Payment status is required")

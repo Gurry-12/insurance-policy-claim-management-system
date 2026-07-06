@@ -46,6 +46,7 @@ import com.insurance.demo.service.ClaimDocumentService;
 import com.insurance.demo.service.ClaimService;
 import com.insurance.demo.util.ClaimNumberGenerator;
 import com.insurance.demo.util.PaginationValidator;
+import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,26 +70,26 @@ public class ClaimServiceImpl implements ClaimService {
 			throws IOException {// Customer only
 
 		if (files == null || files.isEmpty()) {
-			throw new ResourceNotFoundException("At least one supporting document must be provided.");
+			throw new ResourceNotFoundException(MessageConstants.Document.AT_LEAST_ONE_REQUIRED);
 		}
 
 		for (MultipartFile file : files) {
 
 			if (file == null || file.isEmpty()) {
-				throw new BadRequestException("Uploaded document cannot be empty.");
+				throw new BadRequestException(MessageConstants.Document.CANNOT_BE_EMPTY);
 			}
 
 			if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
-				throw new BadRequestException("Uploaded document must have a valid file name.");
+				throw new BadRequestException(MessageConstants.Document.INVALID_FILE_NAME);
 			}
 
 			String contentType = file.getContentType();
 			if (contentType == null || !(contentType.equals("application/pdf") || contentType.startsWith("image/"))) {
-				throw new BadRequestException("Only PDF and image files are allowed.");
+				throw new BadRequestException(MessageConstants.Document.INVALID_FILE_TYPE_PDF_IMAGE);
 			}
 
 			if (file.getSize() > 5 * 1024 * 1024) { // 5MB limit
-				throw new BadRequestException("File size exceeds the 5MB limit.");
+				throw new BadRequestException(MessageConstants.Document.EXCEEDS_SIZE_5MB);
 			}
 		}
 
@@ -96,20 +97,20 @@ public class ClaimServiceImpl implements ClaimService {
 		String email = auth.getName();
 
 		if (dto.getClaimAmount() == null || dto.getClaimAmount().compareTo(BigDecimal.ZERO) <= 0) {
-			throw new BadRequestException("Claim amount must be strictly greater than 0");
+			throw new BadRequestException(MessageConstants.Claim.AMOUNT_MUST_BE_POSITIVE);
 		}
 
 		// Find Policy
 		Policy policy = policyRepository.findById(dto.getPolicyId())
-				.orElseThrow(() -> new ResourceNotFoundException("Policy not found with id: " + dto.getPolicyId()));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + dto.getPolicyId()));
 
 		// SRS Business Rules
 		if (!policy.getCustomer().getUser().getEmail().equals(email)) {
-			throw new BadRequestException("Claims can only be filed against your own active policies.");
+			throw new BadRequestException(MessageConstants.Claim.POLICY_NOT_OWNED);
 		}
 
 		if (!List.of(PolicyStatus.ACTIVE).contains(policy.getPolicyStatus())) {
-			throw new BadRequestException("Claim can only be raised against Active policies");
+			throw new BadRequestException(MessageConstants.Claim.POLICY_NOT_ACTIVE);
 		}
 
 		BigDecimal activeClaimsSum = claimRepository.sumActiveClaimsByPolicyId(policy.getId(), ClaimStatus.REJECTED);
@@ -117,16 +118,16 @@ public class ClaimServiceImpl implements ClaimService {
 
 		if (dto.getClaimAmount().compareTo(remainingCoverage) > 0) {
 			throw new BadRequestException(
-					"The requested claim amount exceeds your remaining policy coverage of " + remainingCoverage);
+					MessageConstants.Claim.EXCEEDS_LIMIT + remainingCoverage);
 		}
 
 		if (dto.getIncidentDate().isAfter(LocalDate.now())) {
-			throw new BadRequestException("Incident date cannot be in the future");
+			throw new BadRequestException(MessageConstants.Claim.FUTURE_INCIDENT_DATE);
 		}
 
 		if (dto.getIncidentDate().isBefore(policy.getStartDate())
 				|| dto.getIncidentDate().isAfter(policy.getEndDate())) {
-			throw new BadRequestException("Incident date should be between the policy period");
+			throw new BadRequestException(MessageConstants.Claim.INCIDENT_DATE_OUT_OF_BOUNDS);
 		}
 
 		// Create Claim
@@ -150,7 +151,7 @@ public class ClaimServiceImpl implements ClaimService {
 
 		responseDto.setDocuments(response);
 
-		return new ApiResponseDTO<>("Claim submitted successfully with supporting documents.", true, responseDto,
+		return new ApiResponseDTO<>(MessageConstants.Claim.SUBMITTED_SUCCESS, true, responseDto,
 				LocalDateTime.now());
 	}
 
@@ -161,27 +162,34 @@ public class ClaimServiceImpl implements ClaimService {
 		if (dto.getRecommendedStatus() != ClaimStatus.RECOMMENDED_FOR_APPROVAL
 				&& dto.getRecommendedStatus() != ClaimStatus.RECOMMENDED_FOR_REJECTION) {
 
-			throw new BadRequestException("Internal Staff can only recommend approval or rejection of a claim.");
+			throw new BadRequestException(MessageConstants.ClaimReview.STAFF_RECOMMENDATION_ONLY);
 		}
 
 		Claim claim = claimRepository.findById(claimId)
-				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + claimId));
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		AppUser currentUser = userRepository.findByEmail(auth.getName())
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+
+		ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+		ProductType claimProductType = (claim.getPolicy() != null && claim.getPolicy().getPolicyPlan() != null && claim.getPolicy().getPolicyPlan().getInsuranceProduct() != null)
+				? claim.getPolicy().getPolicyPlan().getInsuranceProduct().getProductType() : null;
+
+		if (staffSpeciality == null || !staffSpeciality.equals(claimProductType)) {
+			throw new AccessDeniedException(MessageConstants.Security.STAFF_SPECIALITY_ACCESS_DENIED);
+		}
 
 		if (claim.getAssignedStaff() == null || !claim.getAssignedStaff().getId().equals(currentUser.getId())) {
-			throw new AccessDeniedException(
-					"You are not authorized to review this claim. It is assigned to another staff member.");
+			throw new AccessDeniedException(MessageConstants.Security.REVIEW_ASSIGNED_TO_OTHER);
 		}
 
 		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
-			throw new BadRequestException("This claim has already been approved or rejected and cannot be modified.");
+			throw new BadRequestException(MessageConstants.ClaimReview.ALREADY_FINALIZED);
 		}
 
 		if (claim.getClaimStatus() != ClaimStatus.UNDER_REVIEW) {
-			throw new BadRequestException("The claim must be under review before a recommendation can be made.");
+			throw new BadRequestException(MessageConstants.ClaimReview.MUST_BE_UNDER_REVIEW);
 		}
 
 		ClaimStatus previous = claim.getClaimStatus();
@@ -197,7 +205,7 @@ public class ClaimServiceImpl implements ClaimService {
 				SecurityContextHolder.getContext().getAuthentication().getName());
 
 		ClaimResponseDTO response = convertToResponseDTO(updated);
-		return new ApiResponseDTO<>("Claim review recommendation submitted successfully", true, response,
+		return new ApiResponseDTO<>(MessageConstants.ClaimReview.RECOMMENDATION_SUBMITTED, true, response,
 				LocalDateTime.now());
 	}
 
@@ -207,21 +215,20 @@ public class ClaimServiceImpl implements ClaimService {
 
 		if (dto.getRecommendedStatus() != ClaimStatus.APPROVED && dto.getRecommendedStatus() != ClaimStatus.REJECTED) {
 
-			throw new BadRequestException("Administrators can only finalize claims by approving or rejecting them.");
+			throw new BadRequestException(MessageConstants.ClaimReview.ADMIN_DECISION_ONLY);
 		}
 
 		Claim claim = claimRepository.findById(claimId)
-				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + claimId));
 
 		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
-			throw new BadRequestException("The final decision for this claim has already been made.");
+			throw new BadRequestException(MessageConstants.ClaimReview.DECISION_ALREADY_MADE);
 		}
 
 		if (claim.getClaimStatus() != ClaimStatus.RECOMMENDED_FOR_APPROVAL
 				&& claim.getClaimStatus() != ClaimStatus.RECOMMENDED_FOR_REJECTION) {
 
-			throw new BadRequestException(
-					"The claim must be reviewed and recommended by an Internal Staff before a final decision.");
+			throw new BadRequestException(MessageConstants.ClaimReview.MUST_BE_REVIEWED_FIRST);
 		}
 
 		ClaimStatus previous = claim.getClaimStatus();
@@ -235,7 +242,7 @@ public class ClaimServiceImpl implements ClaimService {
 				SecurityContextHolder.getContext().getAuthentication().getName());
 
 		ClaimResponseDTO response = convertToResponseDTO(updated);
-		return new ApiResponseDTO<>("Final decision on the claim has been recorded successfully.", true, response,
+		return new ApiResponseDTO<>(MessageConstants.ClaimReview.FINAL_DECISION_RECORDED, true, response,
 				LocalDateTime.now());
 	}
 
@@ -243,17 +250,31 @@ public class ClaimServiceImpl implements ClaimService {
 	@Transactional(readOnly = true)
 	public ApiResponseDTO<ClaimResponseDTO> getClaimById(Long claimId) {
 		Claim claim = claimRepository.findById(claimId)
-				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + claimId));
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String loggedInEmail = authentication.getName();
 		boolean isCustomer = authentication.getAuthorities().stream()
 				.anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+		boolean isStaff = authentication.getAuthorities().stream()
+				.anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
 
 		if (isCustomer && (claim.getPolicy() == null || claim.getPolicy().getCustomer() == null
 				|| claim.getPolicy().getCustomer().getUser() == null
 				|| !claim.getPolicy().getCustomer().getUser().getEmail().equals(loggedInEmail))) {
-			throw new AccessDeniedException("You do not have permission to view this claim.");
+			throw new AccessDeniedException(MessageConstants.Security.NOT_OWN_CLAIM);
+		}
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(loggedInEmail)
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			ProductType claimProductType = (claim.getPolicy() != null && claim.getPolicy().getPolicyPlan() != null && claim.getPolicy().getPolicyPlan().getInsuranceProduct() != null)
+					? claim.getPolicy().getPolicyPlan().getInsuranceProduct().getProductType() : null;
+
+			if (staffSpeciality == null || !staffSpeciality.equals(claimProductType)) {
+				throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_VIEW_CLAIM_DENIED);
+			}
 		}
 
 		List<ClaimDocumentResponseDTO> documents = claimDocumentRepository.findByClaimId(claim.getId()).stream()
@@ -261,7 +282,7 @@ public class ClaimServiceImpl implements ClaimService {
 
 		ClaimResponseDTO response = convertToResponseDTO(claim);
 		response.setDocuments(documents);
-		return new ApiResponseDTO<>("Claim details retrieved successfully.", true, response, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Claim.DETAILS_RETRIEVED, true, response, LocalDateTime.now());
 	}
 
 	@Override
@@ -278,7 +299,7 @@ public class ClaimServiceImpl implements ClaimService {
 			response.setDocuments(documents);
 			responseList.add(response);
 		}
-		return new ApiResponseDTO<>("Claims retrieved successfully.", true, responseList, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Claim.CLAIMS_RETRIEVED, true, responseList, LocalDateTime.now());
 	}
 
 	@Override
@@ -289,12 +310,10 @@ public class ClaimServiceImpl implements ClaimService {
 		String email = auth.getName();
 
 		AppUser user = userRepository.findByEmail(email)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 
 		List<Claim> claims = claimRepository.findByPolicyCustomerUserId(user.getId());
 
-		// List<ClaimResponseDTO> responseList =
-		// claims.stream().map(this::convertToResponseDTO).toList();
 		List<ClaimResponseDTO> responseList = new ArrayList<>();
 
 		for (Claim claim : claims) {
@@ -305,12 +324,12 @@ public class ClaimServiceImpl implements ClaimService {
 			responseList.add(responseDTO);
 		}
 
-		return new ApiResponseDTO<>("Customer claims retrieved successfully.", true, responseList, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Claim.CUSTOMER_CLAIMS_RETRIEVED, true, responseList, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public PageResponseDTO<ClaimResponseDTO> getAllClaimsWithPagination(int pageNumber, int pageSize, String sortBy,
+	public ApiResponseDTO<PageResponseDTO<ClaimResponseDTO>> getAllClaimsWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, Long customerId, String status, Double minClaimAmount, Double maxClaimAmount) {
 
 		log.info("Fetching claims with pagination: page={}, size={}, sortBy={}, customerId={}, status={}, minAmt={}, maxAmt={}", pageNumber,
@@ -335,7 +354,7 @@ public class ClaimServiceImpl implements ClaimService {
 				ClaimStatus claimStatus = ClaimStatus.valueOf(status.toUpperCase());
 				spec = spec.and((root, query, cb) -> cb.equal(root.get("claimStatus"), claimStatus));
 			} catch (IllegalArgumentException e) {
-				throw new BadRequestException("Invalid claim status provided for filtering: " + status);
+				throw new BadRequestException(MessageConstants.Claim.INVALID_STATUS_FILTER + status);
 			}
 		}
 
@@ -350,7 +369,7 @@ public class ClaimServiceImpl implements ClaimService {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
 		AppUser currentUser = userRepository.findByEmail(email)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 		boolean isInternalStaff = auth.getAuthorities().stream()
 				.anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
 
@@ -368,27 +387,43 @@ public class ClaimServiceImpl implements ClaimService {
 
 		List<ClaimResponseDTO> content = claimPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
-		return new PageResponseDTO<>(content, claimPage.getNumber(), claimPage.getSize(), claimPage.getTotalElements(),
+		PageResponseDTO<ClaimResponseDTO> pageResponse = new PageResponseDTO<>(content, claimPage.getNumber(), claimPage.getSize(), claimPage.getTotalElements(),
 				claimPage.getTotalPages(), claimPage.isLast(), sortDirection);
+				
+		return new ApiResponseDTO<>(MessageConstants.Claim.ALL_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public PageResponseDTO<ClaimHistoryResponseDTO> getClaimHistory(Long claimId, int pageNumber, int pageSize,
+	public ApiResponseDTO<PageResponseDTO<ClaimHistoryResponseDTO>> getClaimHistory(Long claimId, int pageNumber, int pageSize,
 			String sortBy, String sortDirection, String updatedBy, String status) {
 
 		Claim claim = claimRepository.findById(claimId)
-				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + claimId));
 
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String loggedInEmail = authentication.getName();
 		boolean isCustomer = authentication.getAuthorities().stream()
 				.anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+		boolean isStaff = authentication.getAuthorities().stream()
+				.anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
 
 		if (isCustomer && (claim.getPolicy() == null || claim.getPolicy().getCustomer() == null
 				|| claim.getPolicy().getCustomer().getUser() == null
 				|| !claim.getPolicy().getCustomer().getUser().getEmail().equals(loggedInEmail))) {
-			throw new AccessDeniedException("You are not allowed to access another customer's claim history");
+			throw new AccessDeniedException(MessageConstants.Security.NOT_OWN_CLAIM_HISTORY);
+		}
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(loggedInEmail)
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			ProductType claimProductType = (claim.getPolicy() != null && claim.getPolicy().getPolicyPlan() != null && claim.getPolicy().getPolicyPlan().getInsuranceProduct() != null)
+					? claim.getPolicy().getPolicyPlan().getInsuranceProduct().getProductType() : null;
+
+			if (staffSpeciality == null || !staffSpeciality.equals(claimProductType)) {
+				throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_CLAIM_HISTORY_DENIED);
+			}
 		}
 
 		PaginationValidator.validate(pageNumber, pageSize);
@@ -416,8 +451,10 @@ public class ClaimServiceImpl implements ClaimService {
 		List<ClaimHistoryResponseDTO> content = historyPage.getContent().stream().map(this::convertToHistoryResponseDTO)
 				.toList();
 
-		return new PageResponseDTO<>(content, historyPage.getNumber(), historyPage.getSize(),
+		PageResponseDTO<ClaimHistoryResponseDTO> pageResponse = new PageResponseDTO<>(content, historyPage.getNumber(), historyPage.getSize(),
 				historyPage.getTotalElements(), historyPage.getTotalPages(), historyPage.isLast(), sortDirection);
+				
+		return new ApiResponseDTO<>(MessageConstants.Claim.HISTORY_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 	@Override
@@ -425,14 +462,26 @@ public class ClaimServiceImpl implements ClaimService {
 	public ApiResponseDTO<ClaimResponseDTO> underReviewClaim(Long claimId) {
 
 		Claim claim = claimRepository.findById(claimId)
-				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + claimId));
+
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		AppUser currentUser = userRepository.findByEmail(auth.getName())
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+
+		ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+		ProductType claimProductType = (claim.getPolicy() != null && claim.getPolicy().getPolicyPlan() != null && claim.getPolicy().getPolicyPlan().getInsuranceProduct() != null)
+				? claim.getPolicy().getPolicyPlan().getInsuranceProduct().getProductType() : null;
+
+		if (staffSpeciality == null || !staffSpeciality.equals(claimProductType)) {
+			throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_TRANSITION_DENIED);
+		}
 
 		if (claim.getClaimStatus() == ClaimStatus.APPROVED || claim.getClaimStatus() == ClaimStatus.REJECTED) {
-			throw new BadRequestException("This claim has already been approved or rejected and cannot be modified.");
+			throw new BadRequestException(MessageConstants.ClaimReview.ALREADY_FINALIZED);
 		}
 
 		if (claim.getClaimStatus() != ClaimStatus.SUBMITTED) {
-			throw new BadRequestException("Only newly submitted claims can be moved to the under review status.");
+			throw new BadRequestException(MessageConstants.ClaimReview.MOVE_TO_UNDER_REVIEW_RESTRICTED);
 		}
 
 		ClaimStatus previous = claim.getClaimStatus();
@@ -447,7 +496,7 @@ public class ClaimServiceImpl implements ClaimService {
 				SecurityContextHolder.getContext().getAuthentication().getName());
 
 		ClaimResponseDTO response = convertToResponseDTO(updated);
-		return new ApiResponseDTO<>("Claim status updated to under review.", true, response, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Claim.STATUS_UPDATED_REVIEW, true, response, LocalDateTime.now());
 	}
 
 	@Override
@@ -455,18 +504,26 @@ public class ClaimServiceImpl implements ClaimService {
 	public ApiResponseDTO<ClaimResponseDTO> assignStaff(Long claimId) {
 
 		Claim claim = claimRepository.findById(claimId)
-				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + claimId));
 
 		if (claim.getClaimStatus() != ClaimStatus.UNDER_REVIEW) {
-			throw new BadRequestException("Claim must be UNDER_REVIEW to be assigned.");
+			throw new BadRequestException(MessageConstants.ClaimReview.MUST_BE_UNDER_REVIEW_TO_ASSIGN);
 		}
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		AppUser currentUser = userRepository.findByEmail(auth.getName())
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+
+		ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+		ProductType claimProductType = (claim.getPolicy() != null && claim.getPolicy().getPolicyPlan() != null && claim.getPolicy().getPolicyPlan().getInsuranceProduct() != null)
+				? claim.getPolicy().getPolicyPlan().getInsuranceProduct().getProductType() : null;
+
+		if (staffSpeciality == null || !staffSpeciality.equals(claimProductType)) {
+			throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_ASSIGN_DENIED);
+		}
 
 		if (claim.getAssignedStaff() != null && !claim.getAssignedStaff().getId().equals(currentUser.getId())) {
-			throw new BadRequestException("Claim is already assigned to another staff member.");
+			throw new BadRequestException(MessageConstants.ClaimReview.ALREADY_ASSIGNED);
 		}
 
 		claim.setAssignedStaff(currentUser);
@@ -476,7 +533,7 @@ public class ClaimServiceImpl implements ClaimService {
 				auth.getName());
 
 		ClaimResponseDTO response = convertToResponseDTO(updated);
-		return new ApiResponseDTO<>("Claim successfully assigned.", true, response, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Claim.ASSIGNED_SUCCESS, true, response, LocalDateTime.now());
 	}
 
 	// Helper Methods

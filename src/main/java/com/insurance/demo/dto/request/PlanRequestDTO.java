@@ -2,6 +2,7 @@ package com.insurance.demo.dto.request;
 
 import com.insurance.demo.enums.PremiumType;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -17,29 +18,29 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PlanRequestDTO {
 
-	@NotNull(message = "Product Id is required")
+	@NotNull(message = MessageConstants.Validation.PRODUCT_ID_REQUIRED)
 	private Long productId;
 
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
-	@NotBlank(message = "Plan name is required")
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = MessageConstants.Validation.LETTERS_SPACES_ONLY)
+	@NotBlank(message = MessageConstants.Validation.PLAN_NAME_REQUIRED)
 	private String planName;
 
-	@Positive(message = "Coverage amount must be greater than zero")
+	@Positive(message = MessageConstants.Validation.COVERAGE_REQUIRED)
 	private BigDecimal coverageAmount;
 
-	@Positive(message = "Premium amount must be greater than zero")
+	@Positive(message = MessageConstants.Validation.PREMIUM_REQUIRED)
 	private BigDecimal premiumAmount;
 
-	@NotNull(message = "Premium type is required")
+	@NotNull(message = MessageConstants.Validation.PREMIUM_TYPE_REQUIRED)
 	private PremiumType premiumType;
 
-	@Positive(message = "Duration must be greater than zero")
-	@Max(value = 40, message = "Duration cannot exceed 40 years")
+	@Positive(message = MessageConstants.Validation.DURATION_REQUIRED)
+	@Max(value = 40, message = MessageConstants.Validation.DURATION_MAX)
 	private Integer duration;
 
-	@NotBlank(message = "Terms and conditions are required")
+	@NotBlank(message = MessageConstants.Validation.TERMS_REQUIRED)
 	private String termsAndConditions;
 
-	@NotNull(message = "Active status is required")
+	@NotNull(message = MessageConstants.Validation.ACTIVE_STATUS_REQUIRED)
 	private Boolean activeStatus;
 }

@@ -28,7 +28,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         AppUser appUser = userRepository.findByEmailAndIsActiveTrue(email)
                 .orElseThrow(() -> {
                     log.warn("User not found or inactive with email: {}", email);
-                    return new UsernameNotFoundException("Invalid email or password");
+                    return new UsernameNotFoundException(com.insurance.demo.util.MessageConstants.Auth.INVALID_CREDENTIALS);
                 });
 
         // Convert single Role enum to Spring Security authority

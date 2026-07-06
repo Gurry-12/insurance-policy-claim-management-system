@@ -31,6 +31,7 @@ import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.service.UserService;
 import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.verification.OtpService;
+import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +58,7 @@ public class UserServiceImpl implements UserService {
 		ApiResponseDTO<List<UserResponseDTO>> apiResponseDTO = new ApiResponseDTO<>();
 
 		apiResponseDTO.setData(userResponseDTOs);
-		apiResponseDTO.setMessage("Get All Users");
+		apiResponseDTO.setMessage(MessageConstants.Auth.USERS_RETRIEVED);
 		apiResponseDTO.setSuccess(true);
 		apiResponseDTO.setTimeStamp(LocalDateTime.now());
 		return apiResponseDTO;
@@ -70,20 +71,20 @@ public class UserServiceImpl implements UserService {
 		log.info("Activating user by id: {}", userId);
 
 		if (userId.equals(currentUserId()))
-			throw new AccessDeniedException("You cannot manually activate your own account.");
+			throw new AccessDeniedException(MessageConstants.Security.OWN_ACCOUNT_ACTIVATION_RESTRICTED);
 
 		AppUser user = getById(userId);
 
 		if (Boolean.FALSE.equals(user.getEmailVerified())) {
 			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("User is not verified by id: {}", userId);
-			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
+			return new ApiResponseDTO<>(MessageConstants.Auth.EMAIL_NOT_VERIFIED, false, responseDto, LocalDateTime.now());
 		}
 
 		if (Boolean.TRUE.equals(user.getIsActive())) {
 			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("user already active with id {} ", userId);
-			return new ApiResponseDTO<>("User Already Active", false, responseDto, LocalDateTime.now());
+			return new ApiResponseDTO<>(MessageConstants.Auth.ACCOUNT_ACTIVATED, false, responseDto, LocalDateTime.now());
 		}
 
 		user.setIsActive(true);
@@ -91,7 +92,7 @@ public class UserServiceImpl implements UserService {
 		AppUser retrivedUser = userRepository.save(user);
 
 		UserResponseDTO responseDto = mapToUserResponseDTO(retrivedUser);
-		return new ApiResponseDTO<>("User Activated successfully", true, responseDto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Auth.ACCOUNT_ACTIVATED, true, responseDto, LocalDateTime.now());
 	}
 
 	private Long currentUserId() {
@@ -110,20 +111,20 @@ public class UserServiceImpl implements UserService {
 		log.info("Deactivating user by id: {}", userId);
 
 		if (userId.equals(currentUserId()))
-			throw new AccessDeniedException("Cannot deactivate your own account");
+			throw new AccessDeniedException(MessageConstants.Security.OWN_ACCOUNT_DEACTIVATION_RESTRICTED);
 
 		AppUser user = getById(userId);
 
 		if (Boolean.FALSE.equals(user.getEmailVerified())) {
 			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("User is not verified by id: {}", userId);
-			return new ApiResponseDTO<>("User is not verified", false, responseDto, LocalDateTime.now());
+			return new ApiResponseDTO<>(MessageConstants.Auth.EMAIL_NOT_VERIFIED, false, responseDto, LocalDateTime.now());
 		}
 
 		if (Boolean.FALSE.equals(user.getIsActive())) {
 			UserResponseDTO responseDto = mapToUserResponseDTO(user);
 			log.info("Already deactivated user by id: {}", userId);
-			return new ApiResponseDTO<>("User Already Deactivated", false, responseDto, LocalDateTime.now());
+			return new ApiResponseDTO<>(MessageConstants.Auth.ACCOUNT_DEACTIVATED, false, responseDto, LocalDateTime.now());
 		}
 
 		user.setIsActive(false);
@@ -131,7 +132,7 @@ public class UserServiceImpl implements UserService {
 		AppUser retrivedUser = userRepository.save(user);
 
 		UserResponseDTO responseDto = mapToUserResponseDTO(retrivedUser);
-		return new ApiResponseDTO<>("User Deactivated successfully", true, responseDto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Auth.ACCOUNT_DEACTIVATED, true, responseDto, LocalDateTime.now());
 	}
 
 	@Override
@@ -141,12 +142,12 @@ public class UserServiceImpl implements UserService {
 		log.info("creating staff by email: {}", staffRequestDTO.getEmail());
 
 		if (userRepository.existsByEmail(staffRequestDTO.getEmail())) {
-			throw new DuplicateResourceException("Duplicate user found with email - " + staffRequestDTO.getEmail());
+			throw new DuplicateResourceException(MessageConstants.Auth.EMAIL_ALREADY_REGISTERED);
 		}
 
 		if (userRepository.existsByMobileNumber(staffRequestDTO.getMobileNumber())) {
 			throw new DuplicateResourceException(
-					"Duplicate user found with mobile Number - " + staffRequestDTO.getMobileNumber());
+					MessageConstants.Auth.MOBILE_ALREADY_REGISTERED + staffRequestDTO.getMobileNumber());
 		}
 
 		AppUser user = modelMapper.map(staffRequestDTO, AppUser.class);
@@ -165,13 +166,13 @@ public class UserServiceImpl implements UserService {
 		otpService.createAndSendOtp(retrivedUser);
 
 		UserResponseDTO dto = mapToUserResponseDTO(retrivedUser);
-		return new ApiResponseDTO<>("Account created. An OTP has been sent to the email to complete registration.",
+		return new ApiResponseDTO<>(MessageConstants.Auth.REGISTRATION_SUCCESS,
 				true, dto, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
+	public ApiResponseDTO<PageResponseDTO<UserResponseDTO>> getAllUsersWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, String role, Boolean isActive, String fullName, String email) {
 		log.info(
 				"Fetching Users with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, role: {}, isActive: {}",
@@ -185,7 +186,7 @@ public class UserServiceImpl implements UserService {
 			try {
 				roleEnum = Role.valueOf(role.trim().toUpperCase());
 			} catch (IllegalArgumentException e) {
-				throw new BadRequestException("Invalid role filter: " + role);
+				throw new BadRequestException(MessageConstants.Security.PERMISSION_DENIED);
 			}
 		}
 
@@ -212,15 +213,17 @@ public class UserServiceImpl implements UserService {
 		Page<AppUser> userPage = userRepository.findAll(spec, pageable);
 
 		List<UserResponseDTO> content = userPage.getContent().stream().map(user -> mapToUserResponseDTO(user)).toList();
-		return new PageResponseDTO<>(content, userPage.getNumber(), userPage.getSize(), userPage.getTotalElements(),
+		PageResponseDTO<UserResponseDTO> pageResponse = new PageResponseDTO<>(content, userPage.getNumber(), userPage.getSize(), userPage.getTotalElements(),
 				userPage.getTotalPages(), userPage.isLast(), sortDirection);
+				
+		return new ApiResponseDTO<>(MessageConstants.Auth.USERS_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 	@Override
 	public UserResponseDTO findByEmail(String username) {
 
 		AppUser user = userRepository.findByEmail(username)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with email : " + username));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 
 		return mapToUserResponseDTO(user);
 	}
@@ -233,12 +236,12 @@ public class UserServiceImpl implements UserService {
 
 		UserResponseDTO dto = mapToUserResponseDTO(appUser);
 
-		return new ApiResponseDTO<>("User found", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Auth.USER_RETRIEVED, true, dto, LocalDateTime.now());
 	}
 
 	private AppUser getById(Long id) {
 		return userRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 	}
 
 	private Sort.Direction getSortDirection(String sortDirection) {
@@ -246,7 +249,7 @@ public class UserServiceImpl implements UserService {
 			return Sort.Direction.ASC;
 		if (sortDirection.equalsIgnoreCase("desc"))
 			return Sort.Direction.DESC;
-		throw new BadRequestException("Sort direction must be asc or desc.");
+		throw new BadRequestException(MessageConstants.Common.SORT_DIRECTION_INVALID);
 	}
 
 	private UserResponseDTO mapToUserResponseDTO(AppUser user) {

@@ -30,9 +30,11 @@ import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.PlanNotActiveException;
 import com.insurance.demo.exception.PolicyNotFoundException;
 import com.insurance.demo.exception.ResourceNotFoundException;
+import com.insurance.demo.model.AppUser;
 import com.insurance.demo.model.Customer;
 import com.insurance.demo.model.Policy;
 import com.insurance.demo.model.PolicyPlan;
+import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.repository.ClaimRepository;
 import com.insurance.demo.repository.CustomerRepository;
 import com.insurance.demo.repository.PolicyPlanRepository;
@@ -40,6 +42,7 @@ import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.service.PolicyService;
 import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.util.PolicyNumberGenerator;
+import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +56,7 @@ public class PolicyServiceImpl implements PolicyService {
 	private final ClaimRepository claimRepository;
 	private final PolicyPlanRepository policyPlanRepository;
 	private final CustomerRepository customerRepository;
+	private final AppUserRepository userRepository;
 	private final ModelMapper modelMapper;
 
 	@Override
@@ -63,10 +67,10 @@ public class PolicyServiceImpl implements PolicyService {
 
 		String customerEmail = authentication.getName();
 		Customer customer = customerRepository.findByUserEmail(customerEmail)
-				.orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Customer.PROFILE_NOT_FOUND));
 
 		if (!isCustomerProfileComplete(customer)) {
-			throw new BadRequestException("Please complete your customer profile before purchasing a policy.");
+			throw new BadRequestException(MessageConstants.Policy.COMPLETE_PROFILE_FIRST);
 		}
 
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
@@ -80,7 +84,7 @@ public class PolicyServiceImpl implements PolicyService {
 					plan.getId(), List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT));
 
 			if (exists) {
-				throw new DuplicateResourceException("This health policy is already active or pending payment.");
+				throw new DuplicateResourceException(MessageConstants.Policy.HEALTH_POLICY_EXISTS);
 			}
 
 		} else {
@@ -89,7 +93,7 @@ public class PolicyServiceImpl implements PolicyService {
 					customer.getId(), plan.getId(), List.of(PolicyStatus.PENDING_PAYMENT));
 
 			if (pendingExists) {
-				throw new DuplicateResourceException("This policy is already pending payment.");
+				throw new DuplicateResourceException(MessageConstants.Policy.POLICY_EXISTS);
 			}
 		}
 
@@ -112,7 +116,7 @@ public class PolicyServiceImpl implements PolicyService {
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(savedPolicy);
 
-		return new ApiResponseDTO<>("Policy purchased successfully and is pending payment.", true, responseDTO,
+		return new ApiResponseDTO<>(MessageConstants.Policy.PURCHASED_SUCCESS, true, responseDTO,
 				LocalDateTime.now());
 	}
 
@@ -121,10 +125,10 @@ public class PolicyServiceImpl implements PolicyService {
 	public ApiResponseDTO<PolicyResponseDTO> issuePolicy(PolicyIssueRequestDTO requestDTO) {
 
 		Customer customer = customerRepository.findById(requestDTO.getCustomerId())
-				.orElseThrow(() -> new RuntimeException("Customer not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Customer.PROFILE_NOT_FOUND));
 
 		if (!isCustomerProfileComplete(customer)) {
-			throw new BadRequestException("Please complete your customer profile before purchasing a policy.");
+			throw new BadRequestException(MessageConstants.Policy.COMPLETE_PROFILE_FIRST);
 		}
 
 		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
@@ -132,13 +136,24 @@ public class PolicyServiceImpl implements PolicyService {
 		
 		ProductType productType = plan.getInsuranceProduct().getProductType();
 
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(auth.getName())
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			if (staffSpeciality == null || !staffSpeciality.equals(productType)) {
+				throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_ISSUE_DENIED);
+			}
+		}
+
 		if (productType == ProductType.HEALTH) {
 
 			boolean exists = policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(),
 					plan.getId(), List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT));
 
 			if (exists) {
-				throw new DuplicateResourceException("This health policy is already active or pending payment.");
+				throw new DuplicateResourceException(MessageConstants.Policy.HEALTH_POLICY_EXISTS);
 			}
 
 		} else {
@@ -147,7 +162,7 @@ public class PolicyServiceImpl implements PolicyService {
 					customer.getId(), plan.getId(), List.of(PolicyStatus.PENDING_PAYMENT));
 
 			if (pendingExists) {
-				throw new DuplicateResourceException("This policy is already pending payment.");
+				throw new DuplicateResourceException(MessageConstants.Policy.POLICY_EXISTS);
 			}
 		}
 
@@ -171,7 +186,7 @@ public class PolicyServiceImpl implements PolicyService {
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(savedPolicy);
 
-		return new ApiResponseDTO<>("Policy issued successfully to the customer.", true, responseDTO,
+		return new ApiResponseDTO<>(MessageConstants.Policy.ISSUED_SUCCESS, true, responseDTO,
 				LocalDateTime.now());
 	}
 
@@ -184,17 +199,30 @@ public class PolicyServiceImpl implements PolicyService {
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		String email = auth.getName();
 		boolean isCustomer = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+		boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
 
 		if (isCustomer && !policy.getCustomer().getUser().getEmail().equals(email)) {
-			throw new AccessDeniedException("You are not allowed to access another customer's policy details");
+			throw new AccessDeniedException(MessageConstants.Security.NOT_OWN_POLICY);
+		}
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(email)
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			ProductType policyProductType = (policy.getPolicyPlan() != null && policy.getPolicyPlan().getInsuranceProduct() != null)
+					? policy.getPolicyPlan().getInsuranceProduct().getProductType() : null;
+
+			if (staffSpeciality == null || !staffSpeciality.equals(policyProductType)) {
+				throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_VIEW_DENIED);
+			}
 		}
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(policy);
-		return new ApiResponseDTO<>("Policy details retrieved successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Policy.DETAILS_RETRIEVED, true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
-	public PageResponseDTO<PolicyResponseDTO> getAllPolicies(int pageNumber, int pageSize, String sortBy,
+	public ApiResponseDTO<PageResponseDTO<PolicyResponseDTO>> getAllPolicies(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, Long customerId, String status, String policyNumber) {
 
 		PaginationValidator.validate(pageNumber, pageSize);
@@ -203,7 +231,21 @@ public class PolicyServiceImpl implements PolicyService {
 		Sort sort = sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
 
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+
 		Specification<Policy> spec = (root, query, cb) -> cb.conjunction();
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(auth.getName())
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			if (staffSpeciality == null) {
+				spec = spec.and((root, query, cb) -> cb.disjunction());
+			} else {
+				spec = spec.and((root, query, cb) -> cb.equal(root.get("policyPlan").get("insuranceProduct").get("productType"), staffSpeciality));
+			}
+		}
 		
 		if (customerId != null) {
 			spec = spec.and((root, query, cb) -> cb.equal(root.get("customer").get("id"), customerId));
@@ -214,7 +256,7 @@ public class PolicyServiceImpl implements PolicyService {
 				PolicyStatus statusEnum = PolicyStatus.valueOf(status.trim().toUpperCase());
 				spec = spec.and((root, query, cb) -> cb.equal(root.get("policyStatus"), statusEnum));
 			} catch (IllegalArgumentException e) {
-				throw new BadRequestException("Invalid policy status filter: " + status);
+				throw new BadRequestException(MessageConstants.Policy.INVALID_STATUS_FILTER + status);
 			}
 		}
 
@@ -227,16 +269,18 @@ public class PolicyServiceImpl implements PolicyService {
 
 		List<PolicyResponseDTO> content = policyPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
-		return new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
+		PageResponseDTO<PolicyResponseDTO> pageResponse = new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
 				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), sortDirection);
+				
+		return new ApiResponseDTO<>(MessageConstants.Policy.ALL_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 	@Override
-	public PageResponseDTO<PolicyResponseDTO> getCustomerPolicies(String email, int pageNumber, int pageSize, String sortBy,
+	public ApiResponseDTO<PageResponseDTO<PolicyResponseDTO>> getCustomerPolicies(String email, int pageNumber, int pageSize, String sortBy,
 			String sortDirection) {
 
 		Customer customer = customerRepository.findByUserEmail(email)
-				.orElseThrow(() -> new RuntimeException("Customer not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Customer.PROFILE_NOT_FOUND));
 
 		PaginationValidator.validate(pageNumber, pageSize);
 		PaginationValidator.validateSortField(sortBy, Set.of("id", "policyNumber", "policyStatus", "totalPremiumPaid"));
@@ -249,12 +293,14 @@ public class PolicyServiceImpl implements PolicyService {
 
 		List<PolicyResponseDTO> content = policyPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
-		return new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
+		PageResponseDTO<PolicyResponseDTO> pageResponse = new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
 				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), sortDirection);
+				
+		return new ApiResponseDTO<>(MessageConstants.Policy.ALL_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 	@Override
-	public PageResponseDTO<PolicyResponseDTO> getPoliciesByCustomer(Long customerId, int pageNumber, int pageSize, String sortBy,
+	public ApiResponseDTO<PageResponseDTO<PolicyResponseDTO>> getPoliciesByCustomer(Long customerId, int pageNumber, int pageSize, String sortBy,
 			String sortDirection) {
 
 		PaginationValidator.validate(pageNumber, pageSize);
@@ -268,8 +314,10 @@ public class PolicyServiceImpl implements PolicyService {
 
 		List<PolicyResponseDTO> content = policyPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
-		return new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
+		PageResponseDTO<PolicyResponseDTO> pageResponse = new PageResponseDTO<>(content, policyPage.getNumber(), policyPage.getSize(),
 				policyPage.getTotalElements(), policyPage.getTotalPages(), policyPage.isLast(), sortDirection);
+				
+		return new ApiResponseDTO<>(MessageConstants.Policy.ALL_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 	@Override
@@ -279,7 +327,20 @@ public class PolicyServiceImpl implements PolicyService {
 		Policy policy = policyRepository.findById(policyId).orElseThrow(() -> new PolicyNotFoundException(policyId));
 
 		if (policy.getPolicyStatus() == PolicyStatus.CANCELLED || policy.getPolicyStatus() == PolicyStatus.EXPIRED) {
-			throw new BadRequestException("Cannot cancel a policy that is already " + policy.getPolicyStatus().name());
+			throw new BadRequestException(MessageConstants.Policy.CANCEL_INACTIVE_RESTRICTED + policy.getPolicyStatus().name());
+		}
+
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		boolean isStaff = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(auth.getName())
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			ProductType policyProductType = (policy.getPolicyPlan() != null && policy.getPolicyPlan().getInsuranceProduct() != null)
+					? policy.getPolicyPlan().getInsuranceProduct().getProductType() : null;
+			if (staffSpeciality == null || !staffSpeciality.equals(policyProductType)) {
+				throw new AccessDeniedException(MessageConstants.Security.SPECIALITY_CANCEL_DENIED);
+			}
 		}
 
 		// Block cancellation if any claim is still open
@@ -287,7 +348,7 @@ public class PolicyServiceImpl implements PolicyService {
 		boolean hasOpenClaims = policy.getClaims().stream()
 				.anyMatch(c -> openStatuses.contains(c.getClaimStatus()));
 		if (hasOpenClaims) {
-			throw new BadRequestException("Policy cannot be cancelled while a claim is still pending or under review.");
+			throw new BadRequestException(MessageConstants.Policy.CANCEL_WITH_OPEN_CLAIMS);
 		}
 
 		policy.setPolicyStatus(PolicyStatus.CANCELLED);
@@ -296,7 +357,7 @@ public class PolicyServiceImpl implements PolicyService {
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(updatedPolicy);
 
-		return new ApiResponseDTO<>("Policy cancelled successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Policy.CANCELLED_SUCCESS, true, responseDTO, LocalDateTime.now());
 	}
 
 	private PolicyResponseDTO convertToResponseDTO(Policy policy) {
@@ -307,9 +368,9 @@ public class PolicyServiceImpl implements PolicyService {
 
 		dto.setCustomerId(policy.getCustomer().getId());
 
-			BigDecimal activeClaimsSum = claimRepository.sumActiveClaimsByPolicyId(policy.getId(), ClaimStatus.REJECTED);
-			BigDecimal remaining = policy.getPolicyPlan().getCoverageAmount().subtract(activeClaimsSum);
-			dto.setRemainingClaimAmount(remaining);
+		BigDecimal activeClaimsSum = claimRepository.sumActiveClaimsByPolicyId(policy.getId(), ClaimStatus.REJECTED);
+		BigDecimal remaining = policy.getPolicyPlan().getCoverageAmount().subtract(activeClaimsSum);
+		dto.setRemainingClaimAmount(remaining);
 
 		dto.setCustomerName(policy.getCustomer().getUser().getFullName());
 

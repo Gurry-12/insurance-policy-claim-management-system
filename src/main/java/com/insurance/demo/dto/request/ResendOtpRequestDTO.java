@@ -1,5 +1,6 @@
 package com.insurance.demo.dto.request;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -13,10 +14,10 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ResendOtpRequestDTO {
 
-	@NotBlank
-	@Email
+	@NotBlank(message = MessageConstants.Validation.EMAIL_REQUIRED)
+	@Email(message = MessageConstants.Validation.VALID_EMAIL)
 	private String email;
 	
-	@NotBlank 
+	@NotBlank(message = MessageConstants.Validation.MOBILE_REQUIRED)
 	private String phone;
 }

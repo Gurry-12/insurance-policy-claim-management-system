@@ -63,7 +63,7 @@ public class ClaimController {
 	@GetMapping
 	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get All Claims", description = "Retrieves a paginated list of all claims with filtering by policy, status, and dates.")
-	public PageResponseDTO<ClaimResponseDTO> getAllClaims(@RequestParam(defaultValue = "0") int pageNumber,
+	public ApiResponseDTO<PageResponseDTO<ClaimResponseDTO>> getAllClaims(@RequestParam(defaultValue = "0") int pageNumber,
 			@RequestParam(defaultValue = "10") int pageSize, @RequestParam(defaultValue = "createdDate") String sortBy,
 			@RequestParam(defaultValue = "desc") String sortDirection, @RequestParam(required = false) Long customerId,
 			@RequestParam(required = false) String status,
@@ -83,7 +83,7 @@ public class ClaimController {
 	@GetMapping("/{claimId}/history")
 	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF', 'CUSTOMER')")
 	@Operation(summary = "Get Claim Status History", description = "Retrieves the complete audit trail/history of status changes for a specific claim.")
-	public PageResponseDTO<ClaimHistoryResponseDTO> getClaimHistory(@PathVariable Long claimId,
+	public ApiResponseDTO<PageResponseDTO<ClaimHistoryResponseDTO>> getClaimHistory(@PathVariable Long claimId,
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "desc") String sortDirection,
 			@RequestParam(required = false) String updatedBy, @RequestParam(required = false) String status) {

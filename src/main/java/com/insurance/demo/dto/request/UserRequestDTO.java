@@ -1,5 +1,6 @@
 package com.insurance.demo.dto.request;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -15,21 +16,21 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UserRequestDTO {
 
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
-	@NotBlank(message = "Full name is required")
-	@Size(min = 2, max = 100, message = "name should be beteeen 2 - 100 characters")
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = MessageConstants.Validation.LETTERS_SPACES_ONLY)
+	@NotBlank(message = MessageConstants.Validation.FULL_NAME_REQUIRED)
+	@Size(min = 2, max = 100, message = MessageConstants.Validation.NAME_SIZE)
 	private String fullName;
 
-	@Email(message = "Enter valid email")
-	@NotBlank(message = "Email is required")
+	@Email(message = MessageConstants.Validation.VALID_EMAIL)
+	@NotBlank(message = MessageConstants.Validation.EMAIL_REQUIRED)
 	private String email;
 
-	@NotBlank(message = "Password is required")
-	@Pattern(regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@#$%^&+=!]).{6,15}$", message = "Password must contain uppercase, lowercase, digit and special character")
+	@NotBlank(message = MessageConstants.Validation.PASSWORD_REQUIRED)
+	@Pattern(regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@#$%^&+=!]).{6,15}$", message = MessageConstants.Validation.PASSWORD_PATTERN)
 	private String password;
 
-	@NotBlank(message = "Mobile number is required")
-	@Pattern(regexp = "^\\+[1-9]\\d{7,14}$", message = "Use international format, example: +919876543210")
+	@NotBlank(message = MessageConstants.Validation.MOBILE_REQUIRED)
+	@Pattern(regexp = "^\\+[1-9]\\d{7,14}$", message = MessageConstants.Validation.MOBILE_PATTERN)
 	private String mobileNumber;
 
 }

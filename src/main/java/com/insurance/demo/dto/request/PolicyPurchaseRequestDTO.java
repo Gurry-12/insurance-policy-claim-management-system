@@ -2,6 +2,7 @@ package com.insurance.demo.dto.request;
 
 import java.time.LocalDate;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
@@ -16,10 +17,10 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PolicyPurchaseRequestDTO {
 
-	@NotNull(message = "Plan Id is required")
+	@NotNull(message = MessageConstants.Validation.PLAN_ID_REQUIRED)
 	private Long planId;
 	
-	@NotNull(message = "Start date is required")
-	@PastOrPresent(message = "start date can't be in future")
+	@NotNull(message = MessageConstants.Validation.START_DATE_REQUIRED)
+	@PastOrPresent(message = MessageConstants.Validation.START_DATE_PAST_PRESENT)
 	private LocalDate startDate;
 }
