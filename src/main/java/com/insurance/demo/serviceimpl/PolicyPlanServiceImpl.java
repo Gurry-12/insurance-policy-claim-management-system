@@ -229,6 +229,9 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		}
 		if (isActive != null) {
 			spec = spec.and((root, query, cb) -> cb.equal(root.get("isActive"), isActive));
+			if (Boolean.TRUE.equals(isActive)) {
+				spec = spec.and((root, query, cb) -> cb.equal(root.get("insuranceProduct").get("isActive"), true));
+			}
 		}
 		if (planName != null && !planName.trim().isEmpty()) {
 			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("planName")),
@@ -267,7 +270,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		boolean isCustomer = auth != null
 				&& auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 
-		if (isCustomer && !Boolean.TRUE.equals(plan.getIsActive())) {
+		if (isCustomer && (!Boolean.TRUE.equals(plan.getIsActive()) || !Boolean.TRUE.equals(plan.getInsuranceProduct().getIsActive()))) {
 			throw new ResourceNotFoundException("No active plan associated with id - " + planId);
 		}
 
