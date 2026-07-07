@@ -62,6 +62,7 @@ public class PremiumPayment {
 
 	@NotNull(message = "payment status can not be null")
 	@Column(name = "payment_status", nullable = false)
+	@Enumerated(EnumType.STRING)
 	private PaymentStatus paymentStatus;
 
 	@Column(name = "created_date", updatable = false)

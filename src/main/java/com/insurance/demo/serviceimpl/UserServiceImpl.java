@@ -23,6 +23,8 @@ import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.BadRequestException;
+import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
@@ -152,7 +154,8 @@ public class UserServiceImpl implements UserService {
 
 		AppUser user = modelMapper.map(staffRequestDTO, AppUser.class);
 		user.setEmail(staffRequestDTO.getEmail().toLowerCase());
-		user.setPassword(passwordEncoder.encode(staffRequestDTO.getPassword()));
+		String decodedPassword = new String(Base64.getDecoder().decode(staffRequestDTO.getPassword().trim()), StandardCharsets.UTF_8);
+		user.setPassword(passwordEncoder.encode(decodedPassword));
 		user.setRole(Role.ROLE_INTERNAL_STAFF);
 		StaffSpeciality staffSpeciality = new StaffSpeciality();
 		staffSpeciality.setProductSpeciality(staffRequestDTO.getProductSpeciality());

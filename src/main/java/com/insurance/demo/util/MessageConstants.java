@@ -141,6 +141,7 @@ public final class MessageConstants {
         public static final String MUST_BE_UNDER_REVIEW_TO_ASSIGN = "Claim must be UNDER_REVIEW to be assigned.";
         public static final String ALREADY_ASSIGNED = "Claim is already assigned to another staff member.";
         public static final String MOVE_TO_UNDER_REVIEW_RESTRICTED = "Only newly submitted claims can be moved to the under review status.";
+        public static final String ASSIGN_MUST_BE_SUBMITTED = "Claim must be SUBMITTED to be assigned.";
     }
 
     public static final class Document {

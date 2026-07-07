@@ -23,6 +23,8 @@ import com.insurance.demo.dto.response.ResendOtpResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.BadRequestException;
+import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
@@ -77,8 +79,10 @@ public class AuthServiceImpl implements AuthService {
 			throw new BadRequestException(MessageConstants.Auth.ACCOUNT_DEACTIVATED);
 		}
 
+		String decodedPassword = new String(Base64.getDecoder().decode(requestDto.getPassword().trim()), StandardCharsets.UTF_8);
+
 		Authentication authentication = authenticationManager
-				.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getEmail(), requestDto.getPassword()));
+				.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getEmail(), decodedPassword));
 
 		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
@@ -110,7 +114,8 @@ public class AuthServiceImpl implements AuthService {
 		}
 		AppUser user = modelMapper.map(dto, AppUser.class);
 		user.setEmail(dto.getEmail().toLowerCase());
-		user.setPassword(passwordEncoder.encode(dto.getPassword()));
+		String decodedPassword = new String(Base64.getDecoder().decode(dto.getPassword().trim()), StandardCharsets.UTF_8);
+		user.setPassword(passwordEncoder.encode(decodedPassword));
 		user.setRole(Role.ROLE_CUSTOMER);
 		user.setIsActive(false);
 		user.setEmailVerified(false);
@@ -194,7 +199,8 @@ public class AuthServiceImpl implements AuthService {
 			user.setIsActive(Boolean.TRUE);
 		}
 
-		user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+		String decodedPassword = new String(Base64.getDecoder().decode(request.getNewPassword().trim()), StandardCharsets.UTF_8);
+		user.setPassword(passwordEncoder.encode(decodedPassword));
 		userRepository.save(user);
 
 		return new ApiResponseDTO<>(MessageConstants.Auth.PASSWORD_RESET_SUCCESS, true, null, LocalDateTime.now());
