@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.insurance.demo.dto.response.ErrorResponseDTO;
+import com.insurance.demo.dto.response.ValidationErrorResponseDTO;
+import com.insurance.demo.util.MessageConstants;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -54,37 +56,36 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
-	public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
-		log.warn("Validation failed");
-		Map<String, String> validationErrors = new LinkedHashMap<>();
+	public ResponseEntity<ValidationErrorResponseDTO> handleValidation(MethodArgumentNotValidException ex,
+			HttpServletRequest request) {
+		log.warn("Validation failed for request: {}", request.getRequestURI());
+		Map<String, String> fieldErrors = new LinkedHashMap<>();
 		for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-			validationErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
+			fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
 		}
-		Map<String, Object> error = new LinkedHashMap<>();
-		error.put("timestamp", LocalDateTime.now());
-		error.put("status", HttpStatus.BAD_REQUEST.value());
-		error.put("error", "Validation Failed");
-		error.put("messages", validationErrors);
+		ValidationErrorResponseDTO error = new ValidationErrorResponseDTO(
+				LocalDateTime.now(),
+				HttpStatus.BAD_REQUEST.value(),
+				"VALIDATION_FAILED",
+				MessageConstants.Common.VALIDATION_FAILED,
+				request.getRequestURI(),
+				fieldErrors);
 		return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler(PlanNotActiveException.class)
 	public ResponseEntity<ErrorResponseDTO> handlePlanNotActiveException(PlanNotActiveException ex,
 			HttpServletRequest request) {
-
 		ErrorResponseDTO error = new ErrorResponseDTO(LocalDateTime.now(), HttpStatus.BAD_REQUEST.value(),
-				"PLAN_NOT_ACTIVE", ex.getMessage(), request.getRequestURI());
-
+				MessageConstants.Common.PLAN_NOT_ACTIVE_ERROR_TYPE, ex.getMessage(), request.getRequestURI());
 		return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler({ org.springframework.orm.ObjectOptimisticLockingFailureException.class,
 			org.hibernate.StaleObjectStateException.class })
 	public ResponseEntity<ErrorResponseDTO> handleStaleStateException(Exception ex, HttpServletRequest request) {
-
 		ErrorResponseDTO error = new ErrorResponseDTO(LocalDateTime.now(), HttpStatus.CONFLICT.value(), "CONFLICT",
-				"The requested record has already been modified or is no longer available.", request.getRequestURI());
-
+				MessageConstants.Common.CONFLICT_RECORD_MODIFIED, request.getRequestURI());
 		return new ResponseEntity<>(error, HttpStatus.CONFLICT);
 	}
 
@@ -92,47 +93,47 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorResponseDTO> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
 			HttpServletRequest request) {
 		log.warn("Invalid path variable or request parameter: {}", ex.getMessage());
-		return buildResponse(HttpStatus.BAD_REQUEST, "Invalid input. Please provide valid data.", request);
+		return buildResponse(HttpStatus.BAD_REQUEST, MessageConstants.Common.INVALID_INPUT, request);
 	}
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	public ResponseEntity<ErrorResponseDTO> handleInvalidJson(HttpMessageNotReadableException ex,
 			HttpServletRequest request) {
 		log.warn("Invalid JSON request body");
-		return buildResponse(HttpStatus.BAD_REQUEST, "Invalid JSON request body.", request);
+		return buildResponse(HttpStatus.BAD_REQUEST, MessageConstants.Common.INVALID_JSON_BODY, request);
 	}
 
 	@ExceptionHandler(DataIntegrityViolationException.class)
 	public ResponseEntity<ErrorResponseDTO> handleDataIntegrity(DataIntegrityViolationException ex,
 			HttpServletRequest request) {
 		log.error("Database constraint violation: {}", ex.getMessage());
-		return buildResponse(HttpStatus.CONFLICT, "Duplicate or invalid database value.", request);
+		return buildResponse(HttpStatus.CONFLICT, MessageConstants.Common.DB_CONSTRAINT_VIOLATION, request);
 	}
 
 	@ExceptionHandler(AccessDeniedException.class)
 	public ResponseEntity<ErrorResponseDTO> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
 		log.warn("Access denied: {}", ex.getMessage());
-		return buildResponse(HttpStatus.FORBIDDEN, "You do not have permission to access this resource.", request);
+		return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
 	}
 
 	@ExceptionHandler(BadCredentialsException.class)
 	public ResponseEntity<ErrorResponseDTO> handleBadCredentials(BadCredentialsException ex,
 			HttpServletRequest request) {
 		log.warn("Bad credentials: {}", ex.getMessage());
-		return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid email or password.", request);
+		return buildResponse(HttpStatus.UNAUTHORIZED, MessageConstants.Auth.INVALID_CREDENTIALS, request);
 	}
 
 	@ExceptionHandler(AuthenticationException.class)
 	public ResponseEntity<ErrorResponseDTO> handleAuthenticationException(AuthenticationException ex,
 			HttpServletRequest request) {
 		log.warn("Authentication failed: {}", ex.getMessage());
-		return buildResponse(HttpStatus.UNAUTHORIZED, "Authentication failed. Please login again.", request);
+		return buildResponse(HttpStatus.UNAUTHORIZED, MessageConstants.Security.UNAUTHORIZED, request);
 	}
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorResponseDTO> handleGeneric(Exception ex, HttpServletRequest request) {
 		log.error("Unexpected error occurred", ex);
-		return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong.", request);
+		return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, MessageConstants.Common.INTERNAL_SERVER_ERROR, request);
 	}
 
 	private ResponseEntity<ErrorResponseDTO> buildResponse(HttpStatus status, String message,

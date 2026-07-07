@@ -90,7 +90,7 @@ public class PolicyPlanController {
     @GetMapping("/page")
     @PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
     @Operation(summary = "Get All Plans (Paginated)", description = "Retrieves a paginated list of plans with optional filtering by product ID and active status.")
-    public PageResponseDTO<PlanResponseDTO> getAllPlansWithPagination(
+    public ApiResponseDTO<PageResponseDTO<PlanResponseDTO>> getAllPlansWithPagination(
             @RequestParam(defaultValue = "0") int pageNumber,
             @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(defaultValue = "createdDate") String sortBy,

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -18,17 +19,17 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ClaimRequestDTO {
 
-	@NotNull(message = "Policy Id is required")
+	@NotNull(message = MessageConstants.Validation.POLICY_ID_REQUIRED)
 	private Long policyId;
 
-	@NotNull(message = "Claim amount is required")
-	@Positive(message = "Claim amount must be strictly greater than 0")
+	@NotNull(message = MessageConstants.Validation.CLAIM_AMOUNT_REQUIRED)
+	@Positive(message = MessageConstants.Validation.CLAIM_AMOUNT_POSITIVE)
 	private BigDecimal claimAmount;
 
-	@NotBlank(message = "Claim reason is required")
+	@NotBlank(message = MessageConstants.Validation.CLAIM_REASON_REQUIRED)
 	private String claimReason;
 
-	@NotNull(message = "Incident date is required")
+	@NotNull(message = MessageConstants.Validation.INCIDENT_DATE_REQUIRED)
 	private LocalDate incidentDate;
 	
 	//private List<ClaimDocumentRequestDTO> documents;

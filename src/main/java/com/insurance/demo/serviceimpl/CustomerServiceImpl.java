@@ -1,5 +1,6 @@
 package com.insurance.demo.serviceimpl;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +31,7 @@ import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.repository.CustomerRepository;
 import com.insurance.demo.service.CustomerService;
 import com.insurance.demo.util.PaginationValidator;
+import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 
@@ -53,21 +55,22 @@ public class CustomerServiceImpl implements CustomerService {
 		String loggedInEmail = authentication.getName();
 
 		AppUser user = appUserRepository.findByEmail(loggedInEmail)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 
 		logger.info("Creating customer profile for userId: {}", user.getId());
 
 		// Verify role
 		if (user.getRole() != Role.ROLE_CUSTOMER) {
-			throw new BadRequestException("Only customers can create customer profiles");
+			throw new BadRequestException(MessageConstants.Customer.ONLY_CUSTOMERS_CREATE_PROFILE);
+		}
+
+		if (requestDTO.getDateOfBirth() != null && requestDTO.getDateOfBirth().isAfter(LocalDate.now().minusYears(18))) {
+			throw new BadRequestException(MessageConstants.Customer.UNDER_AGE_LIMIT);
 		}
 
 		// Fetch existing empty profile or create a new one if somehow missing
 		Customer customer = customerRepository.findByUserId(user.getId())
 				.orElseGet(() -> new Customer());
-		
-		// If the existing profile is fully complete, should we throw? Or just update?
-		// We'll treat it as an update/upsert to support the UI workflow smoothly.
 
 		modelMapper.map(requestDTO, customer);
 		customer.setUser(user);
@@ -78,7 +81,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 		logger.info("Customer profile completed/updated successfully with id: {}", savedCustomer.getId());
 
-		return new ApiResponseDTO<>("Customer profile completed successfully", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Customer.PROFILE_COMPLETED, true, dto, LocalDateTime.now());
 	}
 
 	@Override
@@ -93,7 +96,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 		CustomerResponseDTO dto = convertToResponseDTO(customer);
 
-		return new ApiResponseDTO<>("Customer details retrieved successfully.", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Customer.DETAILS_RETRIEVED, true, dto, LocalDateTime.now());
 	}
 
 	@Override
@@ -105,7 +108,7 @@ public class CustomerServiceImpl implements CustomerService {
 		List<CustomerResponseDTO> customers = customerRepository.findAll().stream().map(this::convertToResponseDTO)
 				.toList();
 
-		return new ApiResponseDTO<>("Customer details retrieved successfully.", true, customers, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Customer.DETAILS_RETRIEVED, true, customers, LocalDateTime.now());
 	}
 
 	@Override
@@ -117,6 +120,10 @@ public class CustomerServiceImpl implements CustomerService {
 
 		validateCustomerAccess(customer);
 
+		if (requestDTO.getDateOfBirth() != null && requestDTO.getDateOfBirth().isAfter(LocalDate.now().minusYears(18))) {
+			throw new BadRequestException(MessageConstants.Customer.UNDER_AGE_LIMIT);
+		}
+
 		modelMapper.map(requestDTO, customer);
 
 		Customer updatedCustomer = customerRepository.save(customer);
@@ -125,12 +132,12 @@ public class CustomerServiceImpl implements CustomerService {
 
 		logger.info("Customer updated successfully with id: {}", customerId);
 
-		return new ApiResponseDTO<>("Customer profile Updated Successfully", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Customer.PROFILE_UPDATED, true, dto, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public PageResponseDTO<CustomerResponseDTO> getAllCustomersWithPagination(int pageNumber, int pageSize,
+	public ApiResponseDTO<PageResponseDTO<CustomerResponseDTO>> getAllCustomersWithPagination(int pageNumber, int pageSize,
 			String sortBy, String sortDirection, String city, String state, String pinCode) {
 
 		logger.info(
@@ -158,14 +165,16 @@ public class CustomerServiceImpl implements CustomerService {
 
 		List<CustomerResponseDTO> content = customerPage.getContent().stream().map(this::convertToResponseDTO).toList();
 
-		return new PageResponseDTO<>(content, customerPage.getNumber(), customerPage.getSize(),
+		PageResponseDTO<CustomerResponseDTO> pageResponse = new PageResponseDTO<>(content, customerPage.getNumber(), customerPage.getSize(),
 				customerPage.getTotalElements(), customerPage.getTotalPages(), customerPage.isLast(), sortDirection);
+				
+		return new ApiResponseDTO<>(MessageConstants.Customer.ALL_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 	private Customer findCustomerById(Long customerId) {
 
 		return customerRepository.findById(customerId)
-				.orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Customer.PROFILE_NOT_FOUND));
 	}
 
 	private void validateCustomerAccess(Customer customer) {
@@ -178,7 +187,7 @@ public class CustomerServiceImpl implements CustomerService {
 
 			if (!customer.getUser().getEmail().equals(loggedInEmail)) {
 
-				throw new BadRequestException("You are not allowed to access another customer's profile");
+				throw new BadRequestException(MessageConstants.Security.NOT_OWN_PROFILE);
 			}
 		}
 	}
@@ -193,7 +202,7 @@ public class CustomerServiceImpl implements CustomerService {
 			return Sort.Direction.DESC;
 		}
 
-		throw new BadRequestException("Sort direction must be asc or desc.");
+		throw new BadRequestException(MessageConstants.Common.SORT_DIRECTION_INVALID);
 	}
 
 	private CustomerResponseDTO convertToResponseDTO(Customer customer) {
@@ -220,14 +229,14 @@ public class CustomerServiceImpl implements CustomerService {
 		String loggedInEmail = authentication.getName();
 
 		if (!authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"))) {
-			throw new BadRequestException("Permission Denied ");
+			throw new BadRequestException(MessageConstants.Security.PERMISSION_DENIED);
 		}
 		Customer customer = customerRepository.findByUserEmail(loggedInEmail)
-				.orElseThrow(() -> new ResourceNotFoundException("customer's profile not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Customer.PROFILE_NOT_FOUND));
 
 		CustomerResponseDTO dto = convertToResponseDTO(customer);
 
-		return new ApiResponseDTO<>("CCustomer details retrieved successfully.", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Customer.DETAILS_RETRIEVED, true, dto, LocalDateTime.now());
 	}
 
 }

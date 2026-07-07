@@ -1,5 +1,6 @@
 package com.insurance.demo.dto.request;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -13,9 +14,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UserStatusUpdateRequestDTO {
 
-	@NotNull(message = "Active status is required")
+	@NotNull(message = MessageConstants.Validation.ACTIVE_STATUS_REQUIRED)
 	private Boolean isActive;
 
-	@NotBlank(message = "Remarks are required")
+	@NotBlank(message = MessageConstants.Validation.REMARKS_REQUIRED)
 	private String remarks;
 }

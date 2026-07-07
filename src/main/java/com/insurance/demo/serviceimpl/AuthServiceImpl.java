@@ -23,6 +23,8 @@ import com.insurance.demo.dto.response.ResendOtpResponseDTO;
 import com.insurance.demo.dto.response.UserResponseDTO;
 import com.insurance.demo.enums.Role;
 import com.insurance.demo.exception.BadRequestException;
+import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
@@ -33,6 +35,7 @@ import com.insurance.demo.security.JwtService;
 import com.insurance.demo.service.AuthService;
 import com.insurance.demo.service.UserService;
 import com.insurance.demo.verification.OtpService;
+import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,43 +55,49 @@ public class AuthServiceImpl implements AuthService {
 	private final OtpService otpService;
 
 	@Override
-	public LoginResponseDTO login(LoginRequestDTO requestDto) {
+	public ApiResponseDTO<LoginResponseDTO> login(LoginRequestDTO requestDto) {
 
 		log.info("Login attempt received. Email={}", requestDto.getEmail());
 		String email = requestDto.getEmail().toLowerCase();
 		AppUser appUser = userRepository.findByEmail(email).orElseThrow(() -> {
 			log.warn("Login failed due to invalid credentials. Email={}", requestDto.getEmail());
-			throw new BadRequestException("Invalid email or password");
+			throw new BadRequestException(MessageConstants.Auth.INVALID_CREDENTIALS);
 		});
 
 		if (!appUser.getEmailVerified()) {
 			log.warn("Login blocked. Email not verified. UserId={}", appUser.getId());
-			throw new BadRequestException("Please verify email before logging in.");
+			throw new BadRequestException(MessageConstants.Auth.EMAIL_NOT_VERIFIED);
 		}
 
 		if (!appUser.getPhoneVerified()) {
 			log.warn("Login blocked. Phone not verified. UserId={}", appUser.getId());
-			throw new BadRequestException("Please verify phone before logging in.");
+			throw new BadRequestException(MessageConstants.Auth.PHONE_NOT_VERIFIED);
 		}
 
 		if (Boolean.FALSE.equals(appUser.getIsActive())) {
 			log.warn("Login blocked. Inactive account. UserId={}", appUser.getId());
-			throw new BadRequestException("Your account is deactivated. Please contact support.");
+			throw new BadRequestException(MessageConstants.Auth.ACCOUNT_DEACTIVATED);
 		}
 
+		String decodedPassword = new String(Base64.getDecoder().decode(requestDto.getPassword().trim()), StandardCharsets.UTF_8);
+
 		Authentication authentication = authenticationManager
-				.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getEmail(), requestDto.getPassword()));
+				.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getEmail(), decodedPassword));
 
 		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-		String token = jwtService.generateToken(userDetails, appUser.getFullName());
+		String productSpeciality = (appUser.getStaffSpeciality() != null)
+				? appUser.getStaffSpeciality().getProductSpeciality().name()
+				: null;
+
+		String token = jwtService.generateToken(userDetails, appUser.getFullName(), productSpeciality);
 
 		UserResponseDTO dto = userService.findByEmail(userDetails.getUsername());
 
 		log.info("User login successful. UserId={}, Role={}", appUser.getId(), appUser.getRole());
 
-		return new LoginResponseDTO(dto.getId(), dto.getFullName(), dto.getEmail(), dto.getRole(), token,
-				"User logged in successfully.", "Bearer");
+		LoginResponseDTO loginResponseDTO = new LoginResponseDTO(dto.getId(), dto.getFullName(), dto.getEmail(), dto.getRole(), token, "Bearer");
+		return new ApiResponseDTO<>(MessageConstants.Auth.LOGIN_SUCCESS, true, loginResponseDTO, LocalDateTime.now());
 	}
 
 	@Override
@@ -97,15 +106,16 @@ public class AuthServiceImpl implements AuthService {
 
 		if (userRepository.existsByEmail(dto.getEmail())) {
 			log.warn("Registration failed. Email already exists. Email={}", dto.getEmail());
-			throw new DuplicateResourceException("Email Address is already registered.");
+			throw new DuplicateResourceException(MessageConstants.Auth.EMAIL_ALREADY_REGISTERED);
 		}
 
 		if (userRepository.existsByMobileNumber(dto.getMobileNumber())) {
-			throw new DuplicateResourceException("Duplicate user found with mobile Number - " + dto.getMobileNumber());
+			throw new DuplicateResourceException(MessageConstants.Auth.MOBILE_ALREADY_REGISTERED + dto.getMobileNumber());
 		}
 		AppUser user = modelMapper.map(dto, AppUser.class);
 		user.setEmail(dto.getEmail().toLowerCase());
-		user.setPassword(passwordEncoder.encode(dto.getPassword()));
+		String decodedPassword = new String(Base64.getDecoder().decode(dto.getPassword().trim()), StandardCharsets.UTF_8);
+		user.setPassword(passwordEncoder.encode(decodedPassword));
 		user.setRole(Role.ROLE_CUSTOMER);
 		user.setIsActive(false);
 		user.setEmailVerified(false);
@@ -122,7 +132,7 @@ public class AuthServiceImpl implements AuthService {
 
 		UserResponseDTO responseDTO = modelMapper.map(savedUser, UserResponseDTO.class);
 		log.info("Customer registration successful. UserId={}, Email={}", user.getId(), user.getEmail());
-		return new ApiResponseDTO<>("Customer registered successfully. OTP sent to email and phone.", true, responseDTO,
+		return new ApiResponseDTO<>(MessageConstants.Auth.REGISTRATION_SUCCESS, true, responseDTO,
 				LocalDateTime.now());
 
 	}
@@ -130,10 +140,10 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	public ApiResponseDTO<UserResponseDTO> verifyOtp( VerifyOtpRequest request) {
 		AppUser user = userRepository.findByEmail(request.getEmail())
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 
 		if (Boolean.TRUE.equals(user.getIsActive())) {
-			throw new BadRequestException("user is already verified");
+			throw new BadRequestException(MessageConstants.Auth.OTP_EXPIRED);
 		}
 
 		otpService.verifyOtp(user, request.getEmailOtp(), request.getPhoneOtp());
@@ -144,7 +154,7 @@ public class AuthServiceImpl implements AuthService {
 
 		AppUser saved = userRepository.save(user);
 
-		return new ApiResponseDTO<>("User account activated successfully.", true,
+		return new ApiResponseDTO<>(MessageConstants.Auth.ACCOUNT_ACTIVATED, true,
 				modelMapper.map(saved, UserResponseDTO.class), LocalDateTime.now());
 	}
 
@@ -152,34 +162,34 @@ public class AuthServiceImpl implements AuthService {
 	public ApiResponseDTO<ResendOtpResponseDTO> resendOtp(ResendOtpRequestDTO request) {
 
 		AppUser user = userRepository.findByEmailAndMobileNumber(request.getEmail(), request.getPhone())
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 
 		if (Boolean.TRUE.equals(user.getIsActive())) {
-			throw new BadRequestException("user is already verified");
+			throw new BadRequestException(MessageConstants.Auth.OTP_EXPIRED);
 		}
 
 		otpService.sendOrResendOtp(user);
 
 		ResendOtpResponseDTO dto = new ResendOtpResponseDTO(request.getEmail(), request.getPhone());
 
-		return new ApiResponseDTO<>("OTP has been resent to your email and phone.", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Auth.OTP_RESENT, true, dto, LocalDateTime.now());
 
 	}
 	
 	@Override
 	public ApiResponseDTO<String> forgotPassword(ForgotPasswordRequestDTO request) {
 		AppUser user = userRepository.findByEmail(request.getEmail().toLowerCase())
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 
 		otpService.sendOrResendOtp(user);
-		return new ApiResponseDTO<>("OTP sent to your registered email and phone number.", true, null, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Auth.FORGOT_PASSWORD_OTP, true, null, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional
 	public ApiResponseDTO<String> resetPassword(ResetPasswordRequestDTO request) {
 		AppUser user = userRepository.findByEmail(request.getEmail().toLowerCase())
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with the provided details."));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
 
 		otpService.verifyOtp(user, request.getEmailOtp(), request.getPhoneOtp());
 
@@ -189,10 +199,11 @@ public class AuthServiceImpl implements AuthService {
 			user.setIsActive(Boolean.TRUE);
 		}
 
-		user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+		String decodedPassword = new String(Base64.getDecoder().decode(request.getNewPassword().trim()), StandardCharsets.UTF_8);
+		user.setPassword(passwordEncoder.encode(decodedPassword));
 		userRepository.save(user);
 
-		return new ApiResponseDTO<>("Password has been reset successfully.", true, null, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Auth.PASSWORD_RESET_SUCCESS, true, null, LocalDateTime.now());
 	}
 
 }

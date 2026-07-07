@@ -1,7 +1,7 @@
 package com.insurance.demo.dto.request;
 
 import com.insurance.demo.enums.ClaimStatus;
-
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,7 +14,7 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ClaimReviewRequestDTO {
 
-	@NotNull(message = "Status is required")
+	@NotNull(message = MessageConstants.Validation.STATUS_REQUIRED)
 	private ClaimStatus recommendedStatus;
 
 	private String remarks;
