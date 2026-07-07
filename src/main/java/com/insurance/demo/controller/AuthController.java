@@ -38,7 +38,7 @@ public class AuthController {
 	@ResponseStatus(HttpStatus.OK)
 
 	@Operation(summary = "User Login", description = "Authenticates a user using email and password, and returns a JWT token.")
-	public LoginResponseDTO login(@Valid @RequestBody LoginRequestDTO requestDto) {
+	public ApiResponseDTO<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO requestDto) {
 
 		log.info("Login request received for email: {}", requestDto.getEmail());
 
@@ -59,13 +59,13 @@ public class AuthController {
 	public ApiResponseDTO<UserResponseDTO> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
 		return authService.verifyOtp(request);
 	}
-	
+
 	@PostMapping("/resend-otp")
 	@Operation(summary = "Resend OTP", description = "Resend the OTP to user email and phone  to activate")
-	public ApiResponseDTO<ResendOtpResponseDTO> resendOtp(@Valid @RequestBody ResendOtpRequestDTO request){
-			return authService.resendOtp(request);
+	public ApiResponseDTO<ResendOtpResponseDTO> resendOtp(@Valid @RequestBody ResendOtpRequestDTO request) {
+		return authService.resendOtp(request);
 	}
-	
+
 	@PostMapping("/forgot-password")
 	@Operation(summary = "Forgot Password", description = "Sends an OTP to the user's registered email and phone number for password reset.")
 	public ApiResponseDTO<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO request) {

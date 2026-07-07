@@ -63,10 +63,9 @@ public class InsuranceProductController {
 	@PutMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
 	@Operation(summary = "Update Insurance Product", description = "Updates the details of an existing insurance product.")
-	public ResponseEntity<ProductResponseDTO> updateProduct(@PathVariable Long id,
+	public ApiResponseDTO<ProductResponseDTO> updateProduct(@PathVariable Long id,
 			@Valid @RequestBody ProductRequestDTO requestDTO) {
-		ProductResponseDTO response = productService.updateProduct(id, requestDTO);
-		return ResponseEntity.ok(response);
+		return productService.updateProduct(id, requestDTO);
 	}
 	
 	@GetMapping("/{id}")
@@ -79,7 +78,7 @@ public class InsuranceProductController {
 	@GetMapping("/page")
 	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get All Products (Paginated)", description = "Retrieves a paginated list of all products with filtering options for type and status.")
-	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(
+	public ApiResponseDTO<PageResponseDTO<ProductResponseDTO>> getAllProductsWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber,
 			@RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy,

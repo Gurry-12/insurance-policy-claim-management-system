@@ -59,7 +59,7 @@ public class PremiumPaymentController {
 	@GetMapping("/page")
 	@PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_STAFF')")
 	@Operation(summary = "Get All Payments", description = "Retrieves a paginated list of all system payments with optional filtering by policy ID and payment status.")
-	public PageResponseDTO<PaymentResponseDTO> getAllPaymentsWithPagination(
+	public ApiResponseDTO<PageResponseDTO<PaymentResponseDTO>> getAllPaymentsWithPagination(
 			@RequestParam(defaultValue = "0") int pageNumber, @RequestParam(defaultValue = "10") int pageSize,
 			@RequestParam(defaultValue = "id") String sortBy, @RequestParam(defaultValue = "asc") String sortDirection,
 			@RequestParam(required = false) Long policyId,

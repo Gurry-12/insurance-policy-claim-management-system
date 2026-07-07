@@ -74,7 +74,7 @@ public class UserController {
 	@GetMapping("/page")
 	@PreAuthorize("hasRole('ADMIN')")
 	@Operation(summary = "Get All Users", description = "Retrieves a paginated list of all users. Supports filtering by role and active status.")
-	public PageResponseDTO<UserResponseDTO> getAllUsersWithPagination(@RequestParam(defaultValue = "0") int pageNumber,
+	public ApiResponseDTO<PageResponseDTO<UserResponseDTO>> getAllUsersWithPagination(@RequestParam(defaultValue = "0") int pageNumber,
 			@RequestParam(defaultValue = "10") int pageSize, @RequestParam(defaultValue = "id") String sortBy,
 			@RequestParam(defaultValue = "asc") String sortDirection, @RequestParam(required = false) String role,
 			@RequestParam(required = false) Boolean isActive, @RequestParam(required = false) String fullName,

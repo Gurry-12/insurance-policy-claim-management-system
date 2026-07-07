@@ -23,6 +23,7 @@ import com.insurance.demo.repository.ClaimDocumentRepository;
 import com.insurance.demo.repository.ClaimRepository;
 import com.insurance.demo.service.ClaimDocumentService;
 import com.insurance.demo.service.CloudinaryService;
+import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,40 +45,40 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 			throws IOException {
 
 		if (files == null || files.isEmpty()) {
-			throw new ResourceNotFoundException("At least one supporting document must be provided.");
+			throw new ResourceNotFoundException(MessageConstants.Document.AT_LEAST_ONE_REQUIRED);
 		}
 
 		for (MultipartFile file : files) {
 
 			if (file == null || file.isEmpty()) {
-				throw new BadRequestException("Uploaded document cannot be empty.");
+				throw new BadRequestException(MessageConstants.Document.CANNOT_BE_EMPTY);
 			}
 
 			if (file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
-				throw new BadRequestException("Uploaded document must have a valid file name.");
+				throw new BadRequestException(MessageConstants.Document.INVALID_FILE_NAME);
 			}
 
 			// File type validation: only images and PDFs allowed
 			String contentType = file.getContentType();
 			if (contentType == null || !java.util.Set.of("image/jpeg", "image/png", "image/jpg", "application/pdf")
 					.contains(contentType)) {
-				throw new BadRequestException("Only JPEG, PNG, and PDF documents are accepted.");
+				throw new BadRequestException(MessageConstants.Document.INVALID_FILE_TYPE_JPEG_PNG_PDF);
 			}
 
 			// File size validation: max 10 MB per file
 			if (file.getSize() > 10 * 1024 * 1024) {
-				throw new BadRequestException("Each document must not exceed 10 MB in size.");
+				throw new BadRequestException(MessageConstants.Document.EXCEEDS_SIZE_10MB);
 			}
 		}
 
 		String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 
 		Claim claim = claimRepository.findById(claimId)
-				.orElseThrow(() -> new ResourceNotFoundException("Claim not found with id: " + claimId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + claimId));
 
 		// Security Check - Only owner or staff/admin can add documents
 		if (!claim.getPolicy().getCustomer().getUser().getEmail().equals(currentUserEmail)) {
-			throw new BadRequestException("You are only permitted to upload supporting documents to your own claims.");
+			throw new BadRequestException(MessageConstants.Document.UPLOAD_OWN_CLAIMS_ONLY);
 		}
 
 		List<ClaimDocument> documents = new ArrayList<>();
@@ -114,7 +115,7 @@ public class ClaimDocumentServiceImpl implements ClaimDocumentService {
 
 		List<ClaimDocumentResponseDTO> responseDTOs = addDocumentsToClaim(claimId, files);
 
-		return new ApiResponseDTO<>("Supporting documents uploaded successfully.", true, responseDTOs,
+		return new ApiResponseDTO<>(MessageConstants.Document.UPLOADED_SUCCESS, true, responseDTOs,
 				LocalDateTime.now());
 
 	}

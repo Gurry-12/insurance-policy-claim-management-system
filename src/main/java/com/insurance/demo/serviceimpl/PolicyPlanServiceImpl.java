@@ -26,7 +26,13 @@ import com.insurance.demo.model.PolicyPlan;
 import com.insurance.demo.repository.InsuranceProductRepository;
 import com.insurance.demo.repository.PolicyPlanRepository;
 import com.insurance.demo.service.PolicyPlanService;
+import com.insurance.demo.enums.ProductType;
+import com.insurance.demo.enums.Role;
+import com.insurance.demo.model.AppUser;
+import com.insurance.demo.repository.AppUserRepository;
+import org.springframework.security.access.AccessDeniedException;
 import com.insurance.demo.util.PaginationValidator;
+import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +44,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 	private final PolicyPlanRepository policyPlanRepository;
 	private final InsuranceProductRepository productRepository;
+	private final AppUserRepository userRepository;
 	private final ModelMapper modelMapper;
 
 	@Override
@@ -47,21 +54,20 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		log.info("Creating policy plan: {}", dto.getPlanName());
 
 		if (dto.getCoverageAmount().compareTo(dto.getPremiumAmount()) <= 0) {
-			throw new BadRequestException(
-					"The policy coverage amount must strictly exceed the required premium amount.");
+			throw new BadRequestException(MessageConstants.PolicyPlan.COVERAGE_LIMIT);
 		}
 
 		// Validate Product exists and is active
 		InsuranceProduct product = productRepository.findById(dto.getProductId())
-				.orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + dto.getProductId()));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + dto.getProductId()));
 
 		if (!Boolean.TRUE.equals(product.getIsActive())) {
-			throw new BadRequestException("Cannot create a policy plan under an inactive insurance product.");
+			throw new BadRequestException(MessageConstants.PolicyPlan.UNDER_INACTIVE_PRODUCT);
 		}
 
 		// Check duplicate plan name
 		if (policyPlanRepository.existsByPlanNameIgnoreCase(dto.getPlanName())) {
-			throw new DuplicateResourceException("Policy plan already exists with name: " + dto.getPlanName());
+			throw new DuplicateResourceException(MessageConstants.PolicyPlan.ALREADY_EXISTS + dto.getPlanName());
 		}
 
 		PolicyPlan plan = new PolicyPlan();
@@ -81,7 +87,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		log.info("Plan ID after save: {}", savedPlan.getId());
 
 		PlanResponseDTO responseDTO = modelMapper.map(savedPlan, PlanResponseDTO.class);
-		return new ApiResponseDTO<>("Policy Plan created successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.CREATED_SUCCESS, true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
@@ -91,23 +97,23 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		log.info("Updating policy plan with id: {}", planId);
 
 		if (dto.getCoverageAmount().compareTo(dto.getPremiumAmount()) <= 0) {
-			throw new BadRequestException("Cannot create a policy plan under an inactive insurance product.");
+			throw new BadRequestException(MessageConstants.PolicyPlan.COVERAGE_LIMIT);
 		}
 
 		PolicyPlan existingPlan = policyPlanRepository.findById(planId)
-				.orElseThrow(() -> new ResourceNotFoundException("Policy plan not found with id: " + planId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + planId));
 
 		if (!Boolean.TRUE.equals(existingPlan.getIsActive())) {
-			throw new BadRequestException("Cannot update an inactive policy plan. Please activate it first.");
+			throw new BadRequestException(MessageConstants.PolicyPlan.INACTIVE_UPDATE_RESTRICTED);
 		}
 
 		// Validate product if changed
 		if (!existingPlan.getInsuranceProduct().getId().equals(dto.getProductId())) {
 			InsuranceProduct newProduct = productRepository.findById(dto.getProductId()).orElseThrow(
-					() -> new ResourceNotFoundException("Product not found with id: " + dto.getProductId()));
+					() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + dto.getProductId()));
 
 			if (!Boolean.TRUE.equals(newProduct.getIsActive())) {
-				throw new BadRequestException("Cannot link a policy plan to an inactive insurance product.");
+				throw new BadRequestException(MessageConstants.PolicyPlan.LINK_INACTIVE_PRODUCT);
 			}
 			existingPlan.setInsuranceProduct(newProduct);
 		}
@@ -115,7 +121,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		// Check duplicate name (excluding self)
 		if (!existingPlan.getPlanName().equalsIgnoreCase(dto.getPlanName())
 				&& policyPlanRepository.existsByPlanNameIgnoreCase(dto.getPlanName())) {
-			throw new DuplicateResourceException("Plan name already exists: " + dto.getPlanName());
+			throw new DuplicateResourceException(MessageConstants.PolicyPlan.PLAN_NAME_DUPLICATE + dto.getPlanName());
 		}
 
 		// Update fields
@@ -132,7 +138,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		PolicyPlan updatedPlan = policyPlanRepository.save(existingPlan);
 
 		PlanResponseDTO responseDTO = modelMapper.map(updatedPlan, PlanResponseDTO.class);
-		return new ApiResponseDTO<>("Policy Plan updated successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.UPDATED_SUCCESS, true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
@@ -142,11 +148,11 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		log.info("Deactivating policy plan id: {}", planId);
 
 		PolicyPlan plan = policyPlanRepository.findById(planId)
-				.orElseThrow(() -> new ResourceNotFoundException("Policy plan not found with id: " + planId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + planId));
 
 		if (Boolean.FALSE.equals(plan.getIsActive())) {
 			PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
-			return new ApiResponseDTO<>("The policy plan is already marked as inactive", false, dto,
+			return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ALREADY_INACTIVE, false, dto,
 					LocalDateTime.now());
 		}
 
@@ -154,7 +160,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		PolicyPlan deactivatedPlan = policyPlanRepository.save(plan);
 
 		PlanResponseDTO responseDTO = modelMapper.map(deactivatedPlan, PlanResponseDTO.class);
-		return new ApiResponseDTO<>("Policy plan deactivated successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.DEACTIVATED_SUCCESS, true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
@@ -164,18 +170,18 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		log.info("Activating policy plan id: {}", planId);
 
 		PolicyPlan plan = policyPlanRepository.findById(planId)
-				.orElseThrow(() -> new ResourceNotFoundException("Policy plan not found with id: " + planId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + planId));
 
 		if (Boolean.TRUE.equals(plan.getIsActive())) {
 			PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
-			return new ApiResponseDTO<>("The policy plan is already marked as active", false, dto, LocalDateTime.now());
+			return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ALREADY_ACTIVE, false, dto, LocalDateTime.now());
 		}
 
 		plan.setIsActive(true);
 		PolicyPlan activatedPlan = policyPlanRepository.save(plan);
 
 		PlanResponseDTO responseDTO = modelMapper.map(activatedPlan, PlanResponseDTO.class);
-		return new ApiResponseDTO<>("Policy plan activated successfully", true, responseDTO, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ACTIVATED_SUCCESS, true, responseDTO, LocalDateTime.now());
 	}
 
 	@Override
@@ -184,10 +190,26 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		List<PolicyPlan> plans = policyPlanRepository.findByIsActiveTrue();
 
+		org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		boolean isStaff = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(auth.getName())
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+			
+			if (staffSpeciality == null) {
+				plans = List.of();
+			} else {
+				plans = plans.stream()
+						.filter(p -> p.getInsuranceProduct() != null && staffSpeciality.equals(p.getInsuranceProduct().getProductType()))
+						.toList();
+			}
+		}
 		List<PlanResponseDTO> responseList = plans.stream().map(plan -> modelMapper.map(plan, PlanResponseDTO.class))
 				.toList();
 
-		return new ApiResponseDTO<>("Active policy plans retrieved successfully", true, responseList,
+		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ACTIVE_FETCHED, true, responseList,
 				LocalDateTime.now());
 	}
 
@@ -197,16 +219,33 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		List<PolicyPlan> plans = policyPlanRepository.findByInsuranceProductIdAndIsActiveTrue(productId);
 
+		org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		boolean isStaff = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_INTERNAL_STAFF"));
+
+		if (isStaff) {
+			AppUser currentUser = userRepository.findByEmail(auth.getName())
+					.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Auth.OTP_NOT_FOUND));
+			ProductType staffSpeciality = (currentUser.getStaffSpeciality() != null) ? currentUser.getStaffSpeciality().getProductSpeciality() : null;
+
+			if (staffSpeciality == null) {
+				plans = List.of();
+			} else {
+				plans = plans.stream()
+						.filter(p -> p.getInsuranceProduct() != null && staffSpeciality.equals(p.getInsuranceProduct().getProductType()))
+						.toList();
+			}
+		}
+
 		List<PlanResponseDTO> responseList = plans.stream().map(plan -> modelMapper.map(plan, PlanResponseDTO.class))
 				.toList();
 
-		return new ApiResponseDTO<>("Active plans under product retrieved successfully", true, responseList,
+		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ACTIVE_UNDER_PRODUCT_FETCHED, true, responseList,
 				LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public PageResponseDTO<PlanResponseDTO> getAllPlansWithPagination(int pageNumber, int pageSize, String sortBy,
+	public ApiResponseDTO<PageResponseDTO<PlanResponseDTO>> getAllPlansWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, Long productId, Boolean isActive, String planName, Double minCoverageAmount,
 			Double maxCoverageAmount, Double minPremiumAmount, Double maxPremiumAmount) {
 
@@ -256,25 +295,27 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		List<PlanResponseDTO> content = planPage.getContent().stream()
 				.map(plan -> modelMapper.map(plan, PlanResponseDTO.class)).toList();
 
-		return new PageResponseDTO<>(content, planPage.getNumber(), planPage.getSize(), planPage.getTotalElements(),
+		PageResponseDTO<PlanResponseDTO> pageResponse = new PageResponseDTO<>(content, planPage.getNumber(), planPage.getSize(), planPage.getTotalElements(),
 				planPage.getTotalPages(), planPage.isLast(), sortDirection);
+				
+		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ALL_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 	@Override
 	public ApiResponseDTO<PlanResponseDTO> getPlanById(Long planId) {
 
 		PolicyPlan plan = policyPlanRepository.findById(planId)
-				.orElseThrow(() -> new ResourceNotFoundException("Policy plan not found with id: " + planId));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + planId));
 
 		org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 		boolean isCustomer = auth != null
 				&& auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
 
 		if (isCustomer && (!Boolean.TRUE.equals(plan.getIsActive()) || !Boolean.TRUE.equals(plan.getInsuranceProduct().getIsActive()))) {
-			throw new ResourceNotFoundException("No active plan associated with id - " + planId);
+			throw new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + planId);
 		}
 
-		return new ApiResponseDTO<>("Policy plan retrieved successfully.", true,
+		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.DETAILS_RETRIEVED, true,
 				modelMapper.map(plan, PlanResponseDTO.class), LocalDateTime.now());
 
 	}

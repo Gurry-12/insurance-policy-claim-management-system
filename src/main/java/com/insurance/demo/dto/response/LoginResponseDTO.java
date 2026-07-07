@@ -10,20 +10,16 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginResponseDTO {
-	
-	private Long userId;
-	
-	private String fullName;
-	
-	private String email;
-	
-	private String role;
-	
-	private String token;
-	
-	private String message;
 
-	private String tokenType = "Bearer";
+    private Long userId;
 
-	
+    private String fullName;
+
+    private String email;
+
+    private String role;
+
+    private String token;
+
+    private String tokenType;
 }

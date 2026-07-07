@@ -1,5 +1,6 @@
 package com.insurance.demo.dto.request;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,10 +13,10 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ClaimDocumentRequestDTO {
 
-    @NotBlank(message = "Document name is required")
+    @NotBlank(message = MessageConstants.Validation.DOCUMENT_NAME_REQUIRED)
     private String documentName;
 
-    @NotBlank(message = "Document type is required")
+    @NotBlank(message = MessageConstants.Validation.DOCUMENT_TYPE_REQUIRED)
     private String documentType;
 
     private String documentReference;   // File name, URL or reference

@@ -13,7 +13,7 @@ import com.insurance.demo.dto.response.UserResponseDTO;
 
 public interface AuthService {
 
-	LoginResponseDTO login(LoginRequestDTO requestDto);
+	ApiResponseDTO<LoginResponseDTO> login(LoginRequestDTO requestDto);
 
 	ApiResponseDTO<UserResponseDTO> registerUser(UserRequestDTO dto);
 

@@ -27,6 +27,7 @@ import com.insurance.demo.model.InsuranceProduct;
 import com.insurance.demo.repository.InsuranceProductRepository;
 import com.insurance.demo.service.InsuranceProductService;
 import com.insurance.demo.util.PaginationValidator;
+import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,7 +45,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	public ApiResponseDTO<ProductResponseDTO> createProduct(ProductRequestDTO dto) {
 
 		if (productRepository.existsByProductNameIgnoreCase(dto.getProductName())) {
-			throw new DuplicateResourceException("An insurance product with this name already exists: - " + dto.getProductName());
+			throw new DuplicateResourceException(MessageConstants.Product.ALREADY_EXISTS + dto.getProductName());
 		}
 
 		InsuranceProduct product = new InsuranceProduct();
@@ -58,7 +59,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		ProductResponseDTO response = modelMapper.map(savedProduct, ProductResponseDTO.class);
 
-		return new ApiResponseDTO<>("Insurance product created successfully.", true, response, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Product.CREATED_SUCCESS, true, response, LocalDateTime.now());
 	}
 
 	@Override
@@ -66,10 +67,10 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	public ApiResponseDTO<ProductResponseDTO> deactivateProduct(Long id) {
 
 		InsuranceProduct product = productRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + id));
 
 		if (!product.getIsActive()) {
-			throw new BadRequestException("The selected insurance product is already marked as inactive.");
+			throw new BadRequestException(MessageConstants.Product.ALREADY_INACTIVE);
 		}
 
 		product.setIsActive(false);
@@ -78,12 +79,12 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		ProductResponseDTO response = modelMapper.map(updatedProduct, ProductResponseDTO.class);
 
-		return new ApiResponseDTO<>("Insurance product deactivated successfully", true, response, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Product.DEACTIVATED_SUCCESS, true, response, LocalDateTime.now());
 	}
 
 	@Override
 	@Transactional
-	public PageResponseDTO<ProductResponseDTO> getAllProductsWithPagination(int pageNumber, int pageSize, String sortBy,
+	public ApiResponseDTO<PageResponseDTO<ProductResponseDTO>> getAllProductsWithPagination(int pageNumber, int pageSize, String sortBy,
 			String sortDirection, String productType, Boolean isActive, String productName) {
 
 		log.info("Fetching products with pagination. pageNumber: {}, pageSize: {}, sortBy: {}, sortDirection: {}, type: {}, active: {}, productName: {}",
@@ -96,7 +97,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 			try {
 				typeEnum = com.insurance.demo.enums.ProductType.valueOf(productType.trim().toUpperCase());
 			} catch (IllegalArgumentException e) {
-				throw new BadRequestException("Invalid product type filter: " + productType);
+				throw new BadRequestException(MessageConstants.Product.INVALID_FILTER_TYPE + productType);
 			}
 		}
 
@@ -119,8 +120,10 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		List<ProductResponseDTO> content = productPage.getContent().stream()
 				.map(product -> modelMapper.map(product, ProductResponseDTO.class)).toList();
-		return new PageResponseDTO<>(content, productPage.getNumber(), productPage.getSize(),
+		PageResponseDTO<ProductResponseDTO> pageResponse = new PageResponseDTO<>(content, productPage.getNumber(), productPage.getSize(),
 				productPage.getTotalElements(), productPage.getTotalPages(), productPage.isLast(), sortDirection);
+		
+		return new ApiResponseDTO<>(MessageConstants.Product.ALL_RETRIEVED, true, pageResponse, LocalDateTime.now());
 	}
 
 	private Direction getSortDirection(String sortDirection) {
@@ -128,7 +131,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 			return Sort.Direction.ASC;
 		if (sortDirection.equalsIgnoreCase("desc"))
 			return Sort.Direction.DESC;
-		throw new BadRequestException("Sort direction must be asc or desc.");
+		throw new BadRequestException(MessageConstants.Common.SORT_DIRECTION_INVALID);
 	}
 
 	@Transactional(readOnly = true)
@@ -139,7 +142,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		if (products.isEmpty()) {
 			log.warn("No active products found");
-			throw new ResourceNotFoundException("No active insurance products found");
+			throw new ResourceNotFoundException(MessageConstants.Product.ACTIVE_NOT_FOUND);
 		}
 
 		List<ProductResponseDTO> productResponseDTOs = products.stream().map(product -> {
@@ -154,7 +157,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		ApiResponseDTO<List<ProductResponseDTO>> apiResponseDTO = new ApiResponseDTO<>();
 
 		apiResponseDTO.setData(productResponseDTOs);
-		apiResponseDTO.setMessage("Active products fetched successfully");
+		apiResponseDTO.setMessage(MessageConstants.Product.ACTIVE_FETCHED);
 		apiResponseDTO.setSuccess(true);
 		apiResponseDTO.setTimeStamp(LocalDateTime.now());
 
@@ -164,13 +167,13 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	}
 
 	@Override
-	public ProductResponseDTO updateProduct(Long productId, ProductRequestDTO requestDTO) {
+	public ApiResponseDTO<ProductResponseDTO> updateProduct(Long productId, ProductRequestDTO requestDTO) {
 
 		log.info("Updating product with ID: {}", productId);
 
 		InsuranceProduct existingProduct = productRepository.findById(productId).orElseThrow(() -> {
 			log.error("Product not found with ID: {}", productId);
-			return new ResourceNotFoundException("Product not found with ID: " + productId);
+			return new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + productId);
 		});
 
 		// checking the duplicate product name
@@ -181,7 +184,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 			log.warn("Duplicate product name '{}' found", requestDTO.getProductName());
 
-			throw new DuplicateResourceException("Product name already exists: " + requestDTO.getProductName());
+			throw new DuplicateResourceException(MessageConstants.Product.ALREADY_EXISTS + requestDTO.getProductName());
 		}
 
 		existingProduct.setProductName(requestDTO.getProductName().trim().toLowerCase());
@@ -195,12 +198,10 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		log.info("Product updated successfully. Product ID: {}", productId);
 
-		return modelMapper.map(updatedProduct, ProductResponseDTO.class);
+		ProductResponseDTO responseDTO = modelMapper.map(updatedProduct, ProductResponseDTO.class);
+		return new ApiResponseDTO<>(MessageConstants.Product.UPDATED_SUCCESS, true, responseDTO, LocalDateTime.now());
 	}
 
-	
-	
-	
 	@Override
 	@Transactional
 	public ApiResponseDTO<ProductResponseDTO> activateProduct(Long id) {
@@ -208,10 +209,10 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 		log.info("Activating product with id: {}", id);
 
 		InsuranceProduct product = productRepository.findById(id)
-				.orElseThrow(() -> new ProductNotFoundException("Product not found with id: " + id));
+				.orElseThrow(() -> new ProductNotFoundException(MessageConstants.Product.NOT_FOUND + id));
 
 		if (Boolean.TRUE.equals(product.getIsActive())) {
-			throw new BadRequestException("Product is already active");
+			throw new BadRequestException(MessageConstants.Product.ALREADY_ACTIVE);
 		}
 
 		product.setIsActive(true);
@@ -222,7 +223,7 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 
 		log.info("Product activated successfully with id: {}", id);
 
-		return new ApiResponseDTO<>("Product activated successfully", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Product.ACTIVATED_SUCCESS, true, dto, LocalDateTime.now());
 	}
 
 	@Override
@@ -230,9 +231,9 @@ public class InsuranceProductServiceImpl implements InsuranceProductService {
 	public ApiResponseDTO<ProductResponseDTO> getProductById(Long id) {
 		log.info("Fetching product with id: {}", id);
 		InsuranceProduct product = productRepository.findById(id)
-				.orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Product.NOT_FOUND + id));
 		ProductResponseDTO dto = modelMapper.map(product, ProductResponseDTO.class);
-		return new ApiResponseDTO<>("Product details retrieved successfully", true, dto, LocalDateTime.now());
+		return new ApiResponseDTO<>(MessageConstants.Product.DETAILS_RETRIEVED, true, dto, LocalDateTime.now());
 	}
 
 }

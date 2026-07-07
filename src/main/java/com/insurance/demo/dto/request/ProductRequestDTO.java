@@ -2,6 +2,7 @@ package com.insurance.demo.dto.request;
 
 import com.insurance.demo.enums.ProductType;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -16,16 +17,16 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ProductRequestDTO {
 
-	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = "Only letters and spaces are allowed")
-	@NotBlank(message = "Product name is required")
+	@Pattern(regexp = "^[a-zA-Z\\s]*$", message = MessageConstants.Validation.LETTERS_SPACES_ONLY)
+	@NotBlank(message = MessageConstants.Validation.PRODUCT_NAME_REQUIRED)
 	private String productName;
 
-	@NotNull(message = "Product type is required")
+	@NotNull(message = MessageConstants.Validation.PRODUCT_TYPE_REQUIRED)
 	private ProductType productType;
 
-	@NotBlank(message = "Description is required")
+	@NotBlank(message = MessageConstants.Validation.DESCRIPTION_REQUIRED)
 	private String description;
 
-	@NotNull(message = "Active status is required")
+	@NotNull(message = MessageConstants.Validation.ACTIVE_STATUS_REQUIRED)
 	private Boolean activeStatus;
 }

@@ -1,5 +1,6 @@
 package com.insurance.demo.dto.request;
 
+import com.insurance.demo.util.MessageConstants;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -13,8 +14,8 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ForgotPasswordRequestDTO {
 
-	@Email(message = "enter a valid email")
-	@NotBlank(message = "email is required")
+	@Email(message = MessageConstants.Validation.VALID_EMAIL)
+	@NotBlank(message = MessageConstants.Validation.EMAIL_REQUIRED)
 	private String email;
 
 }
