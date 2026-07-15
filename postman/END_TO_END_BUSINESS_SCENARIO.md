@@ -84,43 +84,93 @@ For Postman, set these variables in your environment:
 
 **Product 1: Comprehensive Health**
 ```json
-{ "productName": "Comprehensive Health", "productType": "HEALTH", "description": "Full medical coverage including OPD and hospitalization.", "isActive": true }
+{
+  "productName": "Comprehensive Health",
+  "productType": "HEALTH",
+  "description": "Full medical coverage including OPD and hospitalization.",
+  "isActive": true
+}
 ```
 **Product 2: Senior Citizen Health**
 ```json
-{ "productName": "Senior Citizen Health", "productType": "HEALTH", "description": "Specialized health insurance for citizens over 60.", "isActive": true }
+{
+  "productName": "Senior Citizen Health",
+  "productType": "HEALTH",
+  "description": "Specialized health insurance for citizens over 60.",
+  "isActive": true
+}
 ```
 **Product 3: Family Floater Health**
 ```json
-{ "productName": "Family Floater Health", "productType": "HEALTH", "description": "One policy covers the entire family.", "isActive": true }
+{
+  "productName": "Family Floater Health",
+  "productType": "HEALTH",
+  "description": "One policy covers the entire family.",
+  "isActive": true
+}
 ```
 **Product 4: Term Life Insurance**
 ```json
-{ "productName": "Pure Term Life", "productType": "LIFE", "description": "High coverage life insurance at low premiums.", "isActive": true }
+{
+  "productName": "Pure Term Life",
+  "productType": "LIFE",
+  "description": "High coverage life insurance at low premiums.",
+  "isActive": true
+}
 ```
 **Product 5: Whole Life Insurance**
 ```json
-{ "productName": "Whole Life Plus", "productType": "LIFE", "description": "Life coverage up to 99 years with wealth accumulation.", "isActive": true }
+{
+  "productName": "Whole Life Plus",
+  "productType": "LIFE",
+  "description": "Life coverage up to 99 years with wealth accumulation.",
+  "isActive": true
+}
 ```
 **Product 6: Private Car Insurance**
 ```json
-{ "productName": "Private Car Shield", "productType": "VEHICLE", "description": "Comprehensive bumper-to-bumper car insurance.", "isActive": true }
+{
+  "productName": "Private Car Shield",
+  "productType": "VEHICLE",
+  "description": "Comprehensive bumper-to-bumper car insurance.",
+  "isActive": true
+}
 ```
 **Product 7: Two-Wheeler Insurance**
 ```json
-{ "productName": "Bike Protect", "productType": "VEHICLE", "description": "Affordable bike insurance with zero dep.", "isActive": true }
+{
+  "productName": "Bike Protect",
+  "productType": "VEHICLE",
+  "description": "Affordable bike insurance with zero dep.",
+  "isActive": true
+}
 ```
 **Product 8: Commercial Vehicle Insurance**
 ```json
-{ "productName": "Truck & Fleet Guard", "productType": "VEHICLE", "description": "Coverage for commercial transport vehicles.", "isActive": true }
+{
+  "productName": "Truck & Fleet Guard",
+  "productType": "VEHICLE",
+  "description": "Coverage for commercial transport vehicles.",
+  "isActive": true
+}
 ```
 **Product 9: Home Property Insurance**
 ```json
-{ "productName": "Home Secure", "productType": "PROPERTY", "description": "Protect your home against fire, theft, and natural disasters.", "isActive": true }
+{
+  "productName": "Home Secure",
+  "productType": "PROPERTY",
+  "description": "Protect your home against fire, theft, and natural disasters.",
+  "isActive": true
+}
 ```
 **Product 10: International Travel Insurance**
 ```json
-{ "productName": "Global Voyager", "productType": "TRAVEL", "description": "Medical and baggage coverage for international travel.", "isActive": true }
+{
+  "productName": "Global Voyager",
+  "productType": "TRAVEL",
+  "description": "Medical and baggage coverage for international travel.",
+  "isActive": true
+}
 ```
 *Expected action: Note the IDs of these products for the next step.*
 
@@ -129,19 +179,55 @@ For Postman, set these variables in your environment:
 
 **Plan 1.1: Health Basic (For Product 1)**
 ```json
-{ "productId": 1, "planName": "Health Basic 5L", "coverageAmount": 500000, "premiumAmount": 8000, "premiumType": "ANNUAL", "duration": 5, "termsAndConditions": "Room rent capped at 1% of sum insured. Pre-existing diseases covered after 3 years.", "isActive": true }
+{
+  "productId": 1,
+  "planName": "Health Basic 5L",
+  "coverageAmount": 500000,
+  "premiumAmount": 8000,
+  "premiumType": "ANNUAL",
+  "duration": 5,
+  "termsAndConditions": "Room rent capped at 1% of sum insured. Pre-existing diseases covered after 3 years.",
+  "isActive": true
+}
 ```
 **Plan 1.2: Health Premium (For Product 1)**
 ```json
-{ "productId": 1, "planName": "Health Premium 10L", "coverageAmount": 1000000, "premiumAmount": 14000, "premiumType": "ANNUAL", "duration": 5, "termsAndConditions": "No room rent cap. Day care procedures covered.", "isActive": true }
+{
+  "productId": 1,
+  "planName": "Health Premium 10L",
+  "coverageAmount": 1000000,
+  "premiumAmount": 14000,
+  "premiumType": "ANNUAL",
+  "duration": 5,
+  "termsAndConditions": "No room rent cap. Day care procedures covered.",
+  "isActive": true
+}
 ```
 **Plan 4.1: Term Life One-Time (For Product 4)**
 ```json
-{ "productId": 4, "planName": "Term Life 1Cr (Single Premium)", "coverageAmount": 10000000, "premiumAmount": 250000, "premiumType": "ONE_TIME", "duration": 20, "termsAndConditions": "Suicide clause applicable for first year.", "isActive": true }
+{
+  "productId": 4,
+  "planName": "Term Life 1Cr (Single Premium)",
+  "coverageAmount": 10000000,
+  "premiumAmount": 250000,
+  "premiumType": "ONE_TIME",
+  "duration": 20,
+  "termsAndConditions": "Suicide clause applicable for first year.",
+  "isActive": true
+}
 ```
 **Plan 6.1: Car Annual (For Product 6)**
 ```json
-{ "productId": 6, "planName": "Car Comprehensive 1Yr", "coverageAmount": 600000, "premiumAmount": 12000, "premiumType": "ONE_TIME", "duration": 1, "termsAndConditions": "Zero depreciation included. Engine protect add-on available.", "isActive": true }
+{
+  "productId": 6,
+  "planName": "Car Comprehensive 1Yr",
+  "coverageAmount": 600000,
+  "premiumAmount": 12000,
+  "premiumType": "ONE_TIME",
+  "duration": 1,
+  "termsAndConditions": "Zero depreciation included. Engine protect add-on available.",
+  "isActive": true
+}
 ```
 
 *(Create ~30 plans total by varying `coverageAmount`, `premiumAmount`, `duration`, and `premiumType` for each product ID).*
@@ -156,11 +242,21 @@ For Postman, set these variables in your environment:
 
 **Customer 1:**
 ```json
-{ "fullName": "John Doe", "email": "john.doe@example.com", "password": "cGFzc3dvcmQxMjM=", "mobileNumber": "+918000000001" }
+{
+  "fullName": "John Doe",
+  "email": "john.doe@example.com",
+  "password": "cGFzc3dvcmQxMjM=",
+  "mobileNumber": "+918000000001"
+}
 ```
 **Customer 2:**
 ```json
-{ "fullName": "Jane Smith", "email": "jane.smith@example.com", "password": "cGFzc3dvcmQxMjM=", "mobileNumber": "+918000000002" }
+{
+  "fullName": "Jane Smith",
+  "email": "jane.smith@example.com",
+  "password": "cGFzc3dvcmQxMjM=",
+  "mobileNumber": "+918000000002"
+}
 ```
 *(Repeat for 8 more customers).*
 
@@ -169,13 +265,20 @@ For Postman, set these variables in your environment:
 **Endpoint:** `POST {{baseUrl}}/api/auth/verify-otp`  
 **Role:** PUBLIC
 ```json
-{ "email": "john.doe@example.com", "emailOtp": "123456", "phoneOtp": "123456" }
+{
+  "email": "john.doe@example.com",
+  "emailOtp": "123456",
+  "phoneOtp": "123456"
+}
 ```
 
 ### 3.3 Customer Login
 **Endpoint:** `POST {{baseUrl}}/api/auth/login`
 ```json
-{ "email": "john.doe@example.com", "password": "cGFzc3dvcmQxMjM=" }
+{
+  "email": "john.doe@example.com",
+  "password": "cGFzc3dvcmQxMjM="
+}
 ```
 *Save `data.token` as `{{customerToken_1}}`.*
 
