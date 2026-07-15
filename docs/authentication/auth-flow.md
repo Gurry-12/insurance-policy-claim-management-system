@@ -53,8 +53,7 @@ POST /api/auth/register
      │   └─ Maps all DTO fields to entity
      │
      ├─ email.toLowerCase()               ← normalize email
-     ├─ Base64.decode(dto.getPassword())  ← client sent base64-encoded password
-     ├─ passwordEncoder.encode(decoded)   ← BCrypt hash
+     ├─ passwordEncoder.encode(dto.getPassword())   ← BCrypt hash
      ├─ role = ROLE_CUSTOMER              ← always customer from self-registration
      ├─ isActive = false                  ← account blocked until OTP verified
      ├─ emailVerified = false
@@ -81,7 +80,7 @@ POST /api/auth/register
 ```
 fullName     - @NotBlank, @Pattern(letters+spaces), @Size(2-100)
 email        - @NotBlank, @Email
-password     - @NotBlank (Base64 encoded by client)
+password     - @NotBlank
 mobileNumber - @NotBlank, @Pattern(international format: +91XXXXXXXXXX)
 ```
 
@@ -163,14 +162,14 @@ OtpService.sendOrResendOtp(user):
 - Account must be active (`isActive=true`)
 - Email must be verified
 - Phone must be verified
-- Password is Base64-decoded on server side, then verified with BCrypt
+- Password is verified with BCrypt
 - On success: JWT token is generated with email, role, fullName, productSpeciality
 
 ### Step-by-Step Execution
 
 ```
 POST /api/auth/login
-{ "email": "user@example.com", "password": "<base64-encoded-password>" }
+{ "email": "user@example.com", "password": "<raw-password>" }
      │
      ▼ AuthServiceImpl.login(LoginRequestDTO)
      │
@@ -184,8 +183,6 @@ POST /api/auth/login
      ├─ IF !phoneVerified → throw BadRequestException(PHONE_NOT_VERIFIED) → 400
      │
      ├─ IF !isActive → throw BadRequestException(ACCOUNT_DEACTIVATED) → 400
-     │
-     ├─ Base64.decode(password)  ← decode client-encoded password
      │
      ├─ authenticationManager.authenticate(UsernamePasswordAuthenticationToken)
      │   ├─ Triggers CustomUserDetailsService.loadUserByUsername(email)
@@ -251,7 +248,7 @@ POST /api/auth/forgot-password
 ## Workflow 6: Reset Password
 
 ### Business Rules
-- Requires: email, emailOtp, phoneOtp, newPassword (Base64-encoded)
+- Requires: email, emailOtp, phoneOtp, newPassword
 - Both OTPs must be valid
 - On success: password is updated, account is activated if it was inactive
 - OTP rate limiting applies to the resend step (not reset step)
@@ -260,7 +257,7 @@ POST /api/auth/forgot-password
 
 ```
 POST /api/auth/reset-password
-{ "email": "...", "emailOtp": "...", "phoneOtp": "...", "newPassword": "<base64>" }
+{ "email": "...", "emailOtp": "...", "phoneOtp": "...", "newPassword": "<password>" }
      │
      ▼ AuthServiceImpl.resetPassword(ResetPasswordRequestDTO) [@Transactional]
      │
@@ -274,8 +271,7 @@ POST /api/auth/reset-password
      │   ├─ phoneVerified = true
      │   └─ isActive = true  ← Also activates account if previously inactive
      │
-     ├─ Base64.decode(newPassword)
-     ├─ passwordEncoder.encode(decoded) ← BCrypt hash
+     ├─ passwordEncoder.encode(newPassword) ← BCrypt hash
      ├─ user.password = hashedPassword
      └─ userRepository.save(user)
      

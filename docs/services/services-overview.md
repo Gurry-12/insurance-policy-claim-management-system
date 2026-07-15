@@ -32,8 +32,8 @@ All implementations use `@RequiredArgsConstructor` (Lombok) for constructor inje
 
 ### Key Business Decisions
 
-**Why are passwords Base64-decoded on the server?**
-The client encodes the raw password in Base64 before sending. The server decodes it, then BCrypt-hashes it. This prevents raw plaintext from appearing in browser DevTools. It is NOT encryption — it's a transport-level encoding. Real protection is HTTPS.
+**Why is BCrypt used for passwords?**
+BCrypt is used because it is a secure, computationally expensive hashing algorithm that protects against rainbow table attacks.
 
 **Why check `emailVerified` AND `phoneVerified` separately?**
 They can be independently true/false. An account might have email verified but not phone if there was an SMS delivery failure. Both must be true before login is allowed.

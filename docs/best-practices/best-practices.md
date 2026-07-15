@@ -134,14 +134,13 @@ if (totalPremiumPaid.compareTo(requiredPremium) > 0) { ... }
 
 ---
 
-## 9. Base64 Client Passwords
+## 9. Password Hashing
 
-**Rule:** Passwords must be Base64-decoded on the server before being hashed with BCrypt.
+**Rule:** Passwords must be hashed with BCrypt before being stored in the database.
 
-**Why:** The frontend base64 encodes the password to hide it from casual inspection in browser dev tools. The backend must decode it:
+**Why:** To ensure that plaintext passwords are never stored.
 ```java
-String decodedPassword = new String(Base64.getDecoder().decode(dto.getPassword().trim()), StandardCharsets.UTF_8);
-user.setPassword(passwordEncoder.encode(decodedPassword));
+user.setPassword(passwordEncoder.encode(dto.getPassword()));
 ```
 
 ---

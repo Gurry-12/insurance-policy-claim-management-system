@@ -79,10 +79,8 @@ public class AuthServiceImpl implements AuthService {
 			throw new BadRequestException(MessageConstants.Auth.ACCOUNT_DEACTIVATED);
 		}
 
-		String decodedPassword = new String(Base64.getDecoder().decode(requestDto.getPassword().trim()), StandardCharsets.UTF_8);
-
 		Authentication authentication = authenticationManager
-				.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getEmail(), decodedPassword));
+				.authenticate(new UsernamePasswordAuthenticationToken(requestDto.getEmail(), requestDto.getPassword().trim()));
 
 		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
@@ -114,8 +112,7 @@ public class AuthServiceImpl implements AuthService {
 		}
 		AppUser user = modelMapper.map(dto, AppUser.class);
 		user.setEmail(dto.getEmail().toLowerCase());
-		String decodedPassword = new String(Base64.getDecoder().decode(dto.getPassword().trim()), StandardCharsets.UTF_8);
-		user.setPassword(passwordEncoder.encode(decodedPassword));
+		user.setPassword(passwordEncoder.encode(dto.getPassword().trim()));
 		user.setRole(Role.ROLE_CUSTOMER);
 		user.setIsActive(false);
 		user.setEmailVerified(false);
@@ -199,8 +196,7 @@ public class AuthServiceImpl implements AuthService {
 			user.setIsActive(Boolean.TRUE);
 		}
 
-		String decodedPassword = new String(Base64.getDecoder().decode(request.getNewPassword().trim()), StandardCharsets.UTF_8);
-		user.setPassword(passwordEncoder.encode(decodedPassword));
+		user.setPassword(passwordEncoder.encode(request.getNewPassword().trim()));
 		userRepository.save(user);
 
 		return new ApiResponseDTO<>(MessageConstants.Auth.PASSWORD_RESET_SUCCESS, true, null, LocalDateTime.now());

@@ -154,8 +154,7 @@ public class UserServiceImpl implements UserService {
 
 		AppUser user = modelMapper.map(staffRequestDTO, AppUser.class);
 		user.setEmail(staffRequestDTO.getEmail().toLowerCase());
-		String decodedPassword = new String(Base64.getDecoder().decode(staffRequestDTO.getPassword().trim()), StandardCharsets.UTF_8);
-		user.setPassword(passwordEncoder.encode(decodedPassword));
+		user.setPassword(passwordEncoder.encode(staffRequestDTO.getPassword().trim()));
 		user.setRole(Role.ROLE_INTERNAL_STAFF);
 		StaffSpeciality staffSpeciality = new StaffSpeciality();
 		staffSpeciality.setProductSpeciality(staffRequestDTO.getProductSpeciality());

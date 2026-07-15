@@ -166,7 +166,7 @@ spring.config.import=file:env.properties
 | `ApiResponseDTO<T>` wrapper | Consistent response structure for all endpoints |
 | `MessageConstants` static class | Centralized string management, no magic strings |
 | `JpaSpecificationExecutor` for pagination | Dynamic multi-filter queries without string concatenation |
-| Base64 password encoding on client | Prevents plaintext passwords in transit (transport-level encoding, not encryption) |
+| BCrypt password hashing | Prevents plaintext passwords in database |
 | OTP via email + SMS (dual channel) | Regulatory compliance and stronger identity verification |
 | Staff speciality scoping | Staff can only work within their product domain (HEALTH, LIFE, etc.) |
 

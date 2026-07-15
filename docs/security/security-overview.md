@@ -248,19 +248,13 @@ if (isInternalStaff) {
 
 ## Password Security
 
-**Client-side:** Frontend Base64-encodes the password before sending.
-**Server-side:** AuthServiceImpl decodes Base64, then BCrypt-hashes:
+**Server-side:** AuthServiceImpl hashes the incoming password using BCrypt before storing it in the database:
 ```java
-String decodedPassword = new String(
-    Base64.getDecoder().decode(dto.getPassword().trim()),
-    StandardCharsets.UTF_8
-);
-user.setPassword(passwordEncoder.encode(decodedPassword));
+user.setPassword(passwordEncoder.encode(dto.getPassword()));
 ```
 
-**Why Base64 on client?**
-Prevents plaintext passwords in browser network logs during development. It is NOT encryption — it's encoding. The real security is TLS (HTTPS) in production.
-
+**Why BCrypt?**
+BCrypt is a secure, computationally expensive hashing algorithm that protects against rainbow table attacks by incorporating a salt. The real transport security is TLS (HTTPS) in production.
 ---
 
 ## Security Constants (`MessageConstants.Security`)
