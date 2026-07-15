@@ -35,10 +35,10 @@ dto/
 
 ```java
 email        @NotBlank @Email
-password     @NotBlank  ← Base64-encoded by client
+password     @NotBlank
 ```
 
-**Note:** Password is Base64 on the wire, not the real password. Server decodes before BCrypt comparison.
+**Note:** Password is hashed via BCrypt before storage.
 
 ---
 
@@ -48,7 +48,7 @@ password     @NotBlank  ← Base64-encoded by client
 ```java
 fullName     @NotBlank @Pattern(letters+spaces) @Size(2-100)
 email        @NotBlank @Email
-password     @NotBlank  ← Base64-encoded
+password     @NotBlank
 mobileNumber @NotBlank @Pattern(international format: +91XXXXXXXXXX)
 ```
 
@@ -95,7 +95,7 @@ email        @NotBlank @Email
 email        @NotBlank @Email
 emailOtp     @NotBlank
 phoneOtp     @NotBlank
-newPassword  @NotBlank @Size(min=8) ← Base64-encoded
+newPassword  @NotBlank @Size(min=8)
 ```
 
 ---
@@ -245,7 +245,7 @@ documentType  @NotBlank
 ```java
 fullName          @NotBlank @Pattern @Size(2-100)
 email             @NotBlank @Email
-password          @NotBlank ← Base64-encoded
+password          @NotBlank
 mobileNumber      @NotBlank @Pattern
 productSpeciality @NotNull ← ProductType enum
 ```

@@ -27,7 +27,7 @@ The system uses `springdoc-openapi` to automatically generate API documentation 
    ```json
    {
      "email": "customer@example.com",
-     "password": "base64-encoded-password-here"
+     "password": "your-password-here"
    }
    ```
 4. Click **Execute** and copy the `token` string from the response

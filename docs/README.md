@@ -145,5 +145,5 @@ com.insurance.demo/
 4. **Annual payment**: 15-day early payment window before each anniversary
 5. **Staff speciality**: Staff can ONLY work on claims matching their `productSpeciality`
 6. **Claim cannot be cancelled** while it has open (SUBMITTED/UNDER_REVIEW) claims
-7. **Passwords are Base64-encoded** by the client before sending — server decodes then BCrypt-hashes
+7. **Passwords are BCrypt-hashed** before storage
 8. **JWT tokens embed**: email (subject), roles, fullName, productSpeciality
