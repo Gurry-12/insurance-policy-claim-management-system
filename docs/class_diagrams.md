@@ -57,7 +57,7 @@ classDiagram
         -Boolean isActive
         -LocalDateTime createdDate
         -LocalDateTime updatedDate
-        -List~PolicyPlan~ policyPlans
+        -List[PolicyPlan] policyPlans
     }
 
     class PolicyPlan {
@@ -72,7 +72,7 @@ classDiagram
         -Boolean isActive
         -LocalDateTime createdDate
         -LocalDateTime updatedDate
-        -List~Policy~ policies
+        -List[Policy] policies
     }
 
     class Policy {
@@ -86,8 +86,8 @@ classDiagram
         -BigDecimal totalPremiumPaid
         -LocalDateTime createdDate
         -LocalDateTime updatedDate
-        -List~PremiumPayment~ payments
-        -List~Claim~ claims
+        -List[PremiumPayment] payments
+        -List[Claim] claims
         -Long version
     }
 
@@ -115,8 +115,8 @@ classDiagram
         -LocalDateTime updatedDate
         -Policy policy
         -AppUser assignedStaff
-        -List~ClaimDocument~ claimDocuments
-        -List~ClaimStatusHistory~ claimStatusHistories
+        -List[ClaimDocument] claimDocuments
+        -List[ClaimStatusHistory] claimStatusHistories
         -Long version
     }
 
@@ -202,7 +202,7 @@ classDiagram
 
     class ClaimController {
         -ClaimService claimService
-        +raiseClaim(ClaimRequestDTO, List~MultipartFile~) ResponseEntity
+        +raiseClaim(ClaimRequestDTO, List[MultipartFile]) ResponseEntity
         +getMyClaims(int, int, String, String) ResponseEntity
         +getAllClaims(int, int, String, String, String, String) ResponseEntity
         +getClaimById(Long) ResponseEntity
@@ -313,7 +313,7 @@ classDiagram
 
     class ClaimService {
         <<interface>>
-        +raiseClaim(ClaimRequestDTO, List~MultipartFile~) ApiResponseDTO
+        +raiseClaim(ClaimRequestDTO, List[MultipartFile]) ApiResponseDTO
         +getMyClaims(int, int, String, String) ApiResponseDTO
         +getAllClaims(int, int, String, String, String, String) ApiResponseDTO
         +getClaimById(Long) ApiResponseDTO
