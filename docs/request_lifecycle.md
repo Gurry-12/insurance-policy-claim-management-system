@@ -8,23 +8,16 @@ This document outlines how an HTTP request enters the JVM, gets processed, and e
 
 ```mermaid
 graph TD
-    classDef client fill:#e1f5fe,stroke:#039be5,stroke-width:2px;
-    classDef tomcat fill:#efebe9,stroke:#5d4037,stroke-width:2px;
-    classDef security fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
-    classDef spring fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef logic fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
-    classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px;
-
-    Client[💻 Client App Browser]:::client
-    Connector[Tomcat HTTP Connector <br> Reads bytes off network port 8081]:::tomcat
-    FilterChain[Security Filter Chain <br> JwtAuthenticationFilter validates headers]:::security
-    Dispatcher[DispatcherServlet <br> Routes request mapping patterns]:::spring
-    Validation[Controller Layer <br> Validates request DTO parameters]:::spring
-    Service[Service Layer <br> Enforces business rule logic]:::logic
-    Jpa[Hibernate ORM / DB <br> Updates SQL rows]:::db
-    Mapper[ModelMapper <br> Converts Entities to Response DTOs]:::logic
-    Advice[ControllerAdvice <br> Formats exceptions or custom payloads]:::spring
-    Response[Client Browser receives JSON bytes]:::client
+    Client[💻 Client App Browser]
+    Connector[Tomcat HTTP Connector <br> Reads bytes off network port 8081]
+    FilterChain[Security Filter Chain <br> JwtAuthenticationFilter validates headers]
+    Dispatcher[DispatcherServlet <br> Routes request mapping patterns]
+    Validation[Controller Layer <br> Validates request DTO parameters]
+    Service[Service Layer <br> Enforces business rule logic]
+    Jpa[Hibernate ORM / DB <br> Updates SQL rows]
+    Mapper[ModelMapper <br> Converts Entities to Response DTOs]
+    Advice[ControllerAdvice <br> Formats exceptions or custom payloads]
+    Response[Client Browser receives JSON bytes]
 
     Client -->|1. HTTP Request| Connector
     Connector -->|2. Web Context| FilterChain
