@@ -6,19 +6,12 @@ The application follows the classic **Layered Architecture** pattern, providing 
 
 ```mermaid
 graph TD
-    classDef client fill:#e1f5fe,stroke:#039be5,stroke-width:2px;
-    classDef security fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
-    classDef controller fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef service fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
-    classDef repo fill:#efebe9,stroke:#5d4037,stroke-width:2px;
-    classDef db fill:#ffebee,stroke:#c62828,stroke-width:2px;
-
-    Client["💻 Client Web App <br> (React SPA / Fetch)"]:::client
-    Filter["🔒 Spring Security Filter Chain <br> (JwtAuthenticationFilter)"]:::security
-    Controller["🎮 Controller Layer <br> (@RestController)"]:::controller
-    Service["🧠 Service Layer <br> (Interfaces & @Service Impls)"]:::service
-    Repo["💾 Repository Layer <br> (Spring Data JPA / JPQL)"]:::repo
-    DB["🗄️ Database Layer <br> (MySQL 8.x + Cloudinary)"]:::db
+    Client["💻 Client Web App <br> (React SPA / Fetch)"]
+    Filter["🔒 Spring Security Filter Chain <br> (JwtAuthenticationFilter)"]
+    Controller["🎮 Controller Layer <br> (@RestController)"]
+    Service["🧠 Service Layer <br> (Interfaces & @Service Impls)"]
+    Repo["💾 Repository Layer <br> (Spring Data JPA / JPQL)"]
+    DB["🗄️ Database Layer <br> (MySQL 8.x + Cloudinary)"]
 
     Client -->|REST Request with JWT| Filter
     Filter -->|Valid Context| Controller

@@ -10,22 +10,17 @@ When an HTTP request hits the backend, it passes through the Web Security filter
 
 ```mermaid
 graph TD
-    classDef request fill:#e1f5fe,stroke:#039be5,stroke-width:2px;
-    classDef filter fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
-    classDef handler fill:#fff3e0,stroke:#ffb74d,stroke-width:2px;
-    classDef context fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
-
-    Req[Client HTTP Request]:::request
-    Cors[CorsFilter <br> Resolves Cross-Origin Allowed Headers]:::filter
-    Csrf[CsrfFilter <br> Disabled for Stateless API]:::filter
-    JwtAuth[JwtAuthenticationFilter <br> Parses Bearer Authorization Header]:::filter
-    UsernamePassword[UsernamePasswordAuthenticationFilter <br> Bypassed for stateless JWT]:::filter
-    ExceptionFilter[ExceptionTranslationFilter <br> Handles Security Exceptions]:::filter
-    FilterSecurity[FilterSecurityInterceptor <br> Evaluates Endpoint Matchers]:::filter
+    Req[Client HTTP Request]
+    Cors[CorsFilter <br> Resolves Cross-Origin Allowed Headers]
+    Csrf[CsrfFilter <br> Disabled for Stateless API]
+    JwtAuth[JwtAuthenticationFilter <br> Parses Bearer Authorization Header]
+    UsernamePassword[UsernamePasswordAuthenticationFilter <br> Bypassed for stateless JWT]
+    ExceptionFilter[ExceptionTranslationFilter <br> Handles Security Exceptions]
+    FilterSecurity[FilterSecurityInterceptor <br> Evaluates Endpoint Matchers]
     
-    Handler[ExceptionTranslation / Entry Point]:::handler
-    Context[SecurityContextHolder <br> Principal and Roles Assigned]:::context
-    Controller[Target REST Controller]:::request
+    Handler[ExceptionTranslation / Entry Point]
+    Context[SecurityContextHolder <br> Principal and Roles Assigned]
+    Controller[Target REST Controller]
 
     Req --> Cors
     Cors --> Csrf
