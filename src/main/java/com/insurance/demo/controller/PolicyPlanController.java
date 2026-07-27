@@ -16,9 +16,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.insurance.demo.dto.request.PlanRequestDTO;
+import com.insurance.demo.dto.request.PlanWizardRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PlanResponseDTO;
+import com.insurance.demo.dto.response.PlanWizardResponseDTO;
 import com.insurance.demo.service.PolicyPlanService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,11 +40,11 @@ public class PolicyPlanController {
 
     //  ADMIN ONLY 
 
-    @PostMapping
+    @PostMapping("/wizard")
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create Policy Plan", description = "Creates a new plan with defined premiums and coverage under an insurance product. Restricted to Admin.")
-    public ApiResponseDTO<PlanResponseDTO> createPolicyPlan(@Valid @RequestBody PlanRequestDTO dto) {
+    public ApiResponseDTO<PlanWizardResponseDTO> createPolicyPlan(@Valid @RequestBody PlanWizardRequestDTO dto) {
         return policyPlanService.createPolicyPlan(dto);
     }
 

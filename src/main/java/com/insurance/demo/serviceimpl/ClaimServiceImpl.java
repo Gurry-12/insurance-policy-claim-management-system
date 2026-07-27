@@ -45,8 +45,8 @@ import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.service.ClaimDocumentService;
 import com.insurance.demo.service.ClaimService;
 import com.insurance.demo.util.ClaimNumberGenerator;
-import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.util.MessageConstants;
+import com.insurance.demo.util.PaginationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -114,7 +114,7 @@ public class ClaimServiceImpl implements ClaimService {
 		}
 
 		BigDecimal activeClaimsSum = claimRepository.sumActiveClaimsByPolicyId(policy.getId(), ClaimStatus.REJECTED);
-		BigDecimal remainingCoverage = policy.getPolicyPlan().getCoverageAmount().subtract(activeClaimsSum);
+		BigDecimal remainingCoverage = policy.getSelectedCoverage().subtract(activeClaimsSum);
 
 		if (dto.getClaimAmount().compareTo(remainingCoverage) > 0) {
 			throw new BadRequestException(

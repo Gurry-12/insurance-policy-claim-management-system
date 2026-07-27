@@ -25,24 +25,26 @@ import com.insurance.demo.dto.response.PolicyResponseDTO;
 import com.insurance.demo.enums.ClaimStatus;
 import com.insurance.demo.enums.PolicyStatus;
 import com.insurance.demo.enums.ProductType;
+import com.insurance.demo.enums.QuoteStatus;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
-import com.insurance.demo.exception.PlanNotActiveException;
 import com.insurance.demo.exception.PolicyNotFoundException;
 import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.AppUser;
 import com.insurance.demo.model.Customer;
 import com.insurance.demo.model.Policy;
 import com.insurance.demo.model.PolicyPlan;
+import com.insurance.demo.model.Quote;
 import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.repository.ClaimRepository;
 import com.insurance.demo.repository.CustomerRepository;
 import com.insurance.demo.repository.PolicyPlanRepository;
 import com.insurance.demo.repository.PolicyRepository;
+import com.insurance.demo.repository.QuoteRepository;
 import com.insurance.demo.service.PolicyService;
+import com.insurance.demo.util.MessageConstants;
 import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.util.PolicyNumberGenerator;
-import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +59,7 @@ public class PolicyServiceImpl implements PolicyService {
 	private final PolicyPlanRepository policyPlanRepository;
 	private final CustomerRepository customerRepository;
 	private final AppUserRepository userRepository;
+	private final QuoteRepository quoteRepository;
 	private final ModelMapper modelMapper;
 
 	@Override
@@ -73,22 +76,22 @@ public class PolicyServiceImpl implements PolicyService {
 			throw new BadRequestException(MessageConstants.Policy.COMPLETE_PROFILE_FIRST);
 		}
 
-		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
-				.orElseThrow(PlanNotActiveException::new);
+		Quote quote = quoteRepository.findById(requestDTO.getQuoteId())
+				.orElseThrow(() -> new ResourceNotFoundException("Quote not found"));
+				
+		validateQuoteForPurchase(quote, customer.getId());
 
+		PolicyPlan plan = quote.getPolicyPlan();
 		ProductType productType = plan.getInsuranceProduct().getProductType();
 
 		if (productType == ProductType.HEALTH) {
-
 			boolean exists = policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(),
 					plan.getId(), List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT));
 
 			if (exists) {
 				throw new DuplicateResourceException(MessageConstants.Policy.HEALTH_POLICY_EXISTS);
 			}
-
 		} else {
-
 			boolean pendingExists = policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(
 					customer.getId(), plan.getId(), List.of(PolicyStatus.PENDING_PAYMENT));
 
@@ -97,22 +100,12 @@ public class PolicyServiceImpl implements PolicyService {
 			}
 		}
 
-		Policy policy = new Policy();
-
-		policy.setCustomer(customer);
-		policy.setPolicyPlan(plan);
-
-		policy.setPolicyNumber(PolicyNumberGenerator.generatePolicyNumber());
-
-		policy.setStartDate(requestDTO.getStartDate());
-
-		policy.setEndDate(requestDTO.getStartDate().plusYears(plan.getDuration()));
-
-		policy.setPolicyStatus(PolicyStatus.PENDING_PAYMENT);
-
-		policy.setTotalPremiumPaid(BigDecimal.ZERO);
+		Policy policy = buildPolicyFromQuote(quote, customer, plan, LocalDateTime.now().toLocalDate());
 
 		Policy savedPolicy = policyRepository.save(policy);
+		
+		quote.setStatus(QuoteStatus.USED);
+		quoteRepository.save(quote);
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(savedPolicy);
 
@@ -131,9 +124,12 @@ public class PolicyServiceImpl implements PolicyService {
 			throw new BadRequestException(MessageConstants.Policy.COMPLETE_PROFILE_FIRST);
 		}
 
-		PolicyPlan plan = policyPlanRepository.findByIdAndIsActiveTrue(requestDTO.getPlanId())
-				.orElseThrow(PlanNotActiveException::new);
-		
+		Quote quote = quoteRepository.findById(requestDTO.getQuoteId())
+				.orElseThrow(() -> new ResourceNotFoundException("Quote not found"));
+				
+		validateQuoteForPurchase(quote, customer.getId());
+
+		PolicyPlan plan = quote.getPolicyPlan();
 		ProductType productType = plan.getInsuranceProduct().getProductType();
 
 		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -148,16 +144,13 @@ public class PolicyServiceImpl implements PolicyService {
 		}
 
 		if (productType == ProductType.HEALTH) {
-
 			boolean exists = policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(customer.getId(),
 					plan.getId(), List.of(PolicyStatus.ACTIVE, PolicyStatus.PENDING_PAYMENT));
 
 			if (exists) {
 				throw new DuplicateResourceException(MessageConstants.Policy.HEALTH_POLICY_EXISTS);
 			}
-
 		} else {
-
 			boolean pendingExists = policyRepository.existsByCustomerIdAndPolicyPlanIdAndPolicyStatusIn(
 					customer.getId(), plan.getId(), List.of(PolicyStatus.PENDING_PAYMENT));
 
@@ -166,28 +159,69 @@ public class PolicyServiceImpl implements PolicyService {
 			}
 		}
 
-
-		Policy policy = new Policy();
-
-		policy.setCustomer(customer);
-		policy.setPolicyPlan(plan);
-
-		policy.setPolicyNumber(PolicyNumberGenerator.generatePolicyNumber());
-
-		policy.setStartDate(requestDTO.getStartDate());
-
-		policy.setEndDate(requestDTO.getStartDate().plusYears(plan.getDuration()));
-
-		policy.setPolicyStatus(PolicyStatus.PENDING_PAYMENT);
-
-		policy.setTotalPremiumPaid(BigDecimal.ZERO);
+		Policy policy = buildPolicyFromQuote(quote, customer, plan, requestDTO.getStartDate());
 
 		Policy savedPolicy = policyRepository.save(policy);
+		
+		quote.setStatus(QuoteStatus.USED);
+		quoteRepository.save(quote);
 
 		PolicyResponseDTO responseDTO = convertToResponseDTO(savedPolicy);
 
 		return new ApiResponseDTO<>(MessageConstants.Policy.ISSUED_SUCCESS, true, responseDTO,
 				LocalDateTime.now());
+	}
+	
+	private void validateQuoteForPurchase(Quote quote, Long customerId) {
+		if (!quote.getCustomer().getId().equals(customerId)) {
+			throw new BadRequestException("Quote does not belong to the authenticated customer");
+		}
+		
+		if (quote.getStatus() != QuoteStatus.CREATED) {
+			throw new BadRequestException("Quote status is not CREATED. It might be already USED, EXPIRED, or CANCELLED.");
+		}
+		
+		if (quote.getExpiresAt().isBefore(LocalDateTime.now())) {
+			quote.setStatus(QuoteStatus.EXPIRED);
+			quoteRepository.save(quote);
+			throw new BadRequestException("Quote has expired");
+		}
+		
+		if (!quote.getPolicyPlan().getIsActive()) {
+			throw new BadRequestException("The selected Policy Plan is no longer active");
+		}
+		
+		if (!quote.getPolicyPlan().getInsuranceProduct().getIsActive()) {
+			throw new BadRequestException("The Insurance Product is no longer active");
+		}
+	}
+	
+	private Policy buildPolicyFromQuote(Quote quote, Customer customer, PolicyPlan plan, java.time.LocalDate startDate) {
+		Policy policy = new Policy();
+		policy.setCustomer(customer);
+		policy.setPolicyPlan(plan);
+		policy.setPolicyNumber(PolicyNumberGenerator.generatePolicyNumber());
+		policy.setStartDate(startDate);
+		policy.setEndDate(startDate.plusYears(quote.getDuration()));
+		policy.setPolicyStatus(PolicyStatus.PENDING_PAYMENT);
+		policy.setTotalPremiumPaid(BigDecimal.ZERO);
+		
+		// Pricing Snapshots
+		policy.setSelectedCoverage(quote.getCoverage());
+		policy.setPremiumType(quote.getPremiumType());
+		policy.setPolicyDuration(quote.getDuration());
+		policy.setPremiumRateUsed(quote.getRiskRate());
+		policy.setProcessingFeeUsed(quote.getProcessingFee());
+
+		policy.setGstUsed(quote.getGst());
+		policy.setCalculatedPremium(quote.getTotal());
+		
+		policy.setPlanVersion(quote.getPlanVersion());
+		policy.setPricingRuleId(quote.getPricingRuleId());
+		policy.setQuoteId(quote.getId());
+		policy.setPurchaseDate(LocalDateTime.now());
+		
+		return policy;
 	}
 
 	@Override
@@ -369,7 +403,8 @@ public class PolicyServiceImpl implements PolicyService {
 		dto.setCustomerId(policy.getCustomer().getId());
 
 		BigDecimal activeClaimsSum = claimRepository.sumActiveClaimsByPolicyId(policy.getId(), ClaimStatus.REJECTED);
-		BigDecimal remaining = policy.getPolicyPlan().getCoverageAmount().subtract(activeClaimsSum);
+		// Remaining is now calculated from selectedCoverage
+		BigDecimal remaining = policy.getSelectedCoverage().subtract(activeClaimsSum != null ? activeClaimsSum : BigDecimal.ZERO);
 		dto.setRemainingClaimAmount(remaining);
 
 		dto.setCustomerName(policy.getCustomer().getUser().getFullName());
@@ -381,9 +416,11 @@ public class PolicyServiceImpl implements PolicyService {
 		dto.setPolicyStatus(policy.getPolicyStatus().name());
 
 		dto.setProductType(policy.getPolicyPlan().getInsuranceProduct().getProductType().name());
-		dto.setCoverageAmount(policy.getPolicyPlan().getCoverageAmount());
-		dto.setPremiumAmount(policy.getPolicyPlan().getPremiumAmount());
-		dto.setPremiumType(policy.getPolicyPlan().getPremiumType().name());
+		
+		// Map the new fields explicitely
+		dto.setSelectedCoverage(policy.getSelectedCoverage());
+		dto.setCalculatedPremium(policy.getCalculatedPremium());
+		dto.setPremiumType(policy.getPremiumType().name());
 
 		return dto;
 	}

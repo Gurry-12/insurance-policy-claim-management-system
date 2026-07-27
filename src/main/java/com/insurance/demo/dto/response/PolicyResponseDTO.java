@@ -37,11 +37,27 @@ public class PolicyResponseDTO {
 
 	private String productType;
 
-	private BigDecimal coverageAmount;
-
-	private BigDecimal premiumAmount;
+	private BigDecimal selectedCoverage;
 
 	private String premiumType;
+
+	private Integer policyDuration;
+
+	private BigDecimal premiumRateUsed;
+
+	private BigDecimal processingFeeUsed;
+
+	private BigDecimal gstUsed;
+
+	private BigDecimal calculatedPremium;
+
+	private Integer planVersion;
+
+	private Long pricingRuleId;
+
+	private Long quoteId;
+
+	private LocalDateTime purchaseDate;
 
 	private LocalDateTime createdDate;
 

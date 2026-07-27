@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.insurance.demo.dto.request.ClaimDocumentRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.ClaimDocumentResponseDTO;
 import com.insurance.demo.exception.BadRequestException;

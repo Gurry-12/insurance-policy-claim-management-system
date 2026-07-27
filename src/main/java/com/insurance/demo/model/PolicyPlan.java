@@ -1,18 +1,26 @@
 package com.insurance.demo.model;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.insurance.demo.enums.PremiumType;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -20,11 +28,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -44,35 +49,31 @@ public class PolicyPlan {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	@JsonIgnore
 	@ManyToOne
 	@JoinColumn(name = "product_id", nullable = false)
 	private InsuranceProduct insuranceProduct;
 
 	@NotBlank(message = "name can't be blank")
 	@Column(name = "plan_name", nullable = false)
-	@Size(min = 2, max = 100, message = "name should be beteeen 2 - 100 characters")
+	@Size(min = 2, max = 100, message = "name should be between 2 - 100 characters")
 	private String planName;
 
-	@Positive(message = "amount should be positive")
-	@Column(name = "coverage_amount", nullable = false, precision = 15, scale = 2)
-	@NotNull(message = "amount can't be null")
-	private BigDecimal coverageAmount;
+	@Column(name = "plan_version", nullable = false)
+	@NotNull(message = "plan version is required")
+	private Integer planVersion = 1;
 
-	@Positive(message = "amount should be positive")
-	@Column(name = "premium_amount", nullable = false, precision = 15, scale = 2)
-	@NotNull(message = "premium amount can't be null")
-	private BigDecimal premiumAmount;
+	@ElementCollection(fetch = FetchType.LAZY)
+	@CollectionTable(name = "policy_plan_durations", joinColumns = @JoinColumn(name = "plan_id"))
+	@Column(name = "duration")
+	private Set<Integer> allowedDurations = new HashSet<>();
 
 	@Enumerated(EnumType.STRING)
-	@NotNull(message = "premium type can't be null")
-	@Column(name = "premium_type", nullable = false)
-	private PremiumType premiumType;
+	@Column(name = "supported_premium_type", nullable = false)
+	private PremiumType supportedPremiumType;
 
-	@Positive(message = "duration should be positive")
-	@Max(value = 40, message = "duration can't be more than 40")
-	@Column(name = "duration", nullable = false)
-	@NotNull(message = "duration can't be null")
-	private Integer duration;
+	@OneToMany(mappedBy = "policyPlan", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<CoverageOption> coverageOptions = new ArrayList<>();
 
 	@NotBlank(message = "T & C can't be blank")
 	@Column(name = "terms_conditions", nullable = false, length = 3000)

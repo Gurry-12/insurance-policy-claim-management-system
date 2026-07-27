@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.modelmapper.ModelMapper;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -37,9 +36,9 @@ import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.repository.PremiumPaymentRepository;
 import com.insurance.demo.service.PremiumPaymentService;
+import com.insurance.demo.util.MessageConstants;
 import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.util.TransactionReferenceGenerator;
-import com.insurance.demo.util.MessageConstants;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +86,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 			}
 		}
 
-		if (policy.getPolicyPlan().getPremiumAmount().compareTo(dto.getAmount()) != 0) {
+		if (policy.getCalculatedPremium().compareTo(dto.getAmount()) != 0) {
 			throw new BadRequestException(MessageConstants.Payment.AMOUNT_MISMATCH);
 		}
 
@@ -100,7 +99,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		}
 
 		// one time payment
-		if (policy.getPolicyPlan().getPremiumType().equals(PremiumType.ONE_TIME)) {
+		if (policy.getPremiumType().equals(PremiumType.ONE_TIME)) {
 			// verify any existing payment for this policy -
 			if (paymentRepository.existsByPolicyIdAndPaymentStatus(policy.getId(), PaymentStatus.SUCCESS)) {
 
@@ -110,7 +109,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		}
 
 		// annual payment
-		if (policy.getPolicyPlan().getPremiumType().equals(PremiumType.ANNUAL)) {
+		if (policy.getPremiumType().equals(PremiumType.ANNUAL)) {
 
 			Optional<PremiumPayment> payment = paymentRepository
 					.findTopByPolicyIdAndPaymentStatusOrderByPaymentDateDesc(policy.getId(), PaymentStatus.SUCCESS);
@@ -131,7 +130,7 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 			long successfulPayments = paymentRepository.countByPolicyIdAndPaymentStatus(policy.getId(),
 					PaymentStatus.SUCCESS);
 
-			if (successfulPayments >= policy.getPolicyPlan().getDuration()) {
+			if (successfulPayments >= policy.getPolicyDuration()) {
 				throw new BadRequestException(MessageConstants.Payment.ALL_PREMIUMS_PAID);
 			}
 		}
@@ -143,8 +142,8 @@ public class PremiumPaymentServiceImpl implements PremiumPaymentService {
 		}
 
 		// Fix: compare against total required premium (premiumAmount * duration), not coverage amount
-		BigDecimal totalRequiredPremium = policy.getPolicyPlan().getPremiumAmount()
-				.multiply(BigDecimal.valueOf(policy.getPolicyPlan().getDuration()));
+		BigDecimal totalRequiredPremium = policy.getCalculatedPremium()
+				.multiply(BigDecimal.valueOf(policy.getPolicyDuration()));
 		if (policy.getTotalPremiumPaid().add(dto.getAmount()).compareTo(totalRequiredPremium) > 0) {
 			throw new BadRequestException(MessageConstants.Payment.PREMIUM_LIMIT_EXCEEDED);
 		}
