@@ -109,6 +109,9 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/payments/page").hasAnyRole("ADMIN", "INTERNAL_STAFF")
 						.requestMatchers(HttpMethod.GET, "/api/payments/*").hasAnyRole("ADMIN", "INTERNAL_STAFF", "CUSTOMER")
 
+						// ADMIN ENDPOINTS (Pricing Rules, Coverage Options, etc.)
+						.requestMatchers("/api/admin/**").hasRole("ADMIN")
+
 						.anyRequest().authenticated())
 
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

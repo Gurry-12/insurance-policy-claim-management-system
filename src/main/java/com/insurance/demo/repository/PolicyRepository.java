@@ -28,6 +28,8 @@ public interface PolicyRepository extends JpaRepository<Policy, Long>, JpaSpecif
 	        Long policyPlanId,
 	        List<PolicyStatus> statuses
 	);
+
+	boolean existsByPricingRuleId(Long pricingRuleId);
 }
 
 

@@ -1,15 +1,17 @@
 package com.insurance.demo.service;
 
+import java.util.List;
+
 import com.insurance.demo.dto.request.PlanRequestDTO;
+import com.insurance.demo.dto.request.PlanWizardRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PlanResponseDTO;
-
-import java.util.List;
+import com.insurance.demo.dto.response.PlanWizardResponseDTO;
 
 public interface PolicyPlanService {
 
-    ApiResponseDTO<PlanResponseDTO> createPolicyPlan(PlanRequestDTO planRequestDTO);
+    ApiResponseDTO<PlanWizardResponseDTO> createPolicyPlan(PlanWizardRequestDTO planRequestDTO);
 
     ApiResponseDTO<PlanResponseDTO> updatePolicyPlan(Long planId, PlanRequestDTO planRequestDTO);
 

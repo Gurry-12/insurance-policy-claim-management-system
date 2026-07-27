@@ -1,6 +1,7 @@
 package com.insurance.demo.serviceimpl;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -14,25 +15,30 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.insurance.demo.dto.request.CoverageOptionRequestDTO;
 import com.insurance.demo.dto.request.PlanRequestDTO;
+import com.insurance.demo.dto.request.PlanWizardRequestDTO;
 import com.insurance.demo.dto.response.ApiResponseDTO;
 import com.insurance.demo.dto.response.PageResponseDTO;
 import com.insurance.demo.dto.response.PlanResponseDTO;
+import com.insurance.demo.dto.response.PlanWizardResponseDTO;
+import com.insurance.demo.dto.response.PricingRuleResponseDTO;
+import com.insurance.demo.enums.ProductType;
 import com.insurance.demo.exception.BadRequestException;
 import com.insurance.demo.exception.DuplicateResourceException;
 import com.insurance.demo.exception.ResourceNotFoundException;
+import com.insurance.demo.model.AppUser;
+import com.insurance.demo.model.CoverageOption;
 import com.insurance.demo.model.InsuranceProduct;
 import com.insurance.demo.model.PolicyPlan;
+import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.repository.InsuranceProductRepository;
 import com.insurance.demo.repository.PolicyPlanRepository;
+import com.insurance.demo.service.CoverageOptionService;
 import com.insurance.demo.service.PolicyPlanService;
-import com.insurance.demo.enums.ProductType;
-import com.insurance.demo.enums.Role;
-import com.insurance.demo.model.AppUser;
-import com.insurance.demo.repository.AppUserRepository;
-import org.springframework.security.access.AccessDeniedException;
-import com.insurance.demo.util.PaginationValidator;
+import com.insurance.demo.service.PricingRuleService;
 import com.insurance.demo.util.MessageConstants;
+import com.insurance.demo.util.PaginationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,16 +52,15 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 	private final InsuranceProductRepository productRepository;
 	private final AppUserRepository userRepository;
 	private final ModelMapper modelMapper;
+	private final CoverageOptionService coverageOptionService;
+	private final PricingRuleService pricingRuleService;
 
 	@Override
 	@Transactional
-	public ApiResponseDTO<PlanResponseDTO> createPolicyPlan(PlanRequestDTO dto) {
+	public ApiResponseDTO<PlanWizardResponseDTO> createPolicyPlan(PlanWizardRequestDTO requestDTO) {
 
-		log.info("Creating policy plan: {}", dto.getPlanName());
-
-		if (dto.getCoverageAmount().compareTo(dto.getPremiumAmount()) <= 0) {
-			throw new BadRequestException(MessageConstants.PolicyPlan.COVERAGE_LIMIT);
-		}
+		PlanRequestDTO dto = requestDTO.getPlanDetails();
+		log.info("Creating comprehensive policy plan: {}", dto.getPlanName());
 
 		// Validate Product exists and is active
 		InsuranceProduct product = productRepository.findById(dto.getProductId())
@@ -71,23 +76,42 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		}
 
 		PolicyPlan plan = new PolicyPlan();
-
 		plan.setPlanName(dto.getPlanName().toLowerCase());
-		plan.setCoverageAmount(dto.getCoverageAmount());
-		plan.setPremiumAmount(dto.getPremiumAmount());
-		plan.setPremiumType(dto.getPremiumType());
-		plan.setDuration(dto.getDuration());
+		plan.setAllowedDurations(dto.getAllowedDurations());
+		plan.setSupportedPremiumType(dto.getSupportedPremiumType());
 		plan.setTermsAndConditions(dto.getTermsAndConditions());
-
 		plan.setInsuranceProduct(product);
 		plan.setIsActive(dto.getActiveStatus() != null ? dto.getActiveStatus() : true);
+		plan.setPlanVersion(1);
+
+		plan.setCoverageOptions(new ArrayList<>());
 
 		PolicyPlan savedPlan = policyPlanRepository.save(plan);
-
 		log.info("Plan ID after save: {}", savedPlan.getId());
+		Long planId = savedPlan.getId();
 
-		PlanResponseDTO responseDTO = modelMapper.map(savedPlan, PlanResponseDTO.class);
-		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.CREATED_SUCCESS, true, responseDTO, LocalDateTime.now());
+		// 2. Create Coverage Options
+		List<Long> coverageOptionIds = new ArrayList<>();
+		for (CoverageOptionRequestDTO coverageDto : requestDTO.getCoverageOptions()) {
+			ApiResponseDTO<CoverageOption> coverageResponse = coverageOptionService.createCoverageOption(planId, coverageDto);
+			coverageOptionIds.add(coverageResponse.getData().getId());
+		}
+
+		// 3. Create Pricing Rule
+		if (requestDTO.getPricingRule() == null) {
+			requestDTO.setPricingRule(new com.insurance.demo.dto.request.PricingRuleRequestDTO());
+		}
+		requestDTO.getPricingRule().setPlanId(planId);
+		ApiResponseDTO<PricingRuleResponseDTO> pricingResponse = pricingRuleService.createPricingRule(requestDTO.getPricingRule());
+
+		PlanWizardResponseDTO wizardResponse = new PlanWizardResponseDTO(
+				planId,
+				savedPlan.getPlanName(),
+				coverageOptionIds,
+				pricingResponse.getData().getId()
+		);
+
+		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.CREATED_SUCCESS, true, wizardResponse, LocalDateTime.now());
 	}
 
 	@Override
@@ -95,10 +119,6 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 	public ApiResponseDTO<PlanResponseDTO> updatePolicyPlan(Long planId, PlanRequestDTO dto) {
 
 		log.info("Updating policy plan with id: {}", planId);
-
-		if (dto.getCoverageAmount().compareTo(dto.getPremiumAmount()) <= 0) {
-			throw new BadRequestException(MessageConstants.PolicyPlan.COVERAGE_LIMIT);
-		}
 
 		PolicyPlan existingPlan = policyPlanRepository.findById(planId)
 				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + planId));
@@ -126,14 +146,16 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		// Update fields
 		existingPlan.setPlanName(dto.getPlanName().toLowerCase());
-		existingPlan.setCoverageAmount(dto.getCoverageAmount());
-		existingPlan.setPremiumAmount(dto.getPremiumAmount());
-		existingPlan.setPremiumType(dto.getPremiumType());
-		existingPlan.setDuration(dto.getDuration());
+		existingPlan.setAllowedDurations(dto.getAllowedDurations());
+		existingPlan.setSupportedPremiumType(dto.getSupportedPremiumType());
 		existingPlan.setTermsAndConditions(dto.getTermsAndConditions());
 		if (dto.getActiveStatus() != null) {
 			existingPlan.setIsActive(dto.getActiveStatus());
 		}
+		
+		existingPlan.setPlanVersion(existingPlan.getPlanVersion() + 1);
+
+
 
 		PolicyPlan updatedPlan = policyPlanRepository.save(existingPlan);
 
@@ -144,7 +166,6 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 	@Override
 	@Transactional
 	public ApiResponseDTO<PlanResponseDTO> deactivatePolicyPlan(Long planId) {
-
 		log.info("Deactivating policy plan id: {}", planId);
 
 		PolicyPlan plan = policyPlanRepository.findById(planId)
@@ -152,8 +173,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		if (Boolean.FALSE.equals(plan.getIsActive())) {
 			PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
-			return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ALREADY_INACTIVE, false, dto,
-					LocalDateTime.now());
+			return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ALREADY_INACTIVE, false, dto, LocalDateTime.now());
 		}
 
 		plan.setIsActive(false);
@@ -166,7 +186,6 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 	@Override
 	@Transactional
 	public ApiResponseDTO<PlanResponseDTO> activatePolicyPlan(Long planId) {
-
 		log.info("Activating policy plan id: {}", planId);
 
 		PolicyPlan plan = policyPlanRepository.findById(planId)
@@ -249,14 +268,9 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 			String sortDirection, Long productId, Boolean isActive, String planName, Double minCoverageAmount,
 			Double maxCoverageAmount, Double minPremiumAmount, Double maxPremiumAmount) {
 
-		log.info(
-				"Fetching policy plans with pagination: page={}, size={}, sortBy={}, direction={}, productId={}, active={}, planName={}, minCov={}, maxCov={}, minPrem={}, maxPrem={}",
-				pageNumber, pageSize, sortBy, sortDirection, productId, isActive, planName, minCoverageAmount,
-				maxCoverageAmount, minPremiumAmount, maxPremiumAmount);
-
 		PaginationValidator.validate(pageNumber, pageSize);
 		PaginationValidator.validateSortField(sortBy,
-				Set.of("id", "planName", "coverageAmount", "premiumAmount", "createdDate"));
+				Set.of("id", "planName", "createdDate"));
 
 		Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
@@ -275,19 +289,6 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		if (planName != null && !planName.trim().isEmpty()) {
 			spec = spec.and((root, query, cb) -> cb.like(cb.lower(root.get("planName")),
 					"%" + planName.trim().toLowerCase() + "%"));
-		}
-		if (minCoverageAmount != null) {
-			spec = spec
-					.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("coverageAmount"), minCoverageAmount));
-		}
-		if (maxCoverageAmount != null) {
-			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("coverageAmount"), maxCoverageAmount));
-		}
-		if (minPremiumAmount != null) {
-			spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("premiumAmount"), minPremiumAmount));
-		}
-		if (maxPremiumAmount != null) {
-			spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("premiumAmount"), maxPremiumAmount));
 		}
 
 		Page<PolicyPlan> planPage = policyPlanRepository.findAll(spec, pageable);

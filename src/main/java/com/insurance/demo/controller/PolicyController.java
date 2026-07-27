@@ -43,7 +43,7 @@ public class PolicyController {
 	@PostMapping("/purchase")
 	@ResponseStatus(HttpStatus.CREATED)
 	@PreAuthorize("hasRole('CUSTOMER')")
-	@Operation(summary = "Purchase Policy", description = "Allows a customer to purchase an active policy plan. The policy will be created in PENDING_PAYMENT status.")
+	@Operation(summary = "Purchase Policy", description = "Allows a customer to purchase an active policy plan using a Quote. The policy will be created in PENDING_PAYMENT status.")
 	public ApiResponseDTO<PolicyResponseDTO> purchasePolicy(@Valid @RequestBody PolicyPurchaseRequestDTO requestDTO) {
 
 		return policyService.purchasePolicy(requestDTO);

@@ -10,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.insurance.demo.enums.PolicyStatus;
+import com.insurance.demo.enums.PremiumType;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -58,6 +59,52 @@ public class Policy {
 	@NotNull(message = "Policy plan is required")
 	private PolicyPlan policyPlan;
 
+	// Pricing Snapshot Fields
+	@Column(name = "selected_coverage", nullable = false, precision = 15, scale = 2)
+	@NotNull(message = "selected coverage is required")
+	private BigDecimal selectedCoverage;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "premium_type", nullable = false)
+	@NotNull(message = "premium type is required")
+	private PremiumType premiumType;
+
+	@Column(name = "policy_duration", nullable = false)
+	@NotNull(message = "policy duration is required")
+	private Integer policyDuration;
+
+	@PositiveOrZero
+	@Column(name = "premium_rate_used", nullable = false, precision = 10, scale = 4)
+	private BigDecimal premiumRateUsed;
+
+	@PositiveOrZero
+	@Column(name = "processing_fee_used", nullable = false, precision = 15, scale = 2)
+	private BigDecimal processingFeeUsed;
+
+	@PositiveOrZero
+	@Column(name = "gst_used", nullable = false, precision = 5, scale = 2)
+	private BigDecimal gstUsed;
+
+	@PositiveOrZero
+	@Column(name = "calculated_premium", nullable = false, precision = 15, scale = 2)
+	private BigDecimal calculatedPremium;
+
+	// Metadata for Audit and Linkage
+	@Column(name = "plan_version", nullable = false)
+	@NotNull(message = "plan version is required")
+	private Integer planVersion;
+
+	@Column(name = "pricing_rule_id", nullable = false)
+	@NotNull(message = "pricing rule ID is required")
+	private Long pricingRuleId;
+
+	@Column(name = "quote_id")
+	private Long quoteId;
+
+	@Column(name = "purchase_date")
+	private LocalDateTime purchaseDate;
+
+	// Existing fields
 	@Column(name = "start_date", nullable = false)
 	@NotNull(message = "Start date is required")
 	private LocalDate startDate;
