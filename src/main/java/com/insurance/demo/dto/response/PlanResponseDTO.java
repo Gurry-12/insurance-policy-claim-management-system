@@ -1,7 +1,10 @@
 package com.insurance.demo.dto.response;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+
+import com.insurance.demo.enums.PremiumType;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -22,13 +25,13 @@ public class PlanResponseDTO {
 
 	private String planName;
 
-	private BigDecimal coverageAmount;
+	private Integer planVersion;
 
-	private BigDecimal premiumAmount;
+	private Set<Integer> allowedDurations;
 
-	private String premiumType;
+	private PremiumType supportedPremiumType;
 
-	private Integer duration;
+	private List<CoverageOptionResponseDTO> coverageOptions;
 
 	private String termsAndConditions;
 

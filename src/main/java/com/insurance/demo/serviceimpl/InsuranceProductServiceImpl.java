@@ -26,8 +26,8 @@ import com.insurance.demo.exception.ResourceNotFoundException;
 import com.insurance.demo.model.InsuranceProduct;
 import com.insurance.demo.repository.InsuranceProductRepository;
 import com.insurance.demo.service.InsuranceProductService;
-import com.insurance.demo.util.PaginationValidator;
 import com.insurance.demo.util.MessageConstants;
+import com.insurance.demo.util.PaginationValidator;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
