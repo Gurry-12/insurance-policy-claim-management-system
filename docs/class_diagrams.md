@@ -1,12 +1,12 @@
 # UML Class Diagrams
 
-This document outlines structural relationships, compositions, inheritances, and dependencies across all layers of the Insurance Policy Claim Management System.
+This document outlines structural relationships, compositions, inheritances, and dependencies across all layers of the **Insurance Policy Claim Management System**.
 
 ---
 
 ## 1. Domain Entities & Database Model Layer
 
-Represents JPA entities, mappings, and relationships mapping to the tables of `insurance_db`.
+Represents JPA entities, mappings, and relationships corresponding to the tables in `insurance_db`. This includes the core user/customer entities, product and plan hierarchy, dynamic pricing rules, coverage options, quotes, policies, payments, and claims.
 
 ```mermaid
 classDiagram
@@ -64,15 +64,65 @@ classDiagram
         -Long id
         -InsuranceProduct insuranceProduct
         -String planName
-        -BigDecimal coverageAmount
-        -BigDecimal premiumAmount
-        -PremiumType premiumType
-        -Integer duration
+        -Integer planVersion
+        -Set[Integer] allowedDurations
+        -PremiumType supportedPremiumType
         -String termsAndConditions
         -Boolean isActive
         -LocalDateTime createdDate
         -LocalDateTime updatedDate
+        -List[CoverageOption] coverageOptions
         -List[Policy] policies
+    }
+
+    class CoverageOption {
+        -Long id
+        -PolicyPlan policyPlan
+        -BigDecimal coverageAmount
+        -String label
+        -Integer displayOrder
+        -Boolean isActive
+    }
+
+    class PricingRule {
+        -Long id
+        -PolicyPlan policyPlan
+        -BigDecimal baseRiskRate
+        -BigDecimal processingFee
+        -BigDecimal gst
+        -String remarks
+        -LocalDateTime effectiveFrom
+        -LocalDateTime effectiveTo
+        -PricingRuleStatus status
+        -LocalDateTime createdDate
+    }
+
+    class Quote {
+        -Long id
+        -Customer customer
+        -PolicyPlan policyPlan
+        -Integer planVersion
+        -Long pricingRuleId
+        -BigDecimal coverage
+        -Integer duration
+        -PremiumType premiumType
+        -BigDecimal riskRate
+        -BigDecimal processingFee
+        -BigDecimal gst
+        -BigDecimal premium
+        -BigDecimal total
+        -QuoteStatus status
+        -LocalDateTime createdAt
+    }
+
+    class PricingAuditLog {
+        -Long id
+        -Long pricingRuleId
+        -String oldConfiguration
+        -String newConfiguration
+        -String remarks
+        -String changedBy
+        -LocalDateTime changedAt
     }
 
     class Policy {
@@ -80,6 +130,17 @@ classDiagram
         -String policyNumber
         -Customer customer
         -PolicyPlan policyPlan
+        -BigDecimal selectedCoverage
+        -PremiumType premiumType
+        -Integer policyDuration
+        -BigDecimal premiumRateUsed
+        -BigDecimal processingFeeUsed
+        -BigDecimal gstUsed
+        -BigDecimal calculatedPremium
+        -Integer planVersion
+        -Long pricingRuleId
+        -Long quoteId
+        -LocalDateTime purchaseDate
         -LocalDate startDate
         -LocalDate endDate
         -PolicyStatus policyStatus
@@ -159,9 +220,13 @@ classDiagram
     AppUser "1" *-- "0..*" OtpVerification : Aggregation (OneToMany)
     
     Customer "1" *-- "0..*" Policy : Aggregation (OneToMany)
+    Customer "1" *-- "0..*" Quote : Association (OneToMany)
     
     InsuranceProduct "1" *-- "0..*" PolicyPlan : Composition (OneToMany)
+    PolicyPlan "1" *-- "0..*" CoverageOption : Composition (OneToMany)
+    PolicyPlan "1" *-- "0..*" PricingRule : Association (OneToMany)
     PolicyPlan "1" o-- "0..*" Policy : Association (OneToMany)
+    PolicyPlan "1" o-- "0..*" Quote : Association (OneToMany)
     
     Policy "1" *-- "0..*" PremiumPayment : Composition (OneToMany)
     Policy "1" *-- "0..*" Claim : Composition (OneToMany)
@@ -200,17 +265,49 @@ classDiagram
         +getCustomerById(Long) ResponseEntity
     }
 
-    class ClaimController {
-        -ClaimService claimService
-        +raiseClaim(ClaimRequestDTO, List[MultipartFile]) ResponseEntity
-        +getMyClaims(int, int, String, String) ResponseEntity
-        +getAllClaims(int, int, String, String, String, String) ResponseEntity
-        +getClaimById(Long) ResponseEntity
-        +getClaimHistory(Long, int, int, String, String, String, String) ResponseEntity
-        +underReview(Long) ResponseEntity
-        +assignStaff(Long) ResponseEntity
-        +reviewClaim(Long, ClaimReviewRequestDTO) ResponseEntity
-        +finalDecision(Long, ClaimReviewRequestDTO) ResponseEntity
+    class InsuranceProductController {
+        -InsuranceProductService productService
+        +createProduct(InsuranceRequestDTO) ResponseEntity
+        +updateProduct(Long, ProductRequestDTO) ResponseEntity
+        +deactivateProduct(Long) ResponseEntity
+        +activateProduct(Long) ResponseEntity
+        +getActiveProducts() ResponseEntity
+        +getPaginatedProducts(int, int, String, String, String) ResponseEntity
+        +getProductById(Long) ResponseEntity
+    }
+
+    class PolicyPlanController {
+        -PolicyPlanService planService
+        +createPlan(PlanRequestDTO) ResponseEntity
+        +updatePlan(Long, PlanRequestDTO) ResponseEntity
+        +deactivatePlan(Long) ResponseEntity
+        +activatePlan(Long) ResponseEntity
+        +getActivePlans() ResponseEntity
+        +getActivePlansByProduct(Long) ResponseEntity
+        +getPaginatedPlans(int, int, String, String, String, String) ResponseEntity
+        +getPlanById(Long) ResponseEntity
+    }
+
+    class CoverageOptionController {
+        -CoverageOptionService coverageOptionService
+        +addCoverageOption(CoverageOptionRequestDTO) ResponseEntity
+        +updateCoverageOption(Long, CoverageOptionRequestDTO) ResponseEntity
+        +deactivateCoverageOption(Long) ResponseEntity
+        +activateCoverageOption(Long) ResponseEntity
+        +getCoverageOptionsByPlan(Long) ResponseEntity
+    }
+
+    class PricingRuleController {
+        -PricingRuleService pricingRuleService
+        +createRule(PricingRuleRequestDTO) ResponseEntity
+        +updateRule(Long, PricingRuleRequestDTO) ResponseEntity
+        +getActiveRule(Long) ResponseEntity
+        +getRuleHistory(Long) ResponseEntity
+    }
+
+    class PremiumCalculationController {
+        -PremiumCalculationService calculationService
+        +previewPremium(PricingPreviewRequestDTO) ResponseEntity
     }
 
     class PolicyController {
@@ -235,27 +332,22 @@ classDiagram
         +getMyPaymentsByPolicyId(Long, int, int, String, String) ResponseEntity
     }
 
-    class InsuranceProductController {
-        -InsuranceProductService productService
-        +createProduct(InsuranceRequestDTO) ResponseEntity
-        +updateProduct(Long, ProductRequestDTO) ResponseEntity
-        +deactivateProduct(Long) ResponseEntity
-        +activateProduct(Long) ResponseEntity
-        +getActiveProducts() ResponseEntity
-        +getPaginatedProducts(int, int, String, String, String) ResponseEntity
-        +getProductById(Long) ResponseEntity
+    class ClaimController {
+        -ClaimService claimService
+        +raiseClaim(ClaimRequestDTO, List[MultipartFile]) ResponseEntity
+        +getMyClaims(int, int, String, String) ResponseEntity
+        +getAllClaims(int, int, String, String, String, String) ResponseEntity
+        +getClaimById(Long) ResponseEntity
+        +getClaimHistory(Long, int, int, String, String, String, String) ResponseEntity
+        +underReview(Long) ResponseEntity
+        +assignStaff(Long) ResponseEntity
+        +reviewClaim(Long, ClaimReviewRequestDTO) ResponseEntity
+        +finalDecision(Long, ClaimReviewRequestDTO) ResponseEntity
     }
 
-    class PolicyPlanController {
-        -PolicyPlanService planService
-        +createPlan(PlanRequestDTO) ResponseEntity
-        +updatePlan(Long, PlanRequestDTO) ResponseEntity
-        +deactivatePlan(Long) ResponseEntity
-        +activatePlan(Long) ResponseEntity
-        +getActivePlans() ResponseEntity
-        +getActivePlansByProduct(Long) ResponseEntity
-        +getPaginatedPlans(int, int, String, String, String, String) ResponseEntity
-        +getPlanById(Long) ResponseEntity
+    class ClaimDocumentController {
+        -ClaimDocumentService claimDocumentService
+        +uploadDocument(Long, String, MultipartFile) ResponseEntity
     }
 
     class UserController {
@@ -266,26 +358,26 @@ classDiagram
         +createInternalStaff(CreateStaffRequestDTO) ResponseEntity
     }
 
-    class ClaimDocumentController {
-        -ClaimDocumentService claimDocumentService
-        +uploadDocument(Long, String, MultipartFile) ResponseEntity
-    }
-
     %% Dependency mapping to Service contracts
     AuthController ..> AuthService : depends
     CustomerController ..> CustomerService : depends
-    ClaimController ..> ClaimService : depends
-    PolicyController ..> PolicyService : depends
-    PremiumPaymentController ..> PremiumPaymentService : depends
     InsuranceProductController ..> InsuranceProductService : depends
     PolicyPlanController ..> PolicyPlanService : depends
-    UserController ..> UserService : depends
+    CoverageOptionController ..> CoverageOptionService : depends
+    PricingRuleController ..> PricingRuleService : depends
+    PremiumCalculationController ..> PremiumCalculationService : depends
+    PolicyController ..> PolicyService : depends
+    PremiumPaymentController ..> PremiumPaymentService : depends
+    ClaimController ..> ClaimService : depends
     ClaimDocumentController ..> ClaimDocumentService : depends
+    UserController ..> UserService : depends
 ```
 
 ---
 
-## 3. Service Mappings & Implementations
+## 3. Service Layer & Dynamic Pricing Strategy Pattern
+
+Illustrates the service interfaces and implementations, including the Strategy pattern used for dynamic premium calculations (`ANNUAL` vs. `ONE_TIME` calculators).
 
 ```mermaid
 classDiagram
@@ -311,6 +403,92 @@ classDiagram
     }
     AuthService <|.. AuthServiceImpl : implements
 
+    class PolicyPlanService {
+        <<interface>>
+        +createPlan(PlanRequestDTO) ApiResponseDTO
+        +updatePlan(Long, PlanRequestDTO) ApiResponseDTO
+        +deactivatePlan(Long) ApiResponseDTO
+        +activatePlan(Long) ApiResponseDTO
+        +getActivePlans() ApiResponseDTO
+        +getActivePlansByProduct(Long) ApiResponseDTO
+        +getPaginatedPlans(int, int, String, String, String, String) ApiResponseDTO
+        +getPlanById(Long) ApiResponseDTO
+    }
+
+    class PolicyPlanServiceImpl {
+        -PolicyPlanRepository planRepository
+        -InsuranceProductRepository productRepository
+        -CoverageOptionRepository coverageOptionRepository
+    }
+    PolicyPlanService <|.. PolicyPlanServiceImpl : implements
+
+    class CoverageOptionService {
+        <<interface>>
+        +addCoverageOption(CoverageOptionRequestDTO) ApiResponseDTO
+        +updateCoverageOption(Long, CoverageOptionRequestDTO) ApiResponseDTO
+        +deactivateCoverageOption(Long) ApiResponseDTO
+        +activateCoverageOption(Long) ApiResponseDTO
+        +getCoverageOptionsByPlan(Long) ApiResponseDTO
+    }
+
+    class CoverageOptionServiceImpl {
+        -CoverageOptionRepository coverageOptionRepository
+        -PolicyPlanRepository planRepository
+    }
+    CoverageOptionService <|.. CoverageOptionServiceImpl : implements
+
+    class PricingRuleService {
+        <<interface>>
+        +createRule(PricingRuleRequestDTO) ApiResponseDTO
+        +updateRule(Long, PricingRuleRequestDTO) ApiResponseDTO
+        +getActiveRule(Long) ApiResponseDTO
+        +getRuleHistory(Long) ApiResponseDTO
+    }
+
+    class PricingRuleServiceImpl {
+        -PricingRuleRepository pricingRuleRepository
+        -PolicyPlanRepository planRepository
+        -PricingAuditLogRepository auditLogRepository
+    }
+    PricingRuleService <|.. PricingRuleServiceImpl : implements
+
+    class PremiumCalculationService {
+        <<interface>>
+        +previewPremium(PricingPreviewRequestDTO) ApiResponseDTO
+        +generateQuote(Long, Long, Integer) Quote
+    }
+
+    class PremiumCalculationServiceImpl {
+        -PolicyPlanRepository planRepository
+        -CoverageOptionRepository coverageOptionRepository
+        -PricingRuleRepository pricingRuleRepository
+        -QuoteRepository quoteRepository
+        -PremiumCalculatorFactory calculatorFactory
+    }
+    PremiumCalculationService <|.. PremiumCalculationServiceImpl : implements
+
+    class PolicyService {
+        <<interface>>
+        +purchasePolicy(PolicyPurchaseRequestDTO) ApiResponseDTO
+        +issuePolicy(PolicyIssueRequestDTO) ApiResponseDTO
+        +getMyPolicies(int, int, String, String) ApiResponseDTO
+        +getPoliciesByCustomer(Long, int, int, String, String) ApiResponseDTO
+        +getAllPolicies(int, int, String, String, String, String, String) ApiResponseDTO
+        +getPolicyById(Long) ApiResponseDTO
+        +getClaimsByPolicyId(Long, int, int, String, String) ApiResponseDTO
+        +cancelPolicy(Long) ApiResponseDTO
+    }
+
+    class PolicyServiceImpl {
+        -PolicyRepository policyRepository
+        -CustomerRepository customerRepository
+        -PolicyPlanRepository planRepository
+        -CoverageOptionRepository coverageOptionRepository
+        -PricingRuleRepository pricingRuleRepository
+        -PremiumCalculationService calculationService
+    }
+    PolicyService <|.. PolicyServiceImpl : implements
+
     class ClaimService {
         <<interface>>
         +raiseClaim(ClaimRequestDTO, List[MultipartFile]) ApiResponseDTO
@@ -332,51 +510,58 @@ classDiagram
         -ClaimStatusHistoryRepository historyRepository
     }
     ClaimService <|.. ClaimServiceImpl : implements
+```
 
-    class PolicyService {
+### Strategy Pattern for Dynamic Premium Calculations
+
+```mermaid
+classDiagram
+    class PremiumCalculator {
         <<interface>>
-        +purchasePolicy(PolicyPurchaseRequestDTO) ApiResponseDTO
-        +issuePolicy(PolicyIssueRequestDTO) ApiResponseDTO
-        +getMyPolicies(int, int, String, String) ApiResponseDTO
-        +getPoliciesByCustomer(Long, int, int, String, String) ApiResponseDTO
-        +getAllPolicies(int, int, String, String, String, String, String) ApiResponseDTO
-        +getPolicyById(Long) ApiResponseDTO
-        +getClaimsByPolicyId(Long, int, int, String, String) ApiResponseDTO
-        +cancelPolicy(Long) ApiResponseDTO
+        +calculatePremium(PremiumCalculationRequest, PricingRule, BigDecimal) PremiumQuote
     }
 
-    class PolicyServiceImpl {
-        -PolicyRepository policyRepository
-        -CustomerRepository customerRepository
-        -PolicyPlanRepository planRepository
-        -AppUserRepository userRepository
-        -ClaimRepository claimRepository
-    }
-    PolicyService <|.. PolicyServiceImpl : implements
-
-    class PremiumPaymentService {
-        <<interface>>
-        +recordPayment(PaymentRequestDTO) ApiResponseDTO
-        +getPaymentsByPolicyId(Long, int, int, String, String) ApiResponseDTO
-        +getPaymentById(Long) ApiResponseDTO
-        +getPaginatedPayments(int, int, String, String, String, String) ApiResponseDTO
-        +getMyPayments(int, int, String, String) ApiResponseDTO
-        +getMyPaymentsByPolicyId(Long, int, int, String, String) ApiResponseDTO
+    class AnnualPremiumCalculator {
+        +calculatePremium(PremiumCalculationRequest, PricingRule, BigDecimal) PremiumQuote
     }
 
-    class PremiumPaymentServiceImpl {
-        -PremiumPaymentRepository paymentRepository
-        -PolicyRepository policyRepository
-        -AppUserRepository userRepository
+    class OneTimePremiumCalculator {
+        +calculatePremium(PremiumCalculationRequest, PricingRule, BigDecimal) PremiumQuote
     }
-    PremiumPaymentService <|.. PremiumPaymentServiceImpl : implements
+
+    class PremiumCalculatorFactory {
+        -Map[String, PremiumCalculator] calculators
+        +getCalculator(PremiumType) PremiumCalculator
+    }
+
+    class PremiumQuote {
+        +coverage: BigDecimal
+        +duration: Integer
+        +premiumType: PremiumType
+        +riskRate: BigDecimal
+        +processingFee: BigDecimal
+        +gst: BigDecimal
+        +premium: BigDecimal
+        +total: BigDecimal
+    }
+
+    class PremiumCalculationRequest {
+        +planId: Long
+        +coverageOptionId: Long
+        +duration: Integer
+    }
+
+    PremiumCalculator <|.. AnnualPremiumCalculator : implements
+    PremiumCalculator <|.. OneTimePremiumCalculator : implements
+    PremiumCalculatorFactory ..> PremiumCalculator : returns
+    PremiumCalculator ..> PremiumQuote : produces
 ```
 
 ---
 
 ## 4. DTO & Validation Payload Schemas
 
-Data structures mapped directly to client requests and responses:
+Data structures mapped directly to client requests, wizards, dynamic pricing previews, and responses:
 
 ```mermaid
 classDiagram
@@ -405,12 +590,43 @@ classDiagram
     class PlanRequestDTO {
         +productId: Long
         +planName: String
-        +coverageAmount: BigDecimal
-        +premiumAmount: BigDecimal
-        +premiumType: PremiumType
-        +duration: Integer
+        +allowedDurations: Set[Integer]
+        +supportedPremiumType: PremiumType
         +termsAndConditions: String
         +isActive: Boolean
+    }
+    class CoverageOptionRequestDTO {
+        +planId: Long
+        +coverageAmount: BigDecimal
+        +label: String
+        +displayOrder: Integer
+        +isActive: Boolean
+    }
+    class PricingRuleRequestDTO {
+        +planId: Long
+        +baseRiskRate: BigDecimal
+        +processingFee: BigDecimal
+        +gst: BigDecimal
+        +remarks: String
+        +effectiveFrom: LocalDateTime
+    }
+    class PricingPreviewRequestDTO {
+        +planId: Long
+        +coverageOptionId: Long
+        +duration: Integer
+    }
+    class PolicyPurchaseRequestDTO {
+        +planId: Long
+        +coverageOptionId: Long
+        +duration: Integer
+        +startDate: LocalDate
+    }
+    class PolicyIssueRequestDTO {
+        +customerId: Long
+        +planId: Long
+        +coverageOptionId: Long
+        +duration: Integer
+        +startDate: LocalDate
     }
     class ClaimRequestDTO {
         +policyId: Long
@@ -431,7 +647,7 @@ classDiagram
 
 ## 5. Security Models & Handlers
 
-This shows how filters, security context mechanisms, and tokens relate structurally.
+Shows how security filter chains, custom user details, JWT services, and global exception handlers relate structurally.
 
 ```mermaid
 classDiagram

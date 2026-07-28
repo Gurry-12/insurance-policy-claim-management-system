@@ -37,8 +37,6 @@ import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.repository.PricingRuleRepository;
 import com.insurance.demo.repository.QuoteRepository;
 import com.insurance.demo.service.PricingRuleService;
-import com.insurance.demo.service.strategy.PremiumCalculator;
-import com.insurance.demo.service.strategy.PremiumCalculatorFactory;
 import com.insurance.demo.util.MessageConstants;
 import com.insurance.demo.util.PaginationValidator;
 
@@ -55,7 +53,6 @@ public class PricingRuleServiceImpl implements PricingRuleService {
 	private final PricingAuditLogRepository auditLogRepository;
 	private final QuoteRepository quoteRepository;
 	private final PolicyRepository policyRepository;
-	private final PremiumCalculatorFactory calculatorFactory;
 	private final ModelMapper modelMapper;
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -64,24 +61,28 @@ public class PricingRuleServiceImpl implements PricingRuleService {
 			case HEALTH:
 				rule.setBaseRiskRate(new BigDecimal("0.025"));
 				rule.setProcessingFee(new BigDecimal("100.00"));
+				rule.setGst(new BigDecimal("0.00"));
 				break;
 			case MOTOR:
 				rule.setBaseRiskRate(new BigDecimal("0.030"));
 				rule.setProcessingFee(new BigDecimal("150.00"));
+				rule.setGst(new BigDecimal("18.00"));
 				break;
 			case TRAVEL:
 				rule.setBaseRiskRate(new BigDecimal("0.015"));
 				rule.setProcessingFee(new BigDecimal("50.00"));
+				rule.setGst(new BigDecimal("18.00"));
 				break;
 			case LIFE:
 				rule.setBaseRiskRate(new BigDecimal("0.008"));
 				rule.setProcessingFee(new BigDecimal("200.00"));
+				rule.setGst(new BigDecimal("0.00"));
 				break;
 			default:
 				rule.setBaseRiskRate(new BigDecimal("0.020"));
 				rule.setProcessingFee(new BigDecimal("100.00"));
+				rule.setGst(new BigDecimal("18.00"));
 		}
-		rule.setGst(new BigDecimal("18.00")); // Standard GST
 	}
 
 	@Override
@@ -106,7 +107,15 @@ public class PricingRuleServiceImpl implements PricingRuleService {
 		rule.setEffectiveFrom(dto.getEffectiveFrom() != null ? dto.getEffectiveFrom() : LocalDateTime.now());
 		rule.setEffectiveTo(dto.getEffectiveTo());
 		rule.setRemarks(dto.getRemarks());
-		rule.setStatus(PricingRuleStatus.INACTIVE); // Must activate manually or at end of wizard.
+		
+		// If there is no active rule for this plan, activate this rule immediately
+		List<PricingRule> activeRules = pricingRuleRepository.findByPolicyPlanIdAndStatusOrderByIdDesc(
+				plan.getId(), PricingRuleStatus.ACTIVE);
+		if (activeRules.isEmpty()) {
+			rule.setStatus(PricingRuleStatus.ACTIVE);
+		} else {
+			rule.setStatus(PricingRuleStatus.INACTIVE);
+		}
 
 		PricingRule savedRule = pricingRuleRepository.save(rule);
 
@@ -208,6 +217,13 @@ public class PricingRuleServiceImpl implements PricingRuleService {
 
 		if (rule.getStatus() == PricingRuleStatus.ACTIVE) {
 			throw new BadRequestException("Pricing rule is already active.");
+		}
+
+		// Enforce only one active rule per plan: require deactivating existing active rule first
+		List<PricingRule> activeRules = pricingRuleRepository.findByPolicyPlanIdAndStatusOrderByIdDesc(
+				rule.getPolicyPlan().getId(), PricingRuleStatus.ACTIVE);
+		if (!activeRules.isEmpty()) {
+			throw new BadRequestException("An active pricing rule already exists for this plan. Please deactivate the existing active rule first before activating a new one.");
 		}
 
 		rule.setStatus(PricingRuleStatus.ACTIVE);
