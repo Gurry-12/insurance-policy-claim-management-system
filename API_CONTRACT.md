@@ -572,7 +572,72 @@ All endpoints require `Authorization: Bearer <admin-token>`.
 
 ---
 
-## 8. Claim API — `/claims`
+## 8. Premium Calculation API — `/premium`
+
+### `POST /premium/calculate` — CUSTOMER — Generate a premium quote
+
+**Request:**
+```json
+{
+  "planId": 1,
+  "coverageAmount": 500000,
+  "duration": 3,
+  "premiumType": "ONE_TIME"
+}
+```
+
+**Response** `200 OK` — `ApiResponseDTO<PremiumQuote>`
+
+```json
+{
+  "message": "Premium quote generated successfully",
+  "success": true,
+  "data": {
+    "quoteId": 1,
+    "selectedCoverage": 500000,
+    "duration": 3,
+    "premiumType": "ONE_TIME",
+    "basePremium": 12500.00,
+    "annualPremium": 12800.00,
+    "processingFee": 100.00,
+    "gst": 0.00,
+    "totalCommitment": 38400.00,
+    "discountPercentage": 5,
+    "discountAmount": 1920.00,
+    "oneTimeDiscount": 1920.00,
+    "totalPremium": 36480.00,
+    "expiresAt": "2026-07-28T12:01:00",
+    "status": "CREATED"
+  },
+  "timeStamp": "2026-07-28T12:00:00"
+}
+```
+
+**Premium Calculation Logic:**
+- `basePremium = coverageAmount × riskRate`
+- `annualPremium = basePremium + processingFee + gst`
+- **ANNUAL**: `totalPremium = annualPremium` (customer pays each year)
+- **ONE_TIME**: `totalPremium = (annualPremium × duration) - durationDiscount`
+  - Duration discounts: 2yr=2%, 3yr=5%, 5yr=8%, 7yr=10%, 10yr=12%, 15yr=15%, 20yr=18%, 25yr+=20%
+
+### `POST /premium/admin/calculate` — ADMIN, INTERNAL_STAFF — Generate quote for a customer
+
+**Request:**
+```json
+{
+  "customerId": 1,
+  "planId": 1,
+  "coverageAmount": 500000,
+  "duration": 3,
+  "premiumType": "ONE_TIME"
+}
+```
+
+**Response** `200 OK` — `ApiResponseDTO<PremiumQuote>` (same as above)
+
+---
+
+## 9. Claim API — `/claims`
 
 ### Claim State Machine
 

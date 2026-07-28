@@ -18,6 +18,7 @@ import com.insurance.demo.model.CoverageOption;
 import com.insurance.demo.model.PolicyPlan;
 import com.insurance.demo.repository.CoverageOptionRepository;
 import com.insurance.demo.repository.PolicyPlanRepository;
+import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.service.CoverageOptionService;
 import com.insurance.demo.util.MessageConstants;
 
@@ -31,11 +32,29 @@ public class CoverageOptionServiceImpl implements CoverageOptionService {
 
 	private final CoverageOptionRepository coverageOptionRepository;
 	private final PolicyPlanRepository policyPlanRepository;
+	private final PolicyRepository policyRepository;
+
+	private void validateCoverageAmount(BigDecimal amount) {
+		if (amount == null) {
+			throw new BadRequestException("Coverage amount cannot be null");
+		}
+		if (amount.compareTo(new BigDecimal("50000")) < 0) {
+			throw new BadRequestException("Coverage amount must be at least ₹50,000");
+		}
+		if (amount.compareTo(new BigDecimal("50000000")) > 0) {
+			throw new BadRequestException("Coverage amount cannot exceed ₹5,00,00,000 (5 Crores)");
+		}
+		if (amount.remainder(new BigDecimal("50000")).compareTo(BigDecimal.ZERO) != 0) {
+			throw new BadRequestException("Coverage amount must be a multiple of ₹50,000");
+		}
+	}
 
 	@Override
 	@Transactional
 	public ApiResponseDTO<CoverageOption> createCoverageOption(Long planId, CoverageOptionRequestDTO dto) {
 		log.info("Creating coverage option for plan id: {}", planId);
+
+		validateCoverageAmount(dto.getCoverageAmount());
 
 		PolicyPlan plan = policyPlanRepository.findById(planId)
 				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + planId));
@@ -64,7 +83,15 @@ public class CoverageOptionServiceImpl implements CoverageOptionService {
 			throw new BadRequestException("Coverage option does not belong to the specified plan");
 		}
 
-		option.setCoverageAmount(dto.getCoverageAmount());
+		if (dto.getCoverageAmount() != null) {
+			if (option.getCoverageAmount() != null && !dto.getCoverageAmount().equals(option.getCoverageAmount())) {
+				if (policyRepository.existsByPolicyPlanIdAndSelectedCoverage(planId, option.getCoverageAmount())) {
+					throw new BadRequestException("Cannot change coverage amount of tier (" + option.getLabel() + ") because policies have already been issued with this coverage amount.");
+				}
+			}
+			validateCoverageAmount(dto.getCoverageAmount());
+			option.setCoverageAmount(dto.getCoverageAmount());
+		}
 		option.setLabel(dto.getLabel());
 		option.setDisplayOrder(dto.getDisplayOrder());
 		if (dto.getActiveStatus() != null) {
@@ -131,6 +158,10 @@ public class CoverageOptionServiceImpl implements CoverageOptionService {
 			throw new BadRequestException("Coverage option does not belong to the specified plan");
 		}
 
+		if (policyRepository.existsByPolicyPlanIdAndSelectedCoverage(planId, option.getCoverageAmount())) {
+			throw new BadRequestException("Cannot delete coverage tier (" + option.getLabel() + ") because policies have already been issued with this coverage amount.");
+		}
+
 		coverageOptionRepository.delete(option);
 
 		return new ApiResponseDTO<>("Coverage option deleted successfully", true, null, LocalDateTime.now());
@@ -146,11 +177,24 @@ public class CoverageOptionServiceImpl implements CoverageOptionService {
 				.orElseThrow(() -> new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + planId));
 
 		// Validate input
+		validateCoverageAmount(dto.getMinCoverage());
+		validateCoverageAmount(dto.getIncrementStep());
+		if (dto.getMaxCoverage().compareTo(new BigDecimal("50000000")) > 0) {
+			throw new BadRequestException("Maximum coverage cannot exceed ₹5,00,00,000 (5 Crores)");
+		}
 		if (dto.getMinCoverage().compareTo(dto.getMaxCoverage()) >= 0) {
 			throw new BadRequestException("Minimum coverage must be less than maximum coverage");
 		}
-		if (dto.getIncrementStep().compareTo(BigDecimal.ZERO) <= 0) {
-			throw new BadRequestException("Increment step must be positive");
+		// Validate max tiers <= 30
+		BigDecimal count = dto.getMaxCoverage().subtract(dto.getMinCoverage())
+				.divide(dto.getIncrementStep(), 0, RoundingMode.FLOOR).add(BigDecimal.ONE);
+		if (count.intValue() > 30) {
+			throw new BadRequestException("Number of coverage tiers cannot exceed 30. Please adjust step or range.");
+		}
+
+		// Verify no existing policies use this plan before regenerating and wiping coverage tiers
+		if (policyRepository.existsByPolicyPlanId(planId)) {
+			throw new BadRequestException("Cannot regenerate coverage tiers because policies have already been issued under this plan. You can add custom tiers instead.");
 		}
 
 		// Delete existing coverage options for this plan

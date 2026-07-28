@@ -105,7 +105,7 @@ public class PremiumCalculationServiceImpl implements PremiumCalculationService 
 		
 		PricingRule activeRule = rules.get(0);
 
-		PremiumCalculator calculator = calculatorFactory.getCalculator(plan.getInsuranceProduct().getProductType());
+		PremiumCalculator calculator = calculatorFactory.getCalculator(premiumType);
 		PremiumQuote quoteDto = calculator.calculatePremium(
 				new PremiumCalculationRequest(planId, coverageAmount, duration, premiumType),
 				activeRule, coverageAmount);
@@ -124,7 +124,7 @@ public class PremiumCalculationServiceImpl implements PremiumCalculationService 
 		quote.setPremium(quoteDto.getAnnualPremium());
 		quote.setTotal(quoteDto.getTotalPremium());
 		quote.setStatus(QuoteStatus.CREATED);
-		quote.setExpiresAt(LocalDateTime.now().plusHours(24));
+		quote.setExpiresAt(LocalDateTime.now().plusMinutes(30));
 		
 		Quote savedQuote = quoteRepository.save(quote);
 		

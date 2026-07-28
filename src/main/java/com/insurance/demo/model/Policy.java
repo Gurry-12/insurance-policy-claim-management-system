@@ -74,7 +74,7 @@ public class Policy {
 	private Integer policyDuration;
 
 	@PositiveOrZero
-	@Column(name = "premium_rate_used", nullable = false, precision = 10, scale = 4)
+	@Column(name = "premium_rate_used", nullable = false, precision = 15, scale = 4)
 	private BigDecimal premiumRateUsed;
 
 	@PositiveOrZero
@@ -82,7 +82,7 @@ public class Policy {
 	private BigDecimal processingFeeUsed;
 
 	@PositiveOrZero
-	@Column(name = "gst_used", nullable = false, precision = 5, scale = 2)
+	@Column(name = "gst_used", nullable = false, precision = 15, scale = 2)
 	private BigDecimal gstUsed;
 
 	@PositiveOrZero

@@ -50,12 +50,12 @@ This document explains every enum in the system — what values are valid, what 
 | Value | Business Meaning |
 |---|---|
 | `HEALTH` | Health/medical insurance |
+| `MOTOR` | Car/bike/vehicle insurance |
 | `LIFE` | Life insurance |
-| `VEHICLE` | Car/bike/vehicle insurance |
-| `PROPERTY` | Home/property insurance |
 | `TRAVEL` | Travel insurance |
+| `INSURANCE` | *(Deprecated — legacy value, do not use for new products)* |
 
-*(Note: Verify exact values from `com.insurance.demo.enums.ProductType` — the above are inferred from domain context and security messages referencing these types)*
+> **Note:** The `INSURANCE` value is a domain error (it's the domain name, not a product type). It exists for backward compatibility only. New product types should use meaningful names like `HOME`, `CYBER`, or `PET`.
 
 **Where used:**
 - `InsuranceProduct.productType`
@@ -144,6 +144,7 @@ ANNUAL:
 
 | Value | Business Meaning |
 |---|---|
+| `PENDING` | Payment initiated but not yet confirmed |
 | `SUCCESS` | Payment was successfully processed |
 | `FAILED` | Payment attempt was unsuccessful |
 
@@ -164,9 +165,8 @@ For audit and reconciliation purposes. A FAILED payment does NOT activate the po
 |---|---|
 | `UPI` | Unified Payments Interface |
 | `CARD` | Credit or Debit card |
-| `NETBANKING` | Internet banking |
+| `NET_BANKING` | Internet banking |
 | `CASH` | Physical cash payment |
-| `CHEQUE` | Cheque payment |
 
 **Where used:**
 - `PremiumPayment.paymentMode`

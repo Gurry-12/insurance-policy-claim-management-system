@@ -34,6 +34,7 @@ import com.insurance.demo.model.PolicyPlan;
 import com.insurance.demo.repository.AppUserRepository;
 import com.insurance.demo.repository.InsuranceProductRepository;
 import com.insurance.demo.repository.PolicyPlanRepository;
+import com.insurance.demo.repository.PolicyRepository;
 import com.insurance.demo.service.CoverageOptionService;
 import com.insurance.demo.service.PolicyPlanService;
 import com.insurance.demo.service.PricingRuleService;
@@ -54,6 +55,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 	private final ModelMapper modelMapper;
 	private final CoverageOptionService coverageOptionService;
 	private final PricingRuleService pricingRuleService;
+	private final PolicyRepository policyRepository;
 
 	@Override
 	@Transactional
@@ -142,6 +144,17 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		if (!existingPlan.getPlanName().equalsIgnoreCase(dto.getPlanName())
 				&& policyPlanRepository.existsByPlanNameIgnoreCase(dto.getPlanName())) {
 			throw new DuplicateResourceException(MessageConstants.PolicyPlan.PLAN_NAME_DUPLICATE + dto.getPlanName());
+		}
+
+		// Verify that if a duration was already used in an existing policy, it cannot be removed from allowedDurations
+		if (existingPlan.getAllowedDurations() != null && dto.getAllowedDurations() != null) {
+			for (Integer oldDuration : existingPlan.getAllowedDurations()) {
+				if (!dto.getAllowedDurations().contains(oldDuration)) {
+					if (policyRepository.existsByPolicyPlanIdAndPolicyDuration(planId, oldDuration)) {
+						throw new BadRequestException("Cannot remove duration (" + oldDuration + " Year(s)) because policies have already been issued under this duration.");
+					}
+				}
+			}
 		}
 
 		// Update fields

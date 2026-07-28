@@ -22,10 +22,15 @@ public class PremiumQuote {
 	private Integer duration;
 	private PremiumType premiumType;
 
+	private BigDecimal basePremium;
 	private BigDecimal annualPremium;
 	private BigDecimal processingFee;
 
 	private BigDecimal gst;
+	private BigDecimal totalCommitment;
+	private BigDecimal discountPercentage;
+	private BigDecimal discountAmount;
+	private BigDecimal oneTimeDiscount;
 	private BigDecimal totalPremium;
 
 	private LocalDateTime expiresAt;
