@@ -144,6 +144,7 @@ ANNUAL:
 
 | Value | Business Meaning |
 |---|---|
+| `PENDING` | Payment initiated but not yet confirmed |
 | `SUCCESS` | Payment was successfully processed |
 | `FAILED` | Payment attempt was unsuccessful |
 
@@ -164,9 +165,8 @@ For audit and reconciliation purposes. A FAILED payment does NOT activate the po
 |---|---|
 | `UPI` | Unified Payments Interface |
 | `CARD` | Credit or Debit card |
-| `NETBANKING` | Internet banking |
+| `NET_BANKING` | Internet banking |
 | `CASH` | Physical cash payment |
-| `CHEQUE` | Cheque payment |
 
 **Where used:**
 - `PremiumPayment.paymentMode`

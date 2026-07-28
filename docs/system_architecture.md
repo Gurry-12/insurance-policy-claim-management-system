@@ -73,6 +73,10 @@ Keeps the database models decoupled from client payloads. No database entities a
 
 ### 3.3 Factory & Strategy Patterns
 *   **OTP Verification (OtpService)**: Coordinates two delivery strategies (SMTP Email using Gmail, Twilio SMS for telephone dispatch) to verify user identity.
+*   **Premium Calculation (PremiumCalculatorFactory)**: Selects the appropriate premium calculator based on `PremiumType` (ANNUAL vs ONE_TIME). Each calculator implements a different payment model:
+    *   `AnnualPremiumCalculator` — customer pays premium each year, no lump-sum discount
+    *   `OneTimePremiumCalculator` — customer pays once upfront with duration-based discount
+    *   Adding new premium types (e.g., QUARTERLY, MONTHLY) requires only a new `@Component` class — no changes to factory or consumer code.
 *   **Custom User Details Load**: Resolves standard Spring security principal wrappers based on email matching strategies.
 
 ### 3.4 Dynamic Query Specification Pattern

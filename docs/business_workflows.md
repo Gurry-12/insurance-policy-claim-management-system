@@ -50,13 +50,9 @@ Managed strictly by system Administrators:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> DRAFT : Admin creates InsuranceRequestDTO
-    DRAFT --> ACTIVE : ProductRequestDTO.isActive = true
-    note right of ACTIVE
-        Plans can be added.
-        Customers can purchase associated plans.
-    end note
-
+    [*] --> ACTIVE : Admin creates InsuranceProduct (isActive=true)
+    [*] --> INACTIVE : Admin creates InsuranceProduct (isActive=false)
+    
     ACTIVE --> INACTIVE : Admin deactivates product
     note right of INACTIVE
         No new plans can be added.
