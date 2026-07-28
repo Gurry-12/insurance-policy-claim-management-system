@@ -38,13 +38,13 @@ The system supports three user roles:
 
 1 
 
-2. Agent 
+2. Internal Staff 
 
 3. Customer 
 
 Each role has clearly defined permissions based on real insurance business responsibilities. 
 
-Customers can register, create profiles, purchase insurance policies, record simulated premium payments, and raise claims. Agents can review claims and recommend claim decisions. Admins can manage insurance products, plans, users, and make final claim approval or rejection decisions. 
+Customers can register, create profiles, purchase insurance policies, record simulated premium payments, and raise claims. Internal Staffs can review claims and recommend claim decisions. Admins can manage insurance products, plans, users, and make final claim approval or rejection decisions. 
 
 ## **3. Real-Life Business Scenario** 
 
@@ -52,7 +52,7 @@ An insurance company offers multiple insurance products such as health insurance
 
 Each product contains multiple plans. A customer selects a plan and purchases it as an insurance policy. The policy initially remains in a pending payment state. After successful premium payment, the policy becomes active. 
 
-Once the policy is active, the customer may raise a claim if an insured event occurs. The claim is reviewed by an agent. The agent may recommend approval or rejection, but only the admin can make the final decision. 
+Once the policy is active, the customer may raise a claim if an insured event occurs. The claim is reviewed by an internal staff. The internal staff may recommend approval or rejection, but only the admin can make the final decision. 
 
 This project simulates a simplified but realistic insurance business workflow. 
 
@@ -67,10 +67,10 @@ This project simulates a simplified but realistic insurance business workflow.
 |OBJ-005|Manage policy plans under insurance products|
 |OBJ-006|Manage customer profles|
 |OBJ-007|Allow customers to purchase policies|
-|OBJ-008|Allow agents and admins to issue policies|
+|OBJ-008|Allow internal staffs and admins to issue policies|
 |OBJ-009|Track simulated premium payment records|
 |OBJ-010|Allow customers to raise insurance claims|
-|OBJ-011|Allow agents to review and recommend claims|
+|OBJ-011|Allow internal staffs to review and recommend claims|
 
 
 
@@ -96,13 +96,13 @@ This project simulates a simplified but realistic insurance business workflow.
 |ASM-001|The project is backend-only. No frontend application is required.|
 |ASM-002|Payment processing is simulated. No real payment gateway is required.|
 |ASM-003|Public registration is allowed only for customers.|
-|ASM-004|Admin and agent accounts are created or managed internally by admin.|
+|ASM-004|Admin and internal staff accounts are created or managed internally by admin.|
 |ASM-005|Actual document upload is optional. Document references are sufcient.|
 |ASM-006|Insurance premium calculation is fxed according to the selected plan.|
 |ASM-007|Tax, GST, discount, renewal pricing, and dynamic premium calculation are out of|
 ||scope.|
-|ASM-008|Agent-specifc claim assignment is out of scope for this mini project.|
-|ASM-009|All agents can view claims that require review.|
+|ASM-008|Internal Staff-specifc claim assignment is out of scope for this mini project.|
+|ASM-009|All internal staffs can view claims that require review.|
 |ASM-010|Product and plan removal should be handled through deactivation, not permanent<br>deletion.|
 |ASM-011|Pagination must be applied to list APIs to avoid large uncontrolled responses.|
 
@@ -126,7 +126,7 @@ This project simulates a simplified but realistic insurance business workflow.
 |SCP-008|Policy purchase and issuance|
 |SCP-009|Simulated premium payment management|
 |SCP-010|Claim submission|
-|SCP-011|Claim review by agent|
+|SCP-011|Claim review by internal staff|
 |SCP-012|Final claim decision by admin|
 |SCP-013|Claim status history|
 |SCP-014|DTO-based request and response handling|
@@ -182,7 +182,7 @@ Admin can:
 
 - 
 
-- Create and manage agent accounts. 
+- Create and manage internal staff accounts. 
 
 - View all customers. 
 
@@ -208,11 +208,11 @@ Admin cannot:
 
 5 
 
-## **7.2 Agent** 
+## **7.2 Internal Staff** 
 
-Agent represents an insurance company employee. 
+Internal Staff represents an insurance company employee. 
 
-Agent can: 
+Internal Staff can: 
 
 - View customer details. 
 
@@ -232,7 +232,7 @@ Agent can:
 
 - View claim status history. 
 
-Agent cannot: 
+Internal Staff cannot: 
 
 - Create insurance products. 
 
@@ -244,7 +244,7 @@ Agent cannot:
 
 - Access user management features. 
 
-- Register publicly as agent. 
+- Register publicly as internal staff. 
 
 ## **7.3 Customer** 
 
@@ -296,7 +296,7 @@ Customer cannot:
 
 - Approve or reject claims. 
 
-- Register as admin or agent. 
+- Register as admin or internal staff. 
 
 ## **8. System Modules** 
 
@@ -336,7 +336,7 @@ The User entity represents account and login information.
 |Email|Unique login email|
 |Password|Secured password|
 |Mobile Number|Contact number|
-|Role|Admin, Agent, or Customer|
+|Role|Admin, Internal Staff, or Customer|
 |Active Status|Indicates whether the account is active|
 |Created Date|Account creation date and time|
 |Updated Date|Last account update date and time|
@@ -350,7 +350,7 @@ The User entity represents account and login information.
 |USR-BR-001|Email must be unique.|
 |USR-BR-002|Password must be stored securely.|
 |USR-BR-003|Public registration must create only customer accounts.|
-|USR-BR-004|Admin and agent accounts must be controlled internally by admin.|
+|USR-BR-004|Admin and internal staff accounts must be controlled internally by admin.|
 |USR-BR-005|Inactive users must not be allowed to login.|
 |USR-BR-006|A user must have exactly one role.|
 
@@ -388,7 +388,7 @@ The Customer entity represents customer profile information.
 |CUS-BR-002|One customer user can have only one customer profle.|
 |CUS-BR-003|Customer profle must be completed before policy purchase.|
 |CUS-BR-004|A customer can update only their own profle.|
-|CUS-BR-005|Admin and agent can view customer details for business purposes.|
+|CUS-BR-005|Admin and internal staff can view customer details for business purposes.|
 
 
 
@@ -507,7 +507,7 @@ The Policy entity represents an insurance policy purchased by or issued to a cus
 |POL-BR-007|Cancelled policies cannot be reactivated in this mini project.|
 |POL-BR-008|Claims can be raised only against Active policies.|
 |POL-BR-009|Customers can view only their own policies.|
-|POL-BR-010|Agents and admins can view customer policies.|
+|POL-BR-010|Internal Staffs and admins can view customer policies.|
 
 
 
@@ -571,7 +571,7 @@ The Claim entity represents an insurance claim submitted by a customer.
 |Field|Description|
 |---|---|
 |Claim Status|Current claim status|
-|Agent Remarks|Remarks added by agent|
+|Internal Staff Remarks|Remarks added by internal staff|
 |Admin Remarks|Final remarks added by admin|
 |Created Date|Claim submission date and time|
 |Updated Date|Last claim update date and time|
@@ -588,7 +588,7 @@ The Claim entity represents an insurance claim submitted by a customer.
 |CLM-BR-004|Claim amount must not exceed the policy coverage amount.|
 |CLM-BR-005|Incident date must not be a future date.|
 |CLM-BR-006|Customer can raise claims only for their own policies.|
-|CLM-BR-007|Agent can review and recommend claims.|
+|CLM-BR-007|Internal Staff can review and recommend claims.|
 |CLM-BR-008|Admin can make the fnal claim decision.|
 |CLM-BR-009|Approved and rejected claims cannot be modifed again.|
 |CLM-BR-010|Claims cannot be raised against expired, cancelled, or pending-payment policies.|
@@ -662,7 +662,7 @@ The Claim Status History entity represents the status movement of a claim.
 
 |Rule ID|Rule|
 |---|---|
-|HIS-BR-004|Claim history must be available for admin and agent review.|
+|HIS-BR-004|Claim history must be available for admin and internal staff review.|
 
 
 
@@ -909,7 +909,7 @@ Must contain:
 
 Customer reference must be derived from the authenticated customer account. 
 
-## **Agent or Admin Policy Issue Request** 
+## **Internal Staff or Admin Policy Issue Request** 
 
 Must contain: 
 
@@ -1019,7 +1019,7 @@ Must contain:
 
 - Claim status 
 
-- Agent remarks 
+- Internal Staff remarks 
 
 - Admin remarks 
 
@@ -1096,7 +1096,7 @@ Every paginated response should follow a consistent pagination response structur
 |Requirement ID|Requirement|
 |---|---|
 |FR-AUTH-001|The system shall allow customers to register publicly.|
-|FR-AUTH-002|The system shall not allow public registration as admin or agent.|
+|FR-AUTH-002|The system shall not allow public registration as admin or internal staff.|
 |FR-AUTH-003|The system shall allow registered active users to login.|
 |FR-AUTH-004|The system shall generate a JWT token after successful login.|
 |FR-AUTH-005|The system shall validate JWT tokens for protected APIs.|
@@ -1114,7 +1114,7 @@ Every paginated response should follow a consistent pagination response structur
 |FR-USER-001|The system shall allow admin to view all users.|
 |FR-USER-002|The system shall allow admin to activate users.|
 |FR-USER-003|The system shall allow admin to deactivate users.|
-|FR-USER-004|The system shall allow admin to create agent accounts.|
+|FR-USER-004|The system shall allow admin to create internal staff accounts.|
 |FR-USER-005|The system shall prevent duplicate email registration.|
 |FR-USER-006|The system shall maintain created and updated dates for users.|
 |FR-USER-007|The system shall support paginated, sorted, and fltered user listing for admin.|
@@ -1135,9 +1135,9 @@ Every paginated response should follow a consistent pagination response structur
 |---|---|
 |FR-CUS-002|The system shall allow customers to update their own profle.|
 |FR-CUS-003|The system shall allow customers to view their own profle.|
-|FR-CUS-004|The system shall allow admin and agent to view customer details.|
+|FR-CUS-004|The system shall allow admin and internal staff to view customer details.|
 |FR-CUS-005|The system shall prevent customers from accessing another customer’s profle.|
-|FR-CUS-006|The system shall support paginated, sorted, and fltered customer listing for admin<br>and agent.|
+|FR-CUS-006|The system shall support paginated, sorted, and fltered customer listing for admin<br>and internal staff.|
 
 
 
@@ -1182,17 +1182,17 @@ Every paginated response should follow a consistent pagination response structur
 |Requirement<br>ID|Requirement|
 |---|---|
 |FR-POL-001|The system shall allow customers to purchase policies from active plans.|
-|FR-POL-002|The system shall allow agents and admins to issue policies to customers.|
+|FR-POL-002|The system shall allow internal staffs and admins to issue policies to customers.|
 |FR-POL-003|The system shall generate a unique policy number for every policy.|
 |FR-POL-004|The system shall create new policies with Pending Payment status.|
 |FR-POL-005|The system shall activate a policy after successful premium payment.|
 |FR-POL-006|The system shall allow customers to view only their own policies.|
-|FR-POL-007|The system shall allow agents and admins to view customer policies.|
-|FR-POL-008|The system shall allow agents and admins to cancel policies.|
+|FR-POL-007|The system shall allow internal staffs and admins to view customer policies.|
+|FR-POL-008|The system shall allow internal staffs and admins to cancel policies.|
 |FR-POL-009|The system shall prevent claims on expired, cancelled, or pending-payment policies.|
 |FR-POL-010|The system shall consider a policy expired when the current date is after its end<br>date.|
 |FR-POL-011|The system shall support paginated, sorted, and fltered policy listing for admin and|
-||agent.|
+||internal staff.|
 
 
 
@@ -1201,7 +1201,7 @@ Every paginated response should follow a consistent pagination response structur
 |Requirement<br>ID|Requirement|
 |---|---|
 |FR-PAY-001|The system shall allow customers to record simulated premium payments for their<br>own policies.|
-|FR-PAY-002|The system shall allow agents to record simulated payments on behalf of customers.|
+|FR-PAY-002|The system shall allow internal staffs to record simulated payments on behalf of customers.|
 |FR-PAY-003|The system shall validate payment amount.|
 |FR-PAY-004|The system shall prevent duplicate transaction references.|
 |FR-PAY-005|The system shall update total premium paid after successful payment.|
@@ -1215,8 +1215,8 @@ Every paginated response should follow a consistent pagination response structur
 |FR-PAY-006|The system shall activate policy after successful required payment.|
 |FR-PAY-007|The system shall prevent failed or pending payments from activating policies.|
 |FR-PAY-008|The system shall allow customers to view payment history only for their own policies.|
-|FR-PAY-009|The system shall allow agents and admins to view payment records.|
-|FR-PAY-010|The system shall support paginated, sorted, and fltered payment listing for admin<br>and agent.|
+|FR-PAY-009|The system shall allow internal staffs and admins to view payment records.|
+|FR-PAY-010|The system shall support paginated, sorted, and fltered payment listing for admin<br>and internal staff.|
 
 
 
@@ -1229,19 +1229,19 @@ Every paginated response should follow a consistent pagination response structur
 |FR-CLM-003|The system shall require claim amount, reason, incident date, and document details.|
 |FR-CLM-004|The system shall prevent claim amount from exceeding policy coverage.|
 |FR-CLM-005|The system shall allow customers to view only their own claims.|
-|FR-CLM-006|The system shall allow agents to review submitted claims.|
-|FR-CLM-007|The system shall allow agents to recommend claim approval or rejection.|
+|FR-CLM-006|The system shall allow internal staffs to review submitted claims.|
+|FR-CLM-007|The system shall allow internal staffs to recommend claim approval or rejection.|
 |FR-CLM-008|The system shall allow admins to approve or reject claims fnally.|
 |FR-CLM-009|The system shall prevent modifcation of approved or rejected claims.|
 |FR-CLM-010|The system shall maintain claim status history for every status change.|
 |FR-CLM-011|The system shall support paginated, sorted, and fltered claim listing for admin and|
-||agent.|
+||internal staff.|
 
 
 
 ## **13. Role-Based Access Matrix** 
 
-|Feature|Admin|Agent|Customer|
+|Feature|Admin|Internal Staff|Customer|
 |---|---|---|---|
 |Public registration|No|No|Yes|
 |Login|Yes|Yes|Yes|
@@ -1250,9 +1250,9 @@ Every paginated response should follow a consistent pagination response structur
 
 27 
 
-|Feature|Admin|Agent|Customer|
+|Feature|Admin|Internal Staff|Customer|
 |---|---|---|---|
-|Create agent account|Yes|No|No|
+|Create internal staff account|Yes|No|No|
 |View users|Yes|No|No|
 |Activate/deactivate users|Yes|No|No|
 |Create product|Yes|No|No|
@@ -1285,7 +1285,7 @@ Every paginated response should follow a consistent pagination response structur
 
 28 
 
-|Feature|Admin|Agent|Customer|
+|Feature|Admin|Internal Staff|Customer|
 |---|---|---|---|
 |View own claims|No|No|Yes|
 |View claim status history|Yes|Yes|Own claims only|
@@ -1296,10 +1296,10 @@ Every paginated response should follow a consistent pagination response structur
 
 |Stage|Status|Responsible Action|
 |---|---|---|
-|Policy created|Pending<br>Payment|Customer purchases policy or admin/agent<br>issues policy|
+|Policy created|Pending<br>Payment|Customer purchases policy or admin/internal staff<br>issues policy|
 |Required premium paid<br>successfully|Active|Payment is recorded as successful|
 |Policy end date passed|Expired|System identifes policy as expired based on end<br>date|
-|Policy cancelled|Cancelled|Admin or agent cancels policy|
+|Policy cancelled|Cancelled|Admin or internal staff cancels policy|
 
 
 
@@ -1323,7 +1323,7 @@ Every paginated response should follow a consistent pagination response structur
 |---|---|---|
 |Stage|Status|Responsible Role|
 |Claim submitted|Submitted|Customer|
-|Claim taken for review|Under Review|Agent|
+|Claim taken for review|Under Review|Internal Staff|
 
 
 
@@ -1331,8 +1331,8 @@ Every paginated response should follow a consistent pagination response structur
 
 |Stage|Status|Responsible Role|
 |---|---|---|
-|Agent recommends approval|Recommended for Approval|Agent|
-|Agent recommends rejection|Recommended for Rejection|Agent|
+|Internal Staff recommends approval|Recommended for Approval|Internal Staff|
+|Internal Staff recommends rejection|Recommended for Rejection|Internal Staff|
 |Claim approved fnally|Approved|Admin|
 |Claim rejected fnally|Rejected|Admin|
 
@@ -1343,8 +1343,8 @@ Every paginated response should follow a consistent pagination response structur
 |Rule ID|Rule|
 |---|---|
 |CLC-RUL-001|A claim must start with Submitted status.|
-|CLC-RUL-002|Only an agent can move a claim to Under Review.|
-|CLC-RUL-003|Only an agent can recommend approval or rejection.|
+|CLC-RUL-002|Only an internal staff can move a claim to Under Review.|
+|CLC-RUL-003|Only an internal staff can recommend approval or rejection.|
 |CLC-RUL-004|Only an admin can approve or reject a claim fnally.|
 |CLC-RUL-005|Approved claims cannot be modifed.|
 |CLC-RUL-006|Rejected claims cannot be modifed.|
@@ -1437,7 +1437,7 @@ The project will use simulated payment records only.
 
 |Field|Rule|
 |---|---|
-|Customer Reference|Required for admin or agent policy issuance|
+|Customer Reference|Required for admin or internal staff policy issuance|
 |Plan Reference|Required and must refer to an active plan|
 |Start Date|Required and valid|
 |End Date|Must be derived from start date and plan duration|
@@ -1670,7 +1670,7 @@ The system should expose REST API capabilities for the following areas.
 |API Group|Required Capabilities|
 |---|---|
 |Authentication<br>APIs|Register customer, login user|
-|User APIs|View users, create agent, activate user, deactivate user|
+|User APIs|View users, create internal staff, activate user, deactivate user|
 |Customer APIs|Create profle, update profle, view own profle, view customer details, list|
 ||customers|
 |Product APIs|Create product, update product, view products, deactivate product|
@@ -1710,7 +1710,7 @@ The system must implement JWT-based authentication and role-based authorization.
 |---|---|
 |SEC-AUTHZ-001|The system shall allow access based on user role.|
 |SEC-AUTHZ-002|The system shall restrict admin-only operations.|
-|SEC-AUTHZ-003|The system shall restrict agent-only operations.|
+|SEC-AUTHZ-003|The system shall restrict internal staff-only operations.|
 |SEC-AUTHZ-004|The system shall restrict customer-only operations.|
 |SEC-AUTHZ-005|The system shall prevent customers from accessing another customer’s data.|
 |SEC-AUTHZ-006|The system shall return proper error responses for unauthorized access.|
@@ -2055,7 +2055,7 @@ Rule ID Rule ID-RUL-004 Business identifiers should be readable and traceable. I
 |Acceptance ID|Acceptance Criteria|
 |---|---|
 |AC-001|Customer can register successfully.|
-|AC-002|Public users cannot register as admin or agent.|
+|AC-002|Public users cannot register as admin or internal staff.|
 |AC-003|Active users can login successfully.|
 |AC-004|JWT token is generated after successful login.|
 |AC-005|Protected APIs reject requests without valid JWT token.|
@@ -2070,8 +2070,8 @@ Rule ID Rule ID-RUL-004 Business identifiers should be readable and traceable. I
 |AC-014|Failed payment does not activate policy.|
 |AC-015|Customer can raise claim only for own active policy.|
 |AC-016|Claim amount exceeding policy coverage is rejected.|
-|AC-017|Agent can review and recommend claim decision.|
-|AC-018|Agent cannot approve or reject claim fnally.|
+|AC-017|Internal Staff can review and recommend claim decision.|
+|AC-018|Internal Staff cannot approve or reject claim fnally.|
 
 
 
@@ -2099,12 +2099,12 @@ Rule ID Rule ID-RUL-004 Business identifiers should be readable and traceable. I
 |Possible Confusion|Final Requirement|
 |---|---|
 |Can public users register as admin?|No|
-|Can public users register as agent?|No|
+|Can public users register as internal staff?|No|
 |Who can self-register?|Only customers|
-|Who creates agents?|Admin|
+|Who creates internal staffs?|Admin|
 |Can customer pass customer ID while purchasing|No, customer is identifed through|
 |own policy?|authenticated account|
-|Can admin or agent issue policy for customer?|Yes|
+|Can admin or internal staff issue policy for customer?|Yes|
 |Is real payment gateway required?|No|
 |Is payment simulated?|Yes|
 |What activates a policy?|Successful required premium payment|
@@ -2120,7 +2120,7 @@ Rule ID Rule ID-RUL-004 Business identifiers should be readable and traceable. I
 |Can claim be raised on expired policy?|No|
 |Can claim be raised on cancelled policy?|No|
 |Can customer view all claims?|No, only own claims|
-|Can agent make fnal claim decision?|No|
+|Can internal staff make fnal claim decision?|No|
 |Who approves or rejects claims fnally?|Admin|
 |Is actual document upload required?|No, document reference is enough|
 |Are products and plans hard deleted?|No, they are deactivated|
@@ -2186,7 +2186,7 @@ The final project should be a working Spring Boot REST API backend system contai
 
 ## **33. One-Line Project Summary** 
 
-Build a secure REST API-based Insurance Policy and Claim Management System where customers purchase policies and raise claims, agents review and recommend claim decisions, and admins manage products, plans, users, and final claim approvals using JWT-based role-based access control. 
+Build a secure REST API-based Insurance Policy and Claim Management System where customers purchase policies and raise claims, internal staffs review and recommend claim decisions, and admins manage products, plans, users, and final claim approvals using JWT-based role-based access control. 
 
 51 
 

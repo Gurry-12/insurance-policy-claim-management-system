@@ -16,6 +16,38 @@ All implementations use `@RequiredArgsConstructor` (Lombok) for constructor inje
 
 ---
 
+## Strategy Pattern — Premium Calculation
+
+**File:** `service/strategy/PremiumCalculator.java` (interface)  
+**Factory:** `service/strategy/PremiumCalculatorFactory.java`  
+**Implementations:** `AnnualPremiumCalculator`, `OneTimePremiumCalculator`
+
+The system uses the Strategy Pattern to calculate premiums based on `PremiumType`:
+
+| Strategy | Component Name | Behavior |
+|---|---|---|
+| `AnnualPremiumCalculator` | `ANNUAL_CALCULATOR` | Customer pays premium each year; no lump-sum discount |
+| `OneTimePremiumCalculator` | `ONE_TIME_CALCULATOR` | Customer pays once upfront with duration-based discount (2-20%) |
+
+**How selection works:**
+```java
+@Component
+public class PremiumCalculatorFactory {
+    private final Map<String, PremiumCalculator> calculators;
+    
+    public PremiumCalculator getCalculator(PremiumType premiumType) {
+        return calculators.get(premiumType.name() + "_CALCULATOR");
+    }
+}
+```
+
+**Adding a new premium type (e.g., QUARTERLY):**
+1. Add `QUARTERLY` to `PremiumType` enum
+2. Create `QuarterlyPremiumCalculator implements PremiumCalculator` with `@Component("QUARTERLY_CALCULATOR")`
+3. No changes to factory or consumer code needed
+
+---
+
 ## AuthServiceImpl
 
 **Interface:** `AuthService`  

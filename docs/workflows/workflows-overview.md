@@ -133,20 +133,20 @@ POST /api/policies/issue
 
 ### Business Rules
 
-1. `amount` must EXACTLY match `plan.premiumAmount` (no partial payments)
+1. `amount` must EXACTLY match `policy.calculatedPremium` (the total premium including GST and fees)
 2. Cannot pay for CANCELLED or EXPIRED policies
 3. **ONE_TIME plans:** Only ONE successful payment allowed per policy
 4. **ANNUAL plans:** Payment window = 15 days before each anniversary of last payment
-5. ANNUAL plan total successful payments cannot exceed `plan.duration`
+5. ANNUAL plan total successful payments cannot exceed `policy.policyDuration`
 6. `transactionReference` must be globally unique (prevents double-charging)
-7. `totalPremiumPaid` cannot exceed `premiumAmount × duration`
+7. `totalPremiumPaid` cannot exceed `calculatedPremium × policyDuration`
 8. On SUCCESS payment → policy status changes to ACTIVE
 
 ### ASCII Flow Diagram
 
 ```
 POST /api/payments
-{ "policyId": 10, "amount": 12000, "paymentMode": "UPI", "paymentStatus": "SUCCESS" }
+{ "policyId": 10, "amount": 38400, "paymentMode": "UPI", "paymentStatus": "SUCCESS" }
                      │
          [PremiumPaymentServiceImpl.recordPayment()]
                      │
@@ -156,7 +156,7 @@ POST /api/payments
                      │
   Staff speciality check: IF staff, productType must match
                      │
-  amount == plan.premiumAmount? NO → 400 AMOUNT_MISMATCH
+  amount == policy.calculatedPremium? NO → 400 AMOUNT_MISMATCH
                      │
   policy.status == CANCELLED? → 400 CANCELLED_POLICY_RESTRICTED
   policy.status == EXPIRED?   → 400 EXPIRED_POLICY_RESTRICTED
@@ -168,12 +168,12 @@ POST /api/payments
     Latest SUCCESS payment + 1 year → nextEligibleDate
     paymentWindowStart = nextEligibleDate - 15 days
     now < paymentWindowStart → 400 EARLY_PAYMENT_RESTRICTION
-    totalSuccessCount >= plan.duration → 400 ALL_PREMIUMS_PAID
+    totalSuccessCount >= policyDuration → 400 ALL_PREMIUMS_PAID
                      │
   Generate transactionReference (TXN-{timestamp}-{random})
   Already exists? → 409 DUPLICATE_REFERENCE
                      │
-  totalPremiumPaid + amount > premiumAmount×duration → 400 PREMIUM_LIMIT_EXCEEDED
+  totalPremiumPaid + amount > calculatedPremium×policyDuration → 400 PREMIUM_LIMIT_EXCEEDED
                      │
   new PremiumPayment {
     policy, amount, paymentMode, transactionReference,

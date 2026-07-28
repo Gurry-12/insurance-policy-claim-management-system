@@ -124,7 +124,7 @@ public class PremiumCalculationServiceImpl implements PremiumCalculationService 
 		quote.setPremium(quoteDto.getAnnualPremium());
 		quote.setTotal(quoteDto.getTotalPremium());
 		quote.setStatus(QuoteStatus.CREATED);
-		quote.setExpiresAt(LocalDateTime.now().plusMinutes(1));
+		quote.setExpiresAt(LocalDateTime.now().plusMinutes(30));
 		
 		Quote savedQuote = quoteRepository.save(quote);
 		

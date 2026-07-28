@@ -70,14 +70,68 @@ erDiagram
         bigint id PK
         bigint product_id FK "NOT NULL"
         varchar plan_name "NOT NULL"
-        decimal coverage_amount "15,2, NOT NULL"
-        decimal premium_amount "15,2, NOT NULL"
-        varchar premium_type "NOT NULL"
-        int duration "NOT NULL"
+        int plan_version "NOT NULL, DEFAULT 1"
+        varchar supported_premium_type "NOT NULL"
         varchar terms_conditions "3000, NOT NULL"
         boolean is_active "NOT NULL"
         datetime created_date
         datetime updated_date
+    }
+
+    policy_plan_durations {
+        bigint plan_id FK "NOT NULL"
+        int duration "NOT NULL"
+    }
+
+    coverage_options {
+        bigint id PK
+        bigint plan_id FK "NOT NULL"
+        decimal coverage_amount "15,2, NOT NULL"
+        varchar label "NOT NULL"
+        int display_order "NOT NULL"
+        boolean is_active "NOT NULL, DEFAULT true"
+    }
+
+    pricing_rules {
+        bigint id PK
+        bigint plan_id FK "NOT NULL"
+        decimal base_risk_rate "10,4, NOT NULL"
+        decimal processing_fee "15,2, NOT NULL"
+        decimal gst "5,2, NOT NULL"
+        varchar remarks "500"
+        datetime effective_from "NOT NULL"
+        datetime effective_to "NULLABLE"
+        varchar status "NOT NULL, DEFAULT ACTIVE"
+        datetime created_date
+    }
+
+    pricing_audit_logs {
+        bigint id PK
+        bigint pricing_rule_id "NOT NULL"
+        text old_configuration
+        text new_configuration "NOT NULL"
+        varchar remarks "500"
+        varchar changed_by "NOT NULL"
+        datetime changed_at
+    }
+
+    quotes {
+        bigint id PK
+        bigint customer_id FK "NOT NULL"
+        bigint plan_id FK "NOT NULL"
+        int plan_version "NOT NULL"
+        bigint pricing_rule_id "NOT NULL"
+        decimal coverage "15,2, NOT NULL"
+        int duration "NOT NULL"
+        varchar premium_type "NOT NULL"
+        decimal risk_rate "10,4, NOT NULL"
+        decimal processing_fee "15,2, NOT NULL"
+        decimal gst "10,2, NOT NULL"
+        decimal premium "15,2, NOT NULL"
+        decimal total "15,2, NOT NULL"
+        varchar status "NOT NULL, DEFAULT CREATED"
+        datetime created_at
+        datetime expires_at "NOT NULL"
     }
 
     policies {
@@ -85,6 +139,17 @@ erDiagram
         varchar policy_number "UNIQUE, NOT NULL"
         bigint customer_id FK "NOT NULL"
         bigint plan_id FK "NOT NULL"
+        decimal selected_coverage "15,2, NOT NULL"
+        varchar premium_type "NOT NULL"
+        int policy_duration "NOT NULL"
+        decimal premium_rate_used "15,4, NOT NULL"
+        decimal processing_fee_used "15,2, NOT NULL"
+        decimal gst_used "15,2, NOT NULL"
+        decimal calculated_premium "15,2, NOT NULL"
+        int plan_version "NOT NULL"
+        bigint pricing_rule_id "NOT NULL"
+        bigint quote_id "NULLABLE"
+        datetime purchase_date
         date start_date "NOT NULL"
         date end_date "NOT NULL"
         varchar policy_status "NOT NULL"
@@ -147,9 +212,16 @@ erDiagram
     users ||--o{ otp_verifications : "1 to many verification logs"
     
     customers ||--o{ policies : "owns 0 or many"
+    customers ||--o{ quotes : "generates 0 or many"
     
     insurance_products ||--o{ policy_plans : "contains 0 or many"
     policy_plans ||--o{ policies : "underlying plan for"
+    policy_plans ||--o{ coverage_options : "defines coverage tiers"
+    policy_plans ||--o{ pricing_rules : "has pricing configurations"
+    policy_plans ||--o{ quotes : "generates quotes"
+    policy_plans ||--o{ policy_plan_durations : "allowed durations"
+    
+    pricing_rules ||--o{ pricing_audit_logs : "audit trail for changes"
     
     policies ||--o{ premium_payments : "logs many payments"
     policies ||--o{ claims : "secures claims"
@@ -172,6 +244,16 @@ erDiagram
     *   Constraint: `FOREIGN KEY (user_id) REFERENCES users(id)`
 *   `policy_plans.product_id` ➔ `insurance_products.id`
     *   Constraint: `FOREIGN KEY (product_id) REFERENCES insurance_products(id)`
+*   `policy_plan_durations.plan_id` ➔ `policy_plans.id`
+    *   Constraint: `FOREIGN KEY (plan_id) REFERENCES policy_plans(id)`
+*   `coverage_options.plan_id` ➔ `policy_plans.id`
+    *   Constraint: `FOREIGN KEY (plan_id) REFERENCES policy_plans(id)`
+*   `pricing_rules.plan_id` ➔ `policy_plans.id`
+    *   Constraint: `FOREIGN KEY (plan_id) REFERENCES policy_plans(id)`
+*   `quotes.customer_id` ➔ `customers.id`
+    *   Constraint: `FOREIGN KEY (customer_id) REFERENCES customers(id)`
+*   `quotes.plan_id` ➔ `policy_plans.id`
+    *   Constraint: `FOREIGN KEY (plan_id) REFERENCES policy_plans(id)`
 *   `policies.customer_id` ➔ `customers.id`
     *   Constraint: `FOREIGN KEY (customer_id) REFERENCES customers(id)`
 *   `policies.plan_id` ➔ `policy_plans.id`
