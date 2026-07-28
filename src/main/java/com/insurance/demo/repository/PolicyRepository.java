@@ -30,6 +30,12 @@ public interface PolicyRepository extends JpaRepository<Policy, Long>, JpaSpecif
 	);
 
 	boolean existsByPricingRuleId(Long pricingRuleId);
+
+	boolean existsByPolicyPlanId(Long policyPlanId);
+
+	boolean existsByPolicyPlanIdAndPolicyDuration(Long policyPlanId, Integer policyDuration);
+
+	boolean existsByPolicyPlanIdAndSelectedCoverage(Long policyPlanId, java.math.BigDecimal selectedCoverage);
 }
 
 

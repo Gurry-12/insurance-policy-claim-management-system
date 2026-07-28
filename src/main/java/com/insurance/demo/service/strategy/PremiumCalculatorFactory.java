@@ -1,11 +1,12 @@
 package com.insurance.demo.service.strategy;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.insurance.demo.enums.ProductType;
+import com.insurance.demo.enums.PremiumType;
 
 @Component
 public class PremiumCalculatorFactory {
@@ -17,12 +18,10 @@ public class PremiumCalculatorFactory {
 		this.calculators = calculators;
 	}
 
-	public PremiumCalculator getCalculator(ProductType productType) {
-		String beanName = productType.name() + "_CALCULATOR";
-		PremiumCalculator calculator = calculators.get(beanName);
-		if (calculator == null) {
-			return calculators.get("DEFAULT_CALCULATOR");
-		}
-		return calculator;
+	public PremiumCalculator getCalculator(PremiumType premiumType) {
+		String beanName = premiumType.name() + "_CALCULATOR";
+		return Optional.ofNullable(calculators.get(beanName))
+				.orElseThrow(() -> new IllegalStateException(
+						"No premium calculator found for type: " + premiumType));
 	}
 }
