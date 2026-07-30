@@ -101,7 +101,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 
 		// 3. Create Pricing Rule
 		if (requestDTO.getPricingRule() == null) {
-			requestDTO.setPricingRule(new com.insurance.demo.dto.request.PricingRuleRequestDTO());
+			throw new BadRequestException("Pricing rule is required to create a policy plan");
 		}
 		requestDTO.getPricingRule().setPlanId(planId);
 		ApiResponseDTO<PricingRuleResponseDTO> pricingResponse = pricingRuleService.createPricingRule(requestDTO.getPricingRule());
@@ -238,7 +238,16 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 						.toList();
 			}
 		}
-		List<PlanResponseDTO> responseList = plans.stream().map(plan -> modelMapper.map(plan, PlanResponseDTO.class))
+		List<PlanResponseDTO> responseList = plans.stream()
+				.map(plan -> {
+					PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
+					if (dto.getCoverageOptions() != null) {
+						dto.setCoverageOptions(dto.getCoverageOptions().stream()
+								.filter(co -> Boolean.TRUE.equals(co.getIsActive()))
+								.toList());
+					}
+					return dto;
+				})
 				.toList();
 
 		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ACTIVE_FETCHED, true, responseList,
@@ -268,7 +277,16 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 			}
 		}
 
-		List<PlanResponseDTO> responseList = plans.stream().map(plan -> modelMapper.map(plan, PlanResponseDTO.class))
+		List<PlanResponseDTO> responseList = plans.stream()
+				.map(plan -> {
+					PlanResponseDTO dto = modelMapper.map(plan, PlanResponseDTO.class);
+					if (dto.getCoverageOptions() != null) {
+						dto.setCoverageOptions(dto.getCoverageOptions().stream()
+								.filter(co -> Boolean.TRUE.equals(co.getIsActive()))
+								.toList());
+					}
+					return dto;
+				})
 				.toList();
 
 		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.ACTIVE_UNDER_PRODUCT_FETCHED, true, responseList,
@@ -285,6 +303,7 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 		PaginationValidator.validateSortField(sortBy,
 				Set.of("id", "planName", "createdDate"));
 
+		if (sortDirection == null) sortDirection = "asc";
 		Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
 		Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by(direction, sortBy));
 
@@ -329,8 +348,16 @@ public class PolicyPlanServiceImpl implements PolicyPlanService {
 			throw new ResourceNotFoundException(MessageConstants.PolicyPlan.NOT_FOUND + planId);
 		}
 
+		PlanResponseDTO responseDTO = modelMapper.map(plan, PlanResponseDTO.class);
+
+		if (isCustomer && responseDTO.getCoverageOptions() != null) {
+			responseDTO.setCoverageOptions(responseDTO.getCoverageOptions().stream()
+					.filter(co -> Boolean.TRUE.equals(co.getIsActive()))
+					.toList());
+		}
+
 		return new ApiResponseDTO<>(MessageConstants.PolicyPlan.DETAILS_RETRIEVED, true,
-				modelMapper.map(plan, PlanResponseDTO.class), LocalDateTime.now());
+				responseDTO, LocalDateTime.now());
 
 	}
 }
